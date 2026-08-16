@@ -16,19 +16,23 @@ export type Database = {
     Tables: {
       evaluations: {
         Row: {
+          after_screenshot_url: string | null
           answers: Json
           asset: string | null
+          before_screenshot_url: string | null
           breakdown: Json
           classification: string | null
           created_at: string
           decision: string | null
           direction: string | null
+          discipline_status: string | null
           emotional_stop: boolean
           followed_plan: string | null
           hard_rules: string[]
           id: string
           idea: string | null
           market: string | null
+          notes: string | null
           result_money: number | null
           result_r: number | null
           review: Json
@@ -44,19 +48,23 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          after_screenshot_url?: string | null
           answers?: Json
           asset?: string | null
+          before_screenshot_url?: string | null
           breakdown?: Json
           classification?: string | null
           created_at?: string
           decision?: string | null
           direction?: string | null
+          discipline_status?: string | null
           emotional_stop?: boolean
           followed_plan?: string | null
           hard_rules?: string[]
           id?: string
           idea?: string | null
           market?: string | null
+          notes?: string | null
           result_money?: number | null
           result_r?: number | null
           review?: Json
@@ -72,19 +80,23 @@ export type Database = {
           user_id: string
         }
         Update: {
+          after_screenshot_url?: string | null
           answers?: Json
           asset?: string | null
+          before_screenshot_url?: string | null
           breakdown?: Json
           classification?: string | null
           created_at?: string
           decision?: string | null
           direction?: string | null
+          discipline_status?: string | null
           emotional_stop?: boolean
           followed_plan?: string | null
           hard_rules?: string[]
           id?: string
           idea?: string | null
           market?: string | null
+          notes?: string | null
           result_money?: number | null
           result_r?: number | null
           review?: Json
@@ -105,17 +117,26 @@ export type Database = {
         Row: {
           created_at: string
           display_name: string | null
+          email: string | null
+          full_name: string | null
           id: string
+          updated_at: string
         }
         Insert: {
           created_at?: string
           display_name?: string | null
+          email?: string | null
+          full_name?: string | null
           id: string
+          updated_at?: string
         }
         Update: {
           created_at?: string
           display_name?: string | null
+          email?: string | null
+          full_name?: string | null
           id?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -155,30 +176,87 @@ export type Database = {
         }
         Relationships: []
       }
-      weekly_reviews: {
+      user_roles: {
         Row: {
           created_at: string
           id: string
-          notes: Json
-          updated_at: string
+          role: Database["public"]["Enums"]["app_role"]
           user_id: string
-          week_start: string
         }
         Insert: {
           created_at?: string
           id?: string
-          notes?: Json
-          updated_at?: string
+          role: Database["public"]["Enums"]["app_role"]
           user_id: string
-          week_start: string
         }
         Update: {
           created_at?: string
           id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      weekly_reviews: {
+        Row: {
+          average_r: number | null
+          average_score: number | null
+          best_setup: string | null
+          biggest_mistake: string | null
+          biggest_success: string | null
+          created_at: string
+          id: string
+          impulsive_trades: number | null
+          next_week_action: string | null
+          notes: Json
+          number_of_trades: number | null
+          off_plan_trades: number | null
+          updated_at: string
+          user_id: string
+          week_end: string | null
+          week_start: string
+          win_rate: number | null
+          worst_setup: string | null
+        }
+        Insert: {
+          average_r?: number | null
+          average_score?: number | null
+          best_setup?: string | null
+          biggest_mistake?: string | null
+          biggest_success?: string | null
+          created_at?: string
+          id?: string
+          impulsive_trades?: number | null
+          next_week_action?: string | null
           notes?: Json
+          number_of_trades?: number | null
+          off_plan_trades?: number | null
+          updated_at?: string
+          user_id: string
+          week_end?: string | null
+          week_start: string
+          win_rate?: number | null
+          worst_setup?: string | null
+        }
+        Update: {
+          average_r?: number | null
+          average_score?: number | null
+          best_setup?: string | null
+          biggest_mistake?: string | null
+          biggest_success?: string | null
+          created_at?: string
+          id?: string
+          impulsive_trades?: number | null
+          next_week_action?: string | null
+          notes?: Json
+          number_of_trades?: number | null
+          off_plan_trades?: number | null
           updated_at?: string
           user_id?: string
+          week_end?: string | null
           week_start?: string
+          win_rate?: number | null
+          worst_setup?: string | null
         }
         Relationships: []
       }
@@ -187,10 +265,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -317,6 +401,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const
