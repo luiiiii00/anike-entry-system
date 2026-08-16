@@ -52,7 +52,7 @@ export async function approveUser(target: string, plan: AccessPlan, days: number
   const { error } = await supabase.rpc("admin_approve_user", {
     _target: target,
     _plan: plan,
-    _days: days,
+    ...(days === null ? {} : { _days: days }),
   });
   if (error) throw error;
 }
@@ -86,7 +86,7 @@ export async function changePlan(target: string, plan: AccessPlan, days: number 
   const { error } = await supabase.rpc("admin_change_plan", {
     _target: target,
     _plan: plan,
-    _days: days,
+    ...(days === null ? {} : { _days: days }),
   });
   if (error) throw error;
 }
