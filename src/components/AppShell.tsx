@@ -60,6 +60,7 @@ export function AppShell({
 
   return (
     <div className="min-h-screen bg-background">
+      <ContentProtection />
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col border-r border-border bg-surface/60 p-5 lg:flex">
         <Wordmark />
         <nav className="mt-8 flex flex-1 flex-col gap-1">
