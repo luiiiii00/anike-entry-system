@@ -14,7 +14,174 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      evaluations: {
+        Row: {
+          answers: Json
+          asset: string | null
+          breakdown: Json
+          classification: string | null
+          created_at: string
+          decision: string | null
+          direction: string | null
+          emotional_stop: boolean
+          followed_plan: string | null
+          hard_rules: string[]
+          id: string
+          idea: string | null
+          market: string | null
+          result_money: number | null
+          result_r: number | null
+          review: Json
+          risk: Json
+          score: number | null
+          session: string | null
+          setup: string | null
+          status: string
+          trade_date: string
+          trade_no: number | null
+          trade_time: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answers?: Json
+          asset?: string | null
+          breakdown?: Json
+          classification?: string | null
+          created_at?: string
+          decision?: string | null
+          direction?: string | null
+          emotional_stop?: boolean
+          followed_plan?: string | null
+          hard_rules?: string[]
+          id?: string
+          idea?: string | null
+          market?: string | null
+          result_money?: number | null
+          result_r?: number | null
+          review?: Json
+          risk?: Json
+          score?: number | null
+          session?: string | null
+          setup?: string | null
+          status?: string
+          trade_date?: string
+          trade_no?: number | null
+          trade_time?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          asset?: string | null
+          breakdown?: Json
+          classification?: string | null
+          created_at?: string
+          decision?: string | null
+          direction?: string | null
+          emotional_stop?: boolean
+          followed_plan?: string | null
+          hard_rules?: string[]
+          id?: string
+          idea?: string | null
+          market?: string | null
+          result_money?: number | null
+          result_r?: number | null
+          review?: Json
+          risk?: Json
+          score?: number | null
+          session?: string | null
+          setup?: string | null
+          status?: string
+          trade_date?: string
+          trade_no?: number | null
+          trade_time?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          account_capital: number
+          currency: string
+          max_daily_trades: number
+          max_risk_pct: number
+          min_rr: number
+          preferred_setups: string[]
+          theme: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_capital?: number
+          currency?: string
+          max_daily_trades?: number
+          max_risk_pct?: number
+          min_rr?: number
+          preferred_setups?: string[]
+          theme?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_capital?: number
+          currency?: string
+          max_daily_trades?: number
+          max_risk_pct?: number
+          min_rr?: number
+          preferred_setups?: string[]
+          theme?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      weekly_reviews: {
+        Row: {
+          created_at: string
+          id: string
+          notes: Json
+          updated_at: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: Json
+          updated_at?: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: Json
+          updated_at?: string
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
