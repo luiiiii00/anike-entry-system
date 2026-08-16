@@ -32,8 +32,10 @@ function LoginPage() {
   const [googleBusy, setGoogleBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && user && !busy && !googleBusy) window.location.replace("/dashboard");
-  }, [loading, user, busy, googleBusy]);
+    // La sesión confirmada siempre gana: el guard de /dashboard decide si el
+    // usuario entra o debe continuar en /estado.
+    if (!loading && user) void router.navigate({ to: "/dashboard", replace: true });
+  }, [loading, user, router]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -65,20 +67,33 @@ function LoginPage() {
   async function google() {
     if (busy || googleBusy) return;
     setGoogleBusy(true);
+    let timeoutId: ReturnType<typeof window.setTimeout> | undefined;
     try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        // En Preview el helper usa web_message y guarda la sesión en esta
-        // ventana. En una pestaña normal vuelve al origen público.
-        redirect_uri: window.location.origin,
-        extraParams: { prompt: "select_account" },
+      const timeout = new Promise<never>((_, reject) => {
+        timeoutId = window.setTimeout(
+          () => reject(new Error("La conexión con Google tardó demasiado. Inténtalo nuevamente.")),
+          90_000,
+        );
       });
+      const result = await Promise.race([
+        lovable.auth.signInWithOAuth("google", {
+          // En Preview el helper usa web_message y guarda la sesión en esta
+          // ventana. En una pestaña normal vuelve al origen público.
+          redirect_uri: window.location.origin,
+          extraParams: { prompt: "select_account" },
+        }),
+        timeout,
+      ]);
       if (result.error) throw new Error(String(result.error));
       if (result.redirected) return;
 
-      // El helper ya llamó setSession antes de resolver.
-      window.location.replace("/dashboard");
+      // El helper ya llamó setSession antes de resolver. La navegación pasa
+      // por el guard, que deriva cuentas pendientes o vencidas a /estado.
+      await router.navigate({ to: "/dashboard", replace: true });
     } catch (error) {
       toast.error(friendlyAuthError(error));
+    } finally {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
       setGoogleBusy(false);
     }
   }
