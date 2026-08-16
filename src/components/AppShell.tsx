@@ -49,10 +49,18 @@ export function AppShell({
   const queryClient = useQueryClient();
   const { isAdmin } = useProfile();
   const pathname = useLocation({ select: (l) => l.pathname });
-  // Solo dashboard, /estado y /admin llevan la capa de protección.
-  const protectionEnabled = ["/dashboard", "/estado", "/admin"].some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`),
-  );
+  // Rutas con capa de protección de contenido.
+  const protectionEnabled = [
+    "/dashboard",
+    "/estado",
+    "/admin",
+    "/nueva",
+    "/journal",
+    "/stats",
+    "/perfil",
+    "/weekly",
+    "/trade",
+  ].some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
 
   async function signOut() {
