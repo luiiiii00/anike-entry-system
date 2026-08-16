@@ -46,6 +46,8 @@ export function AppShell({
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { isAdmin } = useProfile();
+
 
   async function signOut() {
     await queryClient.cancelQueries();
@@ -67,6 +69,8 @@ export function AppShell({
           {DESKTOP_EXTRA.map((item) => (
             <SideLink key={item.label} {...item} />
           ))}
+          {isAdmin && <SideLink to="/admin" label="Administración" icon={Shield} />}
+
         </nav>
         <button
           onClick={signOut}
@@ -96,7 +100,11 @@ export function AppShell({
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-5 sm:px-6 lg:pb-12">{children}</main>
+        <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-5 sm:px-6 lg:pb-12">
+          <AccessBanner />
+          {children}
+        </main>
+
       </div>
 
       <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden">
