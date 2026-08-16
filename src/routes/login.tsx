@@ -72,9 +72,9 @@ function LoginPage() {
       if (result.error) throw new Error(String(result.error));
       if (result.redirected) return;
 
-      // La integración ya guardó los tokens. Una navegación completa evita que
-      // el router conserve el estado del iframe/popup después del retorno OAuth.
-      window.location.replace("/dashboard");
+      // La integración ya guardó los tokens antes de resolver esta promesa.
+      // El guard de /dashboard decide si corresponde mostrar /estado.
+      await router.navigate({ to: "/dashboard", replace: true });
     } catch (error) {
       toast.error(friendlyAuthError(error));
       setBusy(false);
