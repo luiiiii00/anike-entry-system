@@ -98,7 +98,9 @@ export function clearProtectionEvents() {
 export function subscribeProtectionEvents(fn: (e: ProtectionEvent[]) => void) {
   load();
   listeners.add(fn);
-  return () => listeners.delete(fn);
+  return () => {
+    listeners.delete(fn);
+  };
 }
 
 export function formatProtectionTime(iso: string) {
