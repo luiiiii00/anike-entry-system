@@ -5,7 +5,15 @@ import { Clock, ShieldOff, Ban, TimerOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Wordmark } from "@/components/brand";
 import { useProfile } from "@/hooks/useProfile";
-import { effectiveStatus, formatDate, hasActiveAccess, PLAN_LABEL } from "@/lib/access";
+import {
+  effectiveStatus,
+  formatDate,
+  formatExpiration,
+  hasActiveAccess,
+  PLAN_LABEL,
+  timeRemaining,
+} from "@/lib/access";
+import { useNow } from "@/hooks/useNow";
 
 export const Route = createFileRoute("/estado")({
   ssr: false,
@@ -58,6 +66,7 @@ function EstadoPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user, profile, loading } = useProfile();
+  const now = useNow(15_000);
 
   useEffect(() => {
     if (loading) return;
@@ -126,9 +135,13 @@ function EstadoPage() {
               <dt className="label-mono">Solicitud</dt>
               <dd className="mt-1">{formatDate(profile.created_at)}</dd>
             </div>
-            <div>
-              <dt className="label-mono">Vencimiento</dt>
-              <dd className="mt-1">{formatDate(profile.access_expiration)}</dd>
+            <div className="col-span-2">
+              <dt className="label-mono">Vencimiento exacto</dt>
+              <dd className="mt-1 tabular-nums">{formatExpiration(profile)}</dd>
+            </div>
+            <div className="col-span-2">
+              <dt className="label-mono">Tiempo restante</dt>
+              <dd className="mt-1 tabular-nums">{timeRemaining(profile, now)}</dd>
             </div>
           </dl>
 

@@ -9,7 +9,11 @@ export function useProfile() {
     queryKey: ["my-profile", user?.id],
     queryFn: () => fetchMyProfile(user!.id),
     enabled: !!user,
-    staleTime: 30_000,
+    // El admin puede renovar o cambiar el plan en cualquier momento: mantenemos
+    // el estado y el tiempo restante al día sin recargar la página.
+    staleTime: 10_000,
+    refetchInterval: 20_000,
+    refetchOnWindowFocus: true,
   });
 
   const admin = useQuery({
