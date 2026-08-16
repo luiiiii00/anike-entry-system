@@ -156,6 +156,7 @@ function AdminPanel() {
 
   return (
     <div className="min-h-screen bg-background">
+      <ContentProtection />
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r border-border bg-surface/60 p-5 lg:flex">
         <Wordmark />
         <p className="label-mono mt-6">Administración</p>
