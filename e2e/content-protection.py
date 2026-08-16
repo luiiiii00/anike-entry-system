@@ -57,8 +57,8 @@ async def main() -> int:
         await page.goto(f"{BASE}{ROUTE}", wait_until="domcontentloaded")
         try:
             await page.wait_for_selector("[data-testid='privacy-curtain']", timeout=20000)
-        except Exception:
-            check("capa de proteccion montada", False, f"no montada en {page.url}")
+        except Exception as exc:
+            check("capa de proteccion montada", False, f"no montada en {page.url}: {exc}")
             await browser.close()
             return 1
         check("capa de proteccion montada", True, page.url)
