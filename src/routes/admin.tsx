@@ -80,7 +80,7 @@ type Modal =
   | { kind: "detail"; user: Profile }
   | null;
 
-const DURATIONS = [7, 30, 90, 180, 365];
+const DURATIONS = [1, 7, 30];
 
 function AdminPanel() {
   const router = useRouter();
@@ -617,7 +617,7 @@ function DaysPicker({
                 : "border-border bg-surface-2 text-muted-foreground",
             )}
           >
-            {d} días
+            {d}D
           </button>
         ))}
       </div>
