@@ -133,8 +133,8 @@ function RootComponent() {
     const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
 
-      // El inicio de sesión navega por /auth-callback. No invalidar aquí evita
-      // competir con el popup de Google mientras todavía guarda sus tokens.
+      // El SDK de OAuth ya persiste la sesión antes de resolver (setSession en
+      // src/integrations/lovable/index.ts). Este listener solo reacciona a logout.
       window.setTimeout(() => {
         void router.invalidate();
         if (event !== "SIGNED_OUT") void queryClient.invalidateQueries();
