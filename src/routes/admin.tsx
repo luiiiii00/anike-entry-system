@@ -22,6 +22,9 @@ import {
   effectiveStatus,
   formatDate,
   formatDateTime,
+  formatExpiration,
+  timeRemaining,
+  timeZoneLabel,
   PLAN_LABEL,
   STATUS_BADGE,
   STATUS_LABEL,
@@ -41,6 +44,7 @@ import {
   suspendUser,
   sweepExpired,
 } from "@/lib/admin";
+import { useNow } from "@/hooks/useNow";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin")({
@@ -81,6 +85,7 @@ type Modal =
   | null;
 
 const DURATIONS = [1, 7, 30];
+const PLAN_ACTIONS = ["APPROVE_USER", "RENEW_USER", "CHANGE_PLAN"];
 
 function AdminPanel() {
   const router = useRouter();
@@ -89,6 +94,7 @@ function AdminPanel() {
   const [planFilter, setPlanFilter] = useState<"ALL" | AccessPlan>("ALL");
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState<Modal>(null);
+  const now = useNow(15_000);
 
   const users = useQuery({
     queryKey: ["admin-users"],
@@ -124,6 +130,12 @@ function AdminPanel() {
       );
     });
   }, [rows, filter, planFilter, search]);
+
+  const people = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const u of rows) map[u.id] = u.full_name ?? u.display_name ?? u.email ?? u.id.slice(0, 8);
+    return map;
+  }, [rows]);
 
   const act = useMutation({
     mutationFn: async (fn: () => Promise<unknown>) => fn(),
@@ -285,7 +297,12 @@ function AdminPanel() {
                         </td>
                         <td className="py-3 pr-3">{PLAN_LABEL[u.plan]}</td>
                         <td className="py-3 pr-3 text-muted-foreground">
-                          {u.plan === "LIFETIME" ? "De por vida" : formatDate(u.access_expiration)}
+                          <span className="tabular-nums">{formatExpiration(u)}</span>
+                          {u.plan === "PRO" && u.access_expiration && (
+                            <span className="block text-xs tabular-nums text-muted-foreground/80">
+                              restan {timeRemaining(u, now)}
+                            </span>
+                          )}
                         </td>
                         <td className="py-3">
                           <div className="flex flex-wrap gap-1.5">
@@ -365,6 +382,7 @@ function AdminPanel() {
       {modal && (
         <ModalHost
           modal={modal}
+          people={people}
           busy={act.isPending}
           onClose={() => setModal(null)}
           run={(fn) => act.mutate(fn)}
@@ -422,11 +440,13 @@ function RowBtn({
 
 function ModalHost({
   modal,
+  people,
   busy,
   onClose,
   run,
 }: {
   modal: NonNullable<Modal>;
+  people: Record<string, string>;
   busy: boolean;
   onClose: () => void;
   run: (fn: () => Promise<unknown>) => void;
@@ -529,8 +549,9 @@ function ModalHost({
         {modal.kind === "renew" && (
           <div className="mt-5 space-y-4">
             <p className="text-sm text-muted-foreground">
-              Vencimiento actual: {formatDate(user.access_expiration)}. Si ya venció, el nuevo período
-              empieza hoy.
+              Vencimiento actual: <span className="tabular-nums">{formatExpiration(user)}</span>.
+              Si ya venció, el nuevo período empieza en este momento; si no, se suma al tiempo
+              restante ({timeRemaining(user)}).
             </p>
             <DaysPicker days={days} setDays={setDays} />
             <Confirm
@@ -563,7 +584,7 @@ function ModalHost({
           </div>
         )}
 
-        {modal.kind === "detail" && <UserDetail user={user} />}
+        {modal.kind === "detail" && <UserDetail user={user} people={people} />}
       </div>
     </div>
   );
@@ -673,7 +694,8 @@ function Confirm({
   );
 }
 
-function UserDetail({ user }: { user: Profile }) {
+function UserDetail({ user, people }: { user: Profile; people: Record<string, string> }) {
+  const now = useNow(15_000);
   const audit = useQuery({
     queryKey: ["admin-audit", user.id],
     queryFn: () => fetchAuditLog(user.id),
@@ -692,16 +714,63 @@ function UserDetail({ user }: { user: Profile }) {
         <Detail label="Registro" value={formatDate(user.created_at)} />
         <Detail label="Aprobación" value={formatDate(user.approved_at)} />
         <Detail label="Inicio de acceso" value={formatDate(user.access_start)} />
-        <Detail
-          label="Vencimiento"
-          value={user.plan === "LIFETIME" ? "De por vida" : formatDate(user.access_expiration)}
-        />
         <Detail label="Último acceso" value={formatDateTime(user.last_seen_at)} />
       </dl>
+      <div className="rounded-xl border border-border bg-surface-2 p-4">
+        <p className="label-mono">Vencimiento exacto</p>
+        <p className="mt-1 font-display text-lg tabular-nums">{formatExpiration(user)}</p>
+        <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          Tiempo restante: {timeRemaining(user, now)} · Zona horaria: {timeZoneLabel()}
+        </p>
+      </div>
       {user.rejection_reason && <Detail label="Motivo de rechazo" value={user.rejection_reason} />}
       {user.suspension_reason && (
         <Detail label="Motivo de suspensión" value={user.suspension_reason} />
       )}
+
+      <div>
+        <p className="label-mono">Historial de plan</p>
+        <ul className="mt-2 space-y-2">
+          {(audit.data ?? [])
+            .filter((e) => PLAN_ACTIONS.includes(e.action))
+            .map((entry) => {
+              const d = (entry.details ?? {}) as Record<string, unknown>;
+              const plan = d["plan"] ? String(d["plan"]) : null;
+              const days = d["days"] ? Number(d["days"]) : null;
+              const expiration = d["new_expiration"] ?? d["expiration"];
+              return (
+                <li
+                  key={entry.id}
+                  className="rounded-xl border border-border bg-surface-2 p-3 text-sm"
+                >
+                  <div className="flex items-baseline justify-between gap-3">
+                    <p className="font-medium">{ACTION_LABEL[entry.action] ?? entry.action}</p>
+                    <p className="label-mono tabular-nums">{formatDateTime(entry.created_at)}</p>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {[
+                      plan ? `Plan: ${plan}` : null,
+                      days ? `Duración: ${days} día${days === 1 ? "" : "s"}` : null,
+                      expiration
+                        ? `Vence: ${formatDateTime(String(expiration))}`
+                        : plan === "LIFETIME"
+                          ? "Vence: nunca"
+                          : null,
+                      `Admin: ${people[entry.admin_user_id] ?? entry.admin_user_id.slice(0, 8)}`,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                </li>
+              );
+            })}
+          {(audit.data ?? []).filter((e) => PLAN_ACTIONS.includes(e.action)).length === 0 && (
+            <li className="text-sm text-muted-foreground">
+              {audit.isLoading ? "Cargando…" : "Sin cambios de plan registrados."}
+            </li>
+          )}
+        </ul>
+      </div>
 
       <div>
         <p className="label-mono">Historial administrativo</p>
@@ -709,7 +778,12 @@ function UserDetail({ user }: { user: Profile }) {
           {(audit.data ?? []).map((entry) => (
             <li key={entry.id} className="rounded-xl border border-border bg-surface-2 p-3 text-sm">
               <p className="label-mono">{formatDateTime(entry.created_at)}</p>
-              <p className="mt-0.5">{ACTION_LABEL[entry.action] ?? entry.action}</p>
+              <p className="mt-0.5">
+                {ACTION_LABEL[entry.action] ?? entry.action}
+                <span className="text-muted-foreground">
+                  {" "}· {people[entry.admin_user_id] ?? entry.admin_user_id.slice(0, 8)}
+                </span>
+              </p>
               {entry.details && Object.keys(entry.details).length > 0 && (
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   {Object.entries(entry.details)
