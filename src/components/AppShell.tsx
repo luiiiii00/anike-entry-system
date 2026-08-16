@@ -109,19 +109,22 @@ export function AppShell({
 
       <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden">
         <div className="flex items-stretch justify-between px-2">
-          {NAV.map(({ to, label, icon: Icon }) => (
-            <Link
-              key={to}
-              to={to}
-              className="flex flex-1 flex-col items-center gap-1 px-1 py-2.5 text-[11px] text-muted-foreground transition-colors"
-              activeProps={{ className: "text-primary" }}
-            >
-              <Icon className="h-5 w-5" />
-              {label}
-            </Link>
-          ))}
+          {[...NAV, ...(isAdmin ? [{ to: "/admin", label: "Admin", icon: Shield } as const] : [])].map(
+            ({ to, label, icon: Icon }) => (
+              <Link
+                key={to}
+                to={to}
+                className="flex flex-1 flex-col items-center gap-1 px-1 py-2.5 text-[11px] text-muted-foreground transition-colors"
+                activeProps={{ className: "text-primary" }}
+              >
+                <Icon className="h-5 w-5" />
+                {label}
+              </Link>
+            ),
+          )}
         </div>
       </nav>
+
     </div>
   );
 }
