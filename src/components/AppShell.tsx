@@ -16,6 +16,7 @@ import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Wordmark } from "./brand";
 import { AccessBanner } from "./AccessBanner";
+import { ContentProtection } from "./ContentProtection";
 import { useProfile } from "@/hooks/useProfile";
 import { cn } from "@/lib/utils";
 
