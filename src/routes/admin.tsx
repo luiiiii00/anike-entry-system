@@ -532,7 +532,7 @@ function ModalHost({
               Vencimiento actual: {formatDate(user.access_expiration)}. Si ya venció, el nuevo período
               empieza hoy.
             </p>
-            <DaysPicker days={days} setDays={setDays} options={[30, 90, 180, 365]} />
+            <DaysPicker days={days} setDays={setDays} />
             <Confirm
               busy={busy}
               label="RENOVAR"
