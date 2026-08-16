@@ -56,7 +56,7 @@ async def main() -> int:
         await restore_session(context, page)
         await page.goto(f"{BASE}{ROUTE}", wait_until="domcontentloaded")
         try:
-            await page.wait_for_selector("[data-testid='privacy-curtain']", timeout=20000)
+            await page.wait_for_selector("[data-testid='privacy-curtain']", state="attached", timeout=20000)
         except Exception as exc:
             check("capa de proteccion montada", False, f"no montada en {page.url}: {exc}")
             await browser.close()
@@ -94,7 +94,7 @@ async def main() -> int:
         await page.keyboard.press("Control+p")
         notice = page.locator("[data-testid='protection-notice']")
         try:
-            await notice.wait_for(timeout=2000)
+            await notice.wait_for(state="attached", timeout=2000)
             check("aviso flotante con Ctrl+P", True, (await notice.inner_text()).strip())
         except Exception:
             check("aviso flotante con Ctrl+P", False, "no aparecio")
