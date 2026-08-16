@@ -1,6 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { ArrowRight, ShieldCheck, Target, Gauge } from "lucide-react";
 import { Wordmark } from "@/components/brand";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/")({
   head: () => ({
