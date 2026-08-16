@@ -23,7 +23,7 @@ function CallbackPage() {
 
     async function resolve() {
       // Espera a que el SDK termine de guardar la sesión del proveedor.
-      for (let attempt = 0; attempt < 25; attempt += 1) {
+      for (let attempt = 0; attempt < 75; attempt += 1) {
         const { data } = await supabase.auth.getSession();
         if (cancelled) return;
         if (data.session) {
