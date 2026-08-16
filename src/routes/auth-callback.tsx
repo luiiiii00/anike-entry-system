@@ -1,4 +1,4 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Wordmark } from "@/components/brand";
@@ -18,8 +18,6 @@ export const Route = createFileRoute("/auth-callback")({
 });
 
 function CallbackPage() {
-  const router = useRouter();
-
   useEffect(() => {
     let cancelled = false;
 
@@ -29,19 +27,19 @@ function CallbackPage() {
         const { data } = await supabase.auth.getSession();
         if (cancelled) return;
         if (data.session) {
-          router.navigate({ to: "/dashboard", replace: true });
+          window.location.replace("/dashboard");
           return;
         }
         await new Promise((r) => setTimeout(r, 200));
       }
-      if (!cancelled) router.navigate({ to: "/login", replace: true });
+      if (!cancelled) window.location.replace("/login");
     }
 
     void resolve();
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, []);
 
   return (
     <div className="grid-noise flex min-h-screen flex-col items-center justify-center gap-6 px-5">

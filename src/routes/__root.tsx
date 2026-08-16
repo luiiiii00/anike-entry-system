@@ -131,10 +131,10 @@ function RootComponent() {
 
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {
-      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+      if (event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
 
-      // Supabase espera a que termine este callback antes de resolver setSession.
-      // Diferir las invalidaciones evita bloquear el retorno de OAuth con Google.
+      // El inicio de sesión navega por /auth-callback. No invalidar aquí evita
+      // competir con el popup de Google mientras todavía guarda sus tokens.
       window.setTimeout(() => {
         void router.invalidate();
         if (event !== "SIGNED_OUT") void queryClient.invalidateQueries();
