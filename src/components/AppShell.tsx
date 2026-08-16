@@ -1,4 +1,4 @@
-import { Link, useRouter } from "@tanstack/react-router";
+import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -48,6 +48,11 @@ export function AppShell({
   const router = useRouter();
   const queryClient = useQueryClient();
   const { isAdmin } = useProfile();
+  const pathname = useLocation({ select: (l) => l.pathname });
+  // Solo dashboard, /estado y /admin llevan la capa de protección.
+  const protectionEnabled = ["/dashboard", "/estado", "/admin"].some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
 
 
   async function signOut() {
@@ -60,7 +65,7 @@ export function AppShell({
 
   return (
     <div className="min-h-screen bg-background">
-      <ContentProtection />
+      {protectionEnabled && <ContentProtection />}
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col border-r border-border bg-surface/60 p-5 lg:flex">
         <Wordmark />
         <nav className="mt-8 flex flex-1 flex-col gap-1">
