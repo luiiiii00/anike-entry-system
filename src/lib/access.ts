@@ -71,6 +71,56 @@ export function formatDateTime(value: string | null | undefined): string {
   });
 }
 
+/** Zona horaria del dispositivo (la expiración se guarda en UTC y se muestra local). */
+export function timeZoneLabel(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone ?? "local";
+  } catch {
+    return "local";
+  }
+}
+
+/** Fecha y hora exacta de vencimiento, con segundos y zona horaria. */
+export function formatExpiration(
+  profile: Pick<Profile, "access_expiration" | "plan">,
+): string {
+  if (profile.plan === "LIFETIME") return "De por vida";
+  if (!profile.access_expiration) return "—";
+  const d = new Date(profile.access_expiration);
+  const stamp = d.toLocaleString("es-ES", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  return `${stamp} (${timeZoneLabel()})`;
+}
+
+/** Tiempo restante legible: "2 d 5 h 10 min" o "Vencido". */
+export function timeRemaining(
+  profile: Pick<Profile, "access_expiration" | "plan">,
+  now: number = Date.now(),
+): string {
+  if (profile.plan === "LIFETIME") return "Sin vencimiento";
+  if (!profile.access_expiration) return "—";
+  let ms = new Date(profile.access_expiration).getTime() - now;
+  if (ms <= 0) return "Vencido";
+  const days = Math.floor(ms / 86_400_000);
+  ms -= days * 86_400_000;
+  const hours = Math.floor(ms / 3_600_000);
+  ms -= hours * 3_600_000;
+  const minutes = Math.floor(ms / 60_000);
+  const parts: string[] = [];
+  if (days) parts.push(`${days} d`);
+  if (hours || days) parts.push(`${hours} h`);
+  parts.push(`${minutes} min`);
+  return parts.join(" ");
+}
+
+
 export async function fetchMyProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
   if (error) throw error;
