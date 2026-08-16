@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Wordmark } from "@/components/brand";
+import { ContentProtection } from "@/components/ContentProtection";
 import { friendlyAuthError } from "@/lib/auth-errors";
 import {
   effectiveStatus,
