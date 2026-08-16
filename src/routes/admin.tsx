@@ -712,8 +712,8 @@ function UserDetail({ user, people }: { user: Profile; people: Record<string, st
       <dl className="grid grid-cols-2 gap-3 text-sm">
         <Detail label="Email" value={user.email ?? "—"} />
         <Detail label="Registro" value={formatDate(user.created_at)} />
-        <Detail label="Aprobación" value={formatDate(user.approved_at)} />
-        <Detail label="Inicio de acceso" value={formatDate(user.access_start)} />
+        <Detail label="Aprobación" value={formatDateTime(user.approved_at)} />
+        <Detail label="Inicio de acceso" value={formatDateTime(user.access_start)} />
         <Detail label="Último acceso" value={formatDateTime(user.last_seen_at)} />
       </dl>
       <div className="rounded-xl border border-border bg-surface-2 p-4">
