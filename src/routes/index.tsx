@@ -25,6 +25,14 @@ export const Route = createFileRoute("/")({
 });
 
 function Welcome() {
+  const router = useRouter();
+  const { user, loading } = useAuth();
+
+  // Con sesión activa nunca se queda en la portada: el guard decide dashboard o estado.
+  useEffect(() => {
+    if (!loading && user) router.navigate({ to: "/dashboard", replace: true });
+  }, [loading, user, router]);
+
   return (
     <div className="grid-noise flex min-h-screen flex-col">
       <header className="px-5 py-6 sm:px-8">
