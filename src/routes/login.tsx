@@ -84,7 +84,21 @@ function LoginPage() {
         }),
         timeout,
       ]);
-      if (result.error) throw new Error(String(result.error));
+      if (result.error) {
+        // En iOS el contenedor puede cerrar el popup apenas vuelve del deep
+        // link, antes de que el SDK procese el mensaje. El backend ya pudo
+        // completar el acceso, así que comprobamos la sesión antes de mostrar
+        // una cancelación falsa.
+        for (let attempt = 0; attempt < 20; attempt += 1) {
+          const { data } = await supabase.auth.getUser();
+          if (data.user) {
+            await router.navigate({ to: "/dashboard", replace: true });
+            return;
+          }
+          await new Promise((resolve) => window.setTimeout(resolve, 500));
+        }
+        throw result.error;
+      }
       if (result.redirected) return;
 
       // El helper ya llamó setSession antes de resolver. La navegación pasa
