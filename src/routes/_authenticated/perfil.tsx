@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LogOut } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { ProtectionLog } from "@/components/ProtectionLog";
 import { fetchSettings, saveSettings } from "@/lib/db";
 import { SETUPS } from "@/lib/checklist";
 import { supabase } from "@/integrations/supabase/client";
@@ -107,6 +108,8 @@ function Perfil() {
           })}
         </div>
       </div>
+
+      <ProtectionLog />
 
       <button
         onClick={() => save.mutate()}

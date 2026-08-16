@@ -16,6 +16,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as EstadoRouteImport } from './routes/estado'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ProteccionTestRouteImport } from './routes/proteccion-test'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -58,6 +59,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProteccionTestRoute = ProteccionTestRouteImport.update({
+  id: '/proteccion-test',
+  path: '/proteccion-test',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegisterRoute = RegisterRouteImport.update({
@@ -113,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/estado': typeof EstadoRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/proteccion-test': typeof ProteccionTestRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -130,6 +137,7 @@ export interface FileRoutesByTo {
   '/estado': typeof EstadoRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/proteccion-test': typeof ProteccionTestRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -149,6 +157,7 @@ export interface FileRoutesById {
   '/estado': typeof EstadoRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/proteccion-test': typeof ProteccionTestRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -168,6 +177,7 @@ export interface FileRouteTypes {
     | '/estado'
     | '/forgot-password'
     | '/login'
+    | '/proteccion-test'
     | '/register'
     | '/reset-password'
     | '/dashboard'
@@ -185,6 +195,7 @@ export interface FileRouteTypes {
     | '/estado'
     | '/forgot-password'
     | '/login'
+    | '/proteccion-test'
     | '/register'
     | '/reset-password'
     | '/dashboard'
@@ -203,6 +214,7 @@ export interface FileRouteTypes {
     | '/estado'
     | '/forgot-password'
     | '/login'
+    | '/proteccion-test'
     | '/register'
     | '/reset-password'
     | '/_authenticated/dashboard'
@@ -222,6 +234,7 @@ export interface RootRouteChildren {
   EstadoRoute: typeof EstadoRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  ProteccionTestRoute: typeof ProteccionTestRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
 }
@@ -275,6 +288,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proteccion-test': {
+      id: '/proteccion-test'
+      path: '/proteccion-test'
+      fullPath: '/proteccion-test'
+      preLoaderRoute: typeof ProteccionTestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/register': {
@@ -374,6 +394,7 @@ const rootRouteChildren: RootRouteChildren = {
   EstadoRoute: EstadoRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  ProteccionTestRoute: ProteccionTestRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
 }
