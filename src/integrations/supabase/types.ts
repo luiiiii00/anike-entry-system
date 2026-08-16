@@ -41,6 +41,42 @@ export type Database = {
         }
         Relationships: []
       }
+      email_outbox: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          payload: Json
+          sent_at: string | null
+          status: string
+          template: string
+          to_email: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          payload?: Json
+          sent_at?: string | null
+          status?: string
+          template: string
+          to_email: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          payload?: Json
+          sent_at?: string | null
+          status?: string
+          template?: string
+          to_email?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       evaluations: {
         Row: {
           after_screenshot_url: string | null
@@ -350,6 +386,10 @@ export type Database = {
       }
       admin_suspend_user: {
         Args: { _reason?: string; _revoke?: boolean; _target: string }
+        Returns: undefined
+      }
+      enqueue_email: {
+        Args: { _payload?: Json; _template: string; _user_id: string }
         Returns: undefined
       }
       expire_overdue_accounts: { Args: never; Returns: number }
