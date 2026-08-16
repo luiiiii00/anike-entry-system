@@ -1,5 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { AccessPlan, AccountStatus, Profile } from "@/lib/access";
+import {
+  approveUserFn,
+  changePlanFn,
+  reactivateUserFn,
+  rejectUserFn,
+  renewUserFn,
+  suspendUserFn,
+  sweepExpiredFn,
+} from "@/lib/admin.functions";
 
 export type AuditEntry = {
   id: string;
@@ -20,11 +29,9 @@ export const ACTION_LABEL: Record<string, string> = {
   CHANGE_PLAN: "Plan modificado",
 };
 
-/** Marca como EXPIRED las licencias vencidas (la verificación real vive en la base de datos). */
+/** Marca como EXPIRED las licencias vencidas (se ejecuta en el servidor). */
 export async function sweepExpired(): Promise<number> {
-  const { data, error } = await supabase.rpc("expire_overdue_accounts");
-  if (error) throw error;
-  return data ?? 0;
+  return await sweepExpiredFn();
 }
 
 export async function fetchAllProfiles(): Promise<Profile[]> {
