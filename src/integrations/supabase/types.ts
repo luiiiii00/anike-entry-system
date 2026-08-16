@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          admin_user_id: string
+          created_at: string
+          details: Json
+          id: string
+          target_user_id: string
+        }
+        Insert: {
+          action: string
+          admin_user_id: string
+          created_at?: string
+          details?: Json
+          id?: string
+          target_user_id: string
+        }
+        Update: {
+          action?: string
+          admin_user_id?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          target_user_id?: string
+        }
+        Relationships: []
+      }
+      email_outbox: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          payload: Json
+          sent_at: string | null
+          status: string
+          template: string
+          to_email: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          payload?: Json
+          sent_at?: string | null
+          status?: string
+          template: string
+          to_email: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          payload?: Json
+          sent_at?: string | null
+          status?: string
+          template?: string
+          to_email?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       evaluations: {
         Row: {
           after_screenshot_url: string | null
@@ -115,27 +178,54 @@ export type Database = {
       }
       profiles: {
         Row: {
+          access_expiration: string | null
+          access_start: string | null
+          approved_at: string | null
           created_at: string
           display_name: string | null
           email: string | null
           full_name: string | null
           id: string
+          last_seen_at: string | null
+          plan: Database["public"]["Enums"]["access_plan"]
+          rejection_reason: string | null
+          requested_plan: Database["public"]["Enums"]["access_plan"]
+          status: Database["public"]["Enums"]["account_status"]
+          suspension_reason: string | null
           updated_at: string
         }
         Insert: {
+          access_expiration?: string | null
+          access_start?: string | null
+          approved_at?: string | null
           created_at?: string
           display_name?: string | null
           email?: string | null
           full_name?: string | null
           id: string
+          last_seen_at?: string | null
+          plan?: Database["public"]["Enums"]["access_plan"]
+          rejection_reason?: string | null
+          requested_plan?: Database["public"]["Enums"]["access_plan"]
+          status?: Database["public"]["Enums"]["account_status"]
+          suspension_reason?: string | null
           updated_at?: string
         }
         Update: {
+          access_expiration?: string | null
+          access_start?: string | null
+          approved_at?: string | null
           created_at?: string
           display_name?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
+          last_seen_at?: string | null
+          plan?: Database["public"]["Enums"]["access_plan"]
+          rejection_reason?: string | null
+          requested_plan?: Database["public"]["Enums"]["access_plan"]
+          status?: Database["public"]["Enums"]["account_status"]
+          suspension_reason?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -265,6 +355,45 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_approve_user: {
+        Args: {
+          _days?: number
+          _plan: Database["public"]["Enums"]["access_plan"]
+          _target: string
+        }
+        Returns: undefined
+      }
+      admin_change_plan: {
+        Args: {
+          _days?: number
+          _plan: Database["public"]["Enums"]["access_plan"]
+          _target: string
+        }
+        Returns: undefined
+      }
+      admin_log: {
+        Args: { _action: string; _details: Json; _target: string }
+        Returns: undefined
+      }
+      admin_reactivate_user: { Args: { _target: string }; Returns: string }
+      admin_reject_user: {
+        Args: { _reason?: string; _target: string }
+        Returns: undefined
+      }
+      admin_renew_user: {
+        Args: { _days: number; _target: string }
+        Returns: string
+      }
+      admin_suspend_user: {
+        Args: { _reason?: string; _revoke?: boolean; _target: string }
+        Returns: undefined
+      }
+      enqueue_email: {
+        Args: { _payload?: Json; _template: string; _user_id: string }
+        Returns: undefined
+      }
+      expire_overdue_accounts: { Args: never; Returns: number }
+      has_active_access: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -272,8 +401,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
+      access_plan: "NONE" | "PRO" | "LIFETIME"
+      account_status:
+        | "PENDING"
+        | "APPROVED"
+        | "REJECTED"
+        | "SUSPENDED"
+        | "EXPIRED"
       app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
@@ -402,6 +539,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      access_plan: ["NONE", "PRO", "LIFETIME"],
+      account_status: [
+        "PENDING",
+        "APPROVED",
+        "REJECTED",
+        "SUSPENDED",
+        "EXPIRED",
+      ],
       app_role: ["admin", "moderator", "user"],
     },
   },

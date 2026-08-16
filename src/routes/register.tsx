@@ -57,17 +57,18 @@ function RegisterPage() {
         email: email.trim(),
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
+          emailRedirectTo: `${window.location.origin}/estado`,
           data: { display_name: name.trim(), full_name: name.trim() },
         },
       });
       if (signUpError) throw signUpError;
 
       if (data.session) {
-        toast.success("Cuenta creada. Bienvenido.");
-        router.navigate({ to: "/dashboard", replace: true });
+        toast.success("Solicitud enviada. Un administrador revisará tu acceso.");
+        router.navigate({ to: "/estado", replace: true });
         return;
       }
+
       setSent(true);
     } catch (err) {
       toast.error(friendlyAuthError(err));
