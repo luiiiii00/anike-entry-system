@@ -357,6 +357,7 @@ export type Database = {
     Functions: {
       admin_approve_user: {
         Args: {
+          _admin: string
           _days?: number
           _plan: Database["public"]["Enums"]["access_plan"]
           _target: string
@@ -365,27 +366,32 @@ export type Database = {
       }
       admin_change_plan: {
         Args: {
+          _admin: string
           _days?: number
           _plan: Database["public"]["Enums"]["access_plan"]
           _target: string
         }
         Returns: undefined
       }
-      admin_log: {
-        Args: { _action: string; _details: Json; _target: string }
-        Returns: undefined
+      admin_reactivate_user: {
+        Args: { _admin: string; _target: string }
+        Returns: string
       }
-      admin_reactivate_user: { Args: { _target: string }; Returns: string }
       admin_reject_user: {
-        Args: { _reason?: string; _target: string }
+        Args: { _admin: string; _reason?: string; _target: string }
         Returns: undefined
       }
       admin_renew_user: {
-        Args: { _days: number; _target: string }
+        Args: { _admin: string; _days: number; _target: string }
         Returns: string
       }
       admin_suspend_user: {
-        Args: { _reason?: string; _revoke?: boolean; _target: string }
+        Args: {
+          _admin: string
+          _reason?: string
+          _revoke?: boolean
+          _target: string
+        }
         Returns: undefined
       }
       enqueue_email: {
@@ -393,7 +399,6 @@ export type Database = {
         Returns: undefined
       }
       expire_overdue_accounts: { Args: never; Returns: number }
-      has_active_access: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -401,7 +406,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       access_plan: "NONE" | "PRO" | "LIFETIME"

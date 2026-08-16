@@ -1,5 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { AccessPlan, AccountStatus, Profile } from "@/lib/access";
+import {
+  approveUserFn,
+  changePlanFn,
+  reactivateUserFn,
+  rejectUserFn,
+  renewUserFn,
+  suspendUserFn,
+  sweepExpiredFn,
+} from "@/lib/admin.functions";
 
 export type AuditEntry = {
   id: string;
@@ -20,11 +29,9 @@ export const ACTION_LABEL: Record<string, string> = {
   CHANGE_PLAN: "Plan modificado",
 };
 
-/** Marca como EXPIRED las licencias vencidas (la verificación real vive en la base de datos). */
+/** Marca como EXPIRED las licencias vencidas (se ejecuta en el servidor). */
 export async function sweepExpired(): Promise<number> {
-  const { data, error } = await supabase.rpc("expire_overdue_accounts");
-  if (error) throw error;
-  return data ?? 0;
+  return await sweepExpiredFn();
 }
 
 export async function fetchAllProfiles(): Promise<Profile[]> {
@@ -48,45 +55,33 @@ export async function fetchAuditLog(targetUserId?: string): Promise<AuditEntry[]
   return (data ?? []) as AuditEntry[];
 }
 
+type ActivePlan = "PRO" | "LIFETIME";
+
+function activePlan(plan: AccessPlan): ActivePlan {
+  return plan === "LIFETIME" ? "LIFETIME" : "PRO";
+}
+
 export async function approveUser(target: string, plan: AccessPlan, days: number | null) {
-  const { error } = await supabase.rpc("admin_approve_user", {
-    _target: target,
-    _plan: plan,
-    ...(days === null ? {} : { _days: days }),
-  });
-  if (error) throw error;
+  await approveUserFn({ data: { target, plan: activePlan(plan), days } });
 }
 
 export async function rejectUser(target: string, reason: string) {
-  const { error } = await supabase.rpc("admin_reject_user", { _target: target, _reason: reason });
-  if (error) throw error;
+  await rejectUserFn({ data: { target, reason } });
 }
 
 export async function suspendUser(target: string, reason: string, revoke = false) {
-  const { error } = await supabase.rpc("admin_suspend_user", {
-    _target: target,
-    _reason: reason,
-    _revoke: revoke,
-  });
-  if (error) throw error;
+  await suspendUserFn({ data: { target, reason, revoke } });
 }
 
 export async function reactivateUser(target: string): Promise<AccountStatus> {
-  const { data, error } = await supabase.rpc("admin_reactivate_user", { _target: target });
-  if (error) throw error;
-  return (data as AccountStatus) ?? "APPROVED";
+  const result = await reactivateUserFn({ data: { target } });
+  return (result as AccountStatus) ?? "APPROVED";
 }
 
 export async function renewUser(target: string, days: number) {
-  const { error } = await supabase.rpc("admin_renew_user", { _target: target, _days: days });
-  if (error) throw error;
+  await renewUserFn({ data: { target, days } });
 }
 
 export async function changePlan(target: string, plan: AccessPlan, days: number | null) {
-  const { error } = await supabase.rpc("admin_change_plan", {
-    _target: target,
-    _plan: plan,
-    ...(days === null ? {} : { _days: days }),
-  });
-  if (error) throw error;
+  await changePlanFn({ data: { target, plan: activePlan(plan), days } });
 }
