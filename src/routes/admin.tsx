@@ -80,7 +80,7 @@ type Modal =
   | { kind: "detail"; user: Profile }
   | null;
 
-const DURATIONS = [1, 7, 30];
+const DURATIONS = [7, 30, 90, 180, 365];
 
 function AdminPanel() {
   const router = useRouter();
@@ -532,7 +532,7 @@ function ModalHost({
               Vencimiento actual: {formatDate(user.access_expiration)}. Si ya venció, el nuevo período
               empieza hoy.
             </p>
-            <DaysPicker days={days} setDays={setDays} />
+            <DaysPicker days={days} setDays={setDays} options={[30, 90, 180, 365]} />
             <Confirm
               busy={busy}
               label="RENOVAR"
@@ -617,7 +617,7 @@ function DaysPicker({
                 : "border-border bg-surface-2 text-muted-foreground",
             )}
           >
-            {d}D
+            {d} días
           </button>
         ))}
       </div>
