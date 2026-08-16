@@ -67,7 +67,7 @@ function LoginPage() {
   async function google() {
     if (busy || googleBusy) return;
     setGoogleBusy(true);
-    let timeoutId: ReturnType<typeof window.setTimeout> | undefined;
+    let timeoutId: number | undefined;
     try {
       const timeout = new Promise<never>((_, reject) => {
         timeoutId = window.setTimeout(
