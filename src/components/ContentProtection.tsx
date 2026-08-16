@@ -17,6 +17,7 @@ export function ContentProtection() {
   const [notice, setNotice] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
   const maskTimer = useRef<number | null>(null);
+  const gestureStart = useRef<{ x: number; y: number } | null>(null);
 
   const warn = useCallback((message: string) => setNotice(message), []);
 
