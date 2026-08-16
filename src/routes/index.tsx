@@ -41,18 +41,19 @@ function Welcome() {
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <Link
-              to="/dashboard"
+              to="/login"
               className="inline-flex min-h-13 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-semibold tracking-wide text-primary-foreground shadow-glow-ok transition-transform active:scale-[0.98]"
             >
-              COMENZAR EVALUACIÓN <ArrowRight className="h-4 w-4" />
+              INICIAR SESIÓN <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              to="/auth"
+              to="/register"
               className="inline-flex min-h-13 items-center justify-center rounded-xl border border-border bg-surface px-6 text-sm font-semibold tracking-wide transition-colors hover:bg-surface-2"
             >
-              INICIAR SESIÓN
+              CREAR CUENTA
             </Link>
           </div>
+
 
           <p className="mt-6 max-w-lg text-sm text-muted-foreground">
             Una herramienta para estructurar tu análisis, controlar el riesgo y mantener la
