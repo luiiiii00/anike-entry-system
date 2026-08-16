@@ -132,8 +132,13 @@ function RootComponent() {
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
-      router.invalidate();
-      if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+
+      // Supabase espera a que termine este callback antes de resolver setSession.
+      // Diferir las invalidaciones evita bloquear el retorno de OAuth con Google.
+      window.setTimeout(() => {
+        void router.invalidate();
+        if (event !== "SIGNED_OUT") void queryClient.invalidateQueries();
+      }, 0);
     });
     return () => data.subscription.unsubscribe();
   }, [router, queryClient]);
