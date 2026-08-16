@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { Clock, ShieldOff, Ban, TimerOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Wordmark } from "@/components/brand";
+import { ContentProtection } from "@/components/ContentProtection";
 import { useProfile } from "@/hooks/useProfile";
 import {
   effectiveStatus,
@@ -104,6 +105,7 @@ function EstadoPage() {
 
   return (
     <div className="grid-noise flex min-h-screen flex-col items-center justify-center px-5 py-10">
+      <ContentProtection />
       <div className="w-full max-w-md">
         <Wordmark />
         <div className="panel animate-rise mt-7 p-6">
