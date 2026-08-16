@@ -48,6 +48,11 @@ export function AppShell({
   const router = useRouter();
   const queryClient = useQueryClient();
   const { isAdmin } = useProfile();
+  const pathname = useLocation({ select: (l) => l.pathname });
+  // Solo dashboard, /estado y /admin llevan la capa de protección.
+  const protectionEnabled = ["/dashboard", "/estado", "/admin"].some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
 
 
   async function signOut() {
