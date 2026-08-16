@@ -1,10 +1,12 @@
 import { AlertTriangle } from "lucide-react";
-import { daysLeft, formatDate } from "@/lib/access";
+import { daysLeft, formatExpiration, timeRemaining } from "@/lib/access";
 import { useProfile } from "@/hooks/useProfile";
+import { useNow } from "@/hooks/useNow";
 import { cn } from "@/lib/utils";
 
 export function AccessBanner() {
   const { profile } = useProfile();
+  const now = useNow(15_000);
   if (!profile || profile.status !== "APPROVED") return null;
 
   const left = daysLeft(profile);
@@ -22,9 +24,8 @@ export function AccessBanner() {
     >
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
       <p>
-        Tu acceso vence en {left <= 0 ? "menos de un día" : `${left} día${left === 1 ? "" : "s"}`} (
-        {formatDate(profile.access_expiration)}). Contacta con el administrador para renovar tu
-        licencia.
+        Tu acceso vence el {formatExpiration(profile)} · restan {timeRemaining(profile, now)}.
+        Contacta con el administrador para renovar tu licencia.
       </p>
     </div>
   );
