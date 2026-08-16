@@ -147,7 +147,7 @@ export type HardRuleCtx = {
   a: Answers;
   risk: RiskMetrics;
   maxRiskPct: number;
-  setup?: string | null;
+  setup?: string | null | undefined;
   preferredSetups: string[];
 };
 
