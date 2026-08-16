@@ -66,11 +66,19 @@ export function AuthField({
   );
 }
 
-export function AuthSubmit({ busy, children }: { busy: boolean; children: ReactNode }) {
+export function AuthSubmit({
+  busy,
+  disabled = false,
+  children,
+}: {
+  busy: boolean;
+  disabled?: boolean;
+  children: ReactNode;
+}) {
   return (
     <button
       type="submit"
-      disabled={busy}
+      disabled={busy || disabled}
       className="mt-2 flex min-h-13 w-full items-center justify-center rounded-xl bg-primary text-sm font-semibold tracking-wide text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-60"
     >
       {busy ? "PROCESANDO..." : children}

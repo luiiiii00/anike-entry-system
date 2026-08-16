@@ -29,10 +29,11 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && user && !busy) window.location.replace("/auth-callback");
-  }, [loading, user, busy]);
+    if (!loading && user && !busy && !googleBusy) window.location.replace("/dashboard");
+  }, [loading, user, busy, googleBusy]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -62,29 +63,23 @@ function LoginPage() {
   }
 
   async function google() {
-    setBusy(true);
+    if (busy || googleBusy) return;
+    setGoogleBusy(true);
     try {
-      const result = await Promise.race([
-        lovable.auth.signInWithOAuth("google", {
-          // El broker devuelve los tokens a esta ventana y el callback público
-          // completa después el traspaso hacia la zona protegida.
-          redirect_uri: `${window.location.origin}/auth-callback`,
-        }),
-        new Promise<never>((_, reject) => {
-          window.setTimeout(
-            () => reject(new Error("Google tardó demasiado en responder. Inténtalo nuevamente.")),
-            60_000,
-          );
-        }),
-      ]);
+      const result = await lovable.auth.signInWithOAuth("google", {
+        // En Preview el helper usa web_message y guarda la sesión en esta
+        // ventana. En una pestaña normal vuelve al origen público.
+        redirect_uri: window.location.origin,
+        extraParams: { prompt: "select_account" },
+      });
       if (result.error) throw new Error(String(result.error));
       if (result.redirected) return;
 
-      // Una recarga completa evita carreras entre el popup, el router y el guard.
-      window.location.replace("/auth-callback");
+      // El helper ya llamó setSession antes de resolver.
+      window.location.replace("/dashboard");
     } catch (error) {
       toast.error(friendlyAuthError(error));
-      setBusy(false);
+      setGoogleBusy(false);
     }
   }
 
@@ -121,16 +116,16 @@ function LoginPage() {
           autoComplete="current-password"
           required
         />
-        <AuthSubmit busy={busy}>INICIAR SESIÓN</AuthSubmit>
+        <AuthSubmit busy={busy} disabled={googleBusy}>INICIAR SESIÓN</AuthSubmit>
       </form>
 
       <button
         type="button"
         onClick={google}
-        disabled={busy}
+        disabled={busy || googleBusy}
         className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface-2 text-sm font-medium transition-colors hover:bg-surface disabled:opacity-60"
       >
-        {busy ? "Conectando…" : "Continuar con Google"}
+        {googleBusy ? "Conectando…" : "Continuar con Google"}
       </button>
 
       <Link
