@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthCallbackRouteImport } from './routes/auth-callback'
 import { Route as EstadoRouteImport } from './routes/estado'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
@@ -24,7 +25,6 @@ import { Route as AuthenticatedNuevaRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedStatsRouteImport } from './routes/_authenticated/stats'
 import { Route as AuthenticatedWeeklyRouteImport } from './routes/_authenticated/weekly'
-import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthenticatedTradeIdRouteImport } from './routes/_authenticated/trade.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -44,6 +44,11 @@ const AdminRoute = AdminRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth-callback',
+  path: '/auth-callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EstadoRoute = EstadoRouteImport.update({
@@ -101,11 +106,6 @@ const AuthenticatedWeeklyRoute = AuthenticatedWeeklyRouteImport.update({
   path: '/weekly',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthCallbackRoute = AuthCallbackRouteImport.update({
-  id: '/callback',
-  path: '/callback',
-  getParentRoute: () => AuthRoute,
-} as any)
 const AuthenticatedTradeIdRoute = AuthenticatedTradeIdRouteImport.update({
   id: '/trade/$id',
   path: '/trade/$id',
@@ -115,7 +115,8 @@ const AuthenticatedTradeIdRoute = AuthenticatedTradeIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/auth': typeof AuthRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/auth-callback': typeof AuthCallbackRoute
   '/estado': typeof EstadoRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
@@ -127,13 +128,13 @@ export interface FileRoutesByFullPath {
   '/perfil': typeof AuthenticatedPerfilRoute
   '/stats': typeof AuthenticatedStatsRoute
   '/weekly': typeof AuthenticatedWeeklyRoute
-  '/auth/callback': typeof AuthCallbackRoute
   '/trade/$id': typeof AuthenticatedTradeIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/auth': typeof AuthRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/auth-callback': typeof AuthCallbackRoute
   '/estado': typeof EstadoRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
@@ -145,7 +146,6 @@ export interface FileRoutesByTo {
   '/perfil': typeof AuthenticatedPerfilRoute
   '/stats': typeof AuthenticatedStatsRoute
   '/weekly': typeof AuthenticatedWeeklyRoute
-  '/auth/callback': typeof AuthCallbackRoute
   '/trade/$id': typeof AuthenticatedTradeIdRoute
 }
 export interface FileRoutesById {
@@ -153,7 +153,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/admin': typeof AdminRoute
-  '/auth': typeof AuthRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/auth-callback': typeof AuthCallbackRoute
   '/estado': typeof EstadoRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
@@ -165,7 +166,6 @@ export interface FileRoutesById {
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/stats': typeof AuthenticatedStatsRoute
   '/_authenticated/weekly': typeof AuthenticatedWeeklyRoute
-  '/auth/callback': typeof AuthCallbackRoute
   '/_authenticated/trade/$id': typeof AuthenticatedTradeIdRoute
 }
 export interface FileRouteTypes {
@@ -174,6 +174,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/auth-callback'
     | '/estado'
     | '/forgot-password'
     | '/login'
@@ -185,13 +186,13 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/stats'
     | '/weekly'
-    | '/auth/callback'
     | '/trade/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
     | '/auth'
+    | '/auth-callback'
     | '/estado'
     | '/forgot-password'
     | '/login'
@@ -203,7 +204,6 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/stats'
     | '/weekly'
-    | '/auth/callback'
     | '/trade/$id'
   id:
     | '__root__'
@@ -211,6 +211,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/admin'
     | '/auth'
+    | '/auth-callback'
     | '/estado'
     | '/forgot-password'
     | '/login'
@@ -222,7 +223,6 @@ export interface FileRouteTypes {
     | '/_authenticated/perfil'
     | '/_authenticated/stats'
     | '/_authenticated/weekly'
-    | '/auth/callback'
     | '/_authenticated/trade/$id'
   fileRoutesById: FileRoutesById
 }
@@ -230,7 +230,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AdminRoute: typeof AdminRoute
-  AuthRoute: typeof AuthRouteWithChildren
+  AuthRoute: typeof AuthRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
   EstadoRoute: typeof EstadoRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
@@ -266,6 +267,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth-callback': {
+      id: '/auth-callback'
+      path: '/auth-callback'
+      fullPath: '/auth-callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/estado': {
@@ -345,13 +353,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWeeklyRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/auth/callback': {
-      id: '/auth/callback'
-      path: '/callback'
-      fullPath: '/auth/callback'
-      preLoaderRoute: typeof AuthCallbackRouteImport
-      parentRoute: typeof AuthRoute
-    }
     '/_authenticated/trade/$id': {
       id: '/_authenticated/trade/$id'
       path: '/trade/$id'
@@ -385,21 +386,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
-interface AuthRouteChildren {
-  AuthCallbackRoute: typeof AuthCallbackRoute
-}
-
-const AuthRouteChildren: AuthRouteChildren = {
-  AuthCallbackRoute: AuthCallbackRoute,
-}
-
-const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AdminRoute: AdminRoute,
-  AuthRoute: AuthRouteWithChildren,
+  AuthRoute: AuthRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
   EstadoRoute: EstadoRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
