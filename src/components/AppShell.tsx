@@ -1,4 +1,6 @@
 import { Link, useRouter } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+
 import {
   BarChart3,
   BookOpen,
@@ -39,11 +41,15 @@ export function AppShell({
   action?: ReactNode;
 }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   async function signOut() {
+    await queryClient.cancelQueries();
+    queryClient.clear();
     await supabase.auth.signOut();
-    router.navigate({ to: "/" });
+    router.navigate({ to: "/login", replace: true });
   }
+
 
   return (
     <div className="min-h-screen bg-background">
