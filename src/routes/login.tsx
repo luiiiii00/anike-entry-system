@@ -31,8 +31,8 @@ function LoginPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) router.navigate({ to: "/dashboard", replace: true });
-  }, [loading, user, router]);
+    if (!loading && user && !busy) window.location.replace("/auth-callback");
+  }, [loading, user, busy]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -64,17 +64,24 @@ function LoginPage() {
   async function google() {
     setBusy(true);
     try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        // El broker gestiona el popup en Preview. En navegación completa vuelve
-        // al origen público, donde la portada reenvía cualquier sesión activa.
-        redirect_uri: window.location.origin,
-      });
+      const result = await Promise.race([
+        lovable.auth.signInWithOAuth("google", {
+          // El broker devuelve los tokens a esta ventana y el callback público
+          // completa después el traspaso hacia la zona protegida.
+          redirect_uri: `${window.location.origin}/auth-callback`,
+        }),
+        new Promise<never>((_, reject) => {
+          window.setTimeout(
+            () => reject(new Error("Google tardó demasiado en responder. Inténtalo nuevamente.")),
+            60_000,
+          );
+        }),
+      ]);
       if (result.error) throw new Error(String(result.error));
       if (result.redirected) return;
 
-      // La integración ya guardó los tokens antes de resolver esta promesa.
-      // El guard de /dashboard decide si corresponde mostrar /estado.
-      await router.navigate({ to: "/dashboard", replace: true });
+      // Una recarga completa evita carreras entre el popup, el router y el guard.
+      window.location.replace("/auth-callback");
     } catch (error) {
       toast.error(friendlyAuthError(error));
       setBusy(false);
