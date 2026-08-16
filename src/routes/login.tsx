@@ -65,14 +65,18 @@ function LoginPage() {
     setBusy(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}/auth-callback`,
+        // El broker gestiona el popup en Preview. En navegación completa vuelve
+        // al origen público, donde la portada reenvía cualquier sesión activa.
+        redirect_uri: window.location.origin,
       });
       if (result.error) throw new Error(String(result.error));
       if (result.redirected) return;
-      router.navigate({ to: "/dashboard", replace: true });
+
+      // La integración ya guardó los tokens. Una navegación completa evita que
+      // el router conserve el estado del iframe/popup después del retorno OAuth.
+      window.location.replace("/dashboard");
     } catch (error) {
       toast.error(friendlyAuthError(error));
-    } finally {
       setBusy(false);
     }
   }
