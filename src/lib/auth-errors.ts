@@ -11,8 +11,10 @@ export function friendlyAuthError(error: unknown): string {
     return "Debes confirmar tu email antes de entrar. Revisa tu bandeja de entrada.";
   if (raw.includes("already registered") || raw.includes("already been registered"))
     return "Ya existe una cuenta con este email. Inicia sesión.";
-  if (raw.includes("password should be") || raw.includes("weak password"))
-    return "La contraseña es demasiado débil. Usa al menos 8 caracteres.";
+  if (raw.includes("known to be weak") || raw.includes("pwned"))
+    return "Esa contraseña aparece en filtraciones públicas y no es segura. Elige otra combinación única (evita palabras como 'trader' o secuencias de números).";
+  if (raw.includes("password should be") || raw.includes("weak password") || raw.includes("weak_password"))
+    return "La contraseña es demasiado débil. Usa al menos 8 caracteres con letras y números.";
   if (raw.includes("rate limit") || raw.includes("too many"))
     return "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.";
   if (raw.includes("jwt") || raw.includes("session") || raw.includes("token") || raw.includes("401"))
