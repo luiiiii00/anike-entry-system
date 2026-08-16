@@ -62,15 +62,18 @@ function LoginPage() {
   }
 
   async function google() {
+    setBusy(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+        redirect_uri: `${window.location.origin}/auth-callback`,
       });
       if (result.error) throw new Error(String(result.error));
       if (result.redirected) return;
       router.navigate({ to: "/dashboard", replace: true });
     } catch (error) {
       toast.error(friendlyAuthError(error));
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -111,10 +114,12 @@ function LoginPage() {
       </form>
 
       <button
+        type="button"
         onClick={google}
-        className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface-2 text-sm font-medium transition-colors hover:bg-surface"
+        disabled={busy}
+        className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface-2 text-sm font-medium transition-colors hover:bg-surface disabled:opacity-60"
       >
-        Continuar con Google
+        {busy ? "Conectando…" : "Continuar con Google"}
       </button>
 
       <Link
