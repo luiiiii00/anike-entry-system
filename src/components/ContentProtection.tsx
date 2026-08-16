@@ -238,10 +238,38 @@ export function ContentProtection() {
       }
     };
 
+    // Captura con video vía cámara/pantalla (getUserMedia con video).
+    const originalUser = md.getUserMedia?.bind(md);
+    if (originalUser) {
+      md.getUserMedia = async (constraints?: MediaStreamConstraints) => {
+        if (constraints?.video) {
+          setRecording(true);
+          logProtectionEvent("recording-start", "Captura de video solicitada");
+          warn("Captura o grabación con video detectada: contenido oculto.");
+        }
+        try {
+          const stream = await originalUser(constraints);
+          stream.getVideoTracks().forEach((track) => {
+            track.addEventListener("ended", () => {
+              setRecording(false);
+              logProtectionEvent("recording-end", "Captura de video finalizada");
+            });
+          });
+          return stream;
+        } catch (err) {
+          setRecording(false);
+          logProtectionEvent("recording-end", "Captura de video cancelada");
+          throw err;
+        }
+      };
+    }
+
     return () => {
       md.getDisplayMedia = original;
+      if (originalUser) md.getUserMedia = originalUser;
     };
   }, [warn]);
+
 
   const masked = hidden || recording;
 
