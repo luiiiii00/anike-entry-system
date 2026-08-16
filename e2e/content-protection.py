@@ -57,6 +57,11 @@ async def main() -> int:
         await page.goto(f"{BASE}{ROUTE}", wait_until="domcontentloaded")
         try:
             await page.wait_for_selector("[data-testid='privacy-curtain']", state="attached", timeout=20000)
+            # espera la hidratacion: la clase global la aplica el efecto de React
+            await page.wait_for_function(
+                "() => document.documentElement.classList.contains('protected-content')",
+                timeout=20000,
+            )
         except Exception as exc:
             check("capa de proteccion montada", False, f"no montada en {page.url}: {exc}")
             await browser.close()
