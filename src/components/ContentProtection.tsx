@@ -53,10 +53,51 @@ export function ContentProtection() {
       const apply = () => {
         if (document.hasFocus() && document.visibilityState === "visible") return;
         setHidden(true);
-        logProtectionEvent(reason === "app-switch" ? "app-switch" : "blur", "Contenido oculto");
+        const isSwitch = reason === "app-switch" || reason === "gesture";
+        logProtectionEvent(isSwitch ? "app-switch" : "blur", "Contenido oculto");
+        warn(
+          isSwitch
+            ? "Contenido oculto: cambio de app o multitarea detectado."
+            : "Contenido oculto: la ventana perdió el foco.",
+        );
       };
       if (immediate) apply();
       else maskTimer.current = window.setTimeout(apply, 180);
+    };
+
+    // Gesto de arrastre para cambiar de app / abrir multitarea (móvil):
+    // se oculta de inmediato antes de que el sistema tome la miniatura.
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length >= 3) {
+        setHidden(true);
+        logProtectionEvent("app-switch", "Gesto multitáctil detectado");
+        warn("Contenido oculto: cambio de app o multitarea detectado.");
+        return;
+      }
+      const t = e.touches[0];
+      if (!t) return;
+      const nearBottom = window.innerHeight - t.clientY <= 24;
+      const nearEdge = t.clientX <= 16 || window.innerWidth - t.clientX <= 16;
+      if (nearBottom || nearEdge) gestureStart.current = { x: t.clientX, y: t.clientY };
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      const start = gestureStart.current;
+      const t = e.touches[0];
+      if (!start || !t) return;
+      const dy = start.y - t.clientY;
+      const dx = Math.abs(t.clientX - start.x);
+      if (dy > 40 || dx > 60) {
+        gestureStart.current = null;
+        setHidden(true);
+        logProtectionEvent("app-switch", "Arrastre de cambio de app detectado");
+        warn("Contenido oculto: cambio de app o multitarea detectado.");
+      }
+    };
+
+    const onTouchEnd = () => {
+      gestureStart.current = null;
+      if (document.hasFocus() && document.visibilityState === "visible") unmask();
     };
 
     const unmask = () => {
@@ -79,15 +120,25 @@ export function ContentProtection() {
     window.addEventListener("pagehide", onHide);
     window.addEventListener("pageshow", unmask);
     document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", onTouchEnd, { passive: true });
     return () => {
       clearTimer();
+      gestureStart.current = null;
       window.removeEventListener("blur", onBlur);
       window.removeEventListener("focus", unmask);
       window.removeEventListener("pagehide", onHide);
       window.removeEventListener("pageshow", unmask);
       document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchcancel", onTouchEnd);
     };
-  }, []);
+  }, [warn]);
+
 
   // Atajos bloqueados + menú contextual y pulsación larga.
   useEffect(() => {
