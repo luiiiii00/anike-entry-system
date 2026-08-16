@@ -37,8 +37,14 @@ function LoginPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const emailError = validateEmail(email);
-    if (emailError) return toast.error(emailError);
-    if (!password) return toast.error("Escribe tu contraseña.");
+    if (emailError) {
+      toast.error(emailError);
+      return;
+    }
+    if (!password) {
+      toast.error("Escribe tu contraseña.");
+      return;
+    }
 
     setBusy(true);
     try {

@@ -29,7 +29,10 @@ function ForgotPassword() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const error = validateEmail(email);
-    if (error) return toast.error(error);
+    if (error) {
+      toast.error(error);
+      return;
+    }
 
     setBusy(true);
     try {

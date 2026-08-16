@@ -46,7 +46,10 @@ function RegisterPage() {
     const error =
       validateName(name) ?? validateEmail(email) ?? validatePassword(password) ??
       (password !== confirm ? "Las contraseñas no coinciden." : null);
-    if (error) return toast.error(error);
+    if (error) {
+      toast.error(error);
+      return;
+    }
 
     setBusy(true);
     try {

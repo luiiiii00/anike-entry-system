@@ -40,7 +40,10 @@ function ResetPassword() {
     e.preventDefault();
     const error =
       validatePassword(password) ?? (password !== confirm ? "Las contraseñas no coinciden." : null);
-    if (error) return toast.error(error);
+    if (error) {
+      toast.error(error);
+      return;
+    }
 
     setBusy(true);
     try {
