@@ -183,3 +183,105 @@
     radial-gradient(circle at 15% 0%, oklch(0.78 0.16 158 / 0.1), transparent 45%),
     radial-gradient(circle at 90% 10%, oklch(0.72 0.11 220 / 0.08), transparent 40%);
 }
+
+/* ── Protección de contenido (anti-captura / anti-impresión) ─────────────── */
+
+html.protected-content,
+html.protected-content body {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html.protected-content input,
+html.protected-content textarea,
+html.protected-content [contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+html.protected-content img {
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.watermark-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.06;
+}
+
+.watermark-tile {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3.5rem 2.5rem;
+  width: 200%;
+  transform: rotate(-30deg) translate(-12%, -10%);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-foreground);
+  white-space: nowrap;
+}
+
+.privacy-curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-background);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.12s ease-out,
+    visibility 0.12s ease-out;
+}
+
+.privacy-curtain.is-active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.protection-notice {
+  position: fixed;
+  left: 50%;
+  bottom: calc(6.5rem + env(safe-area-inset-bottom));
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: min(92vw, 26rem);
+  transform: translateX(-50%);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background-color: var(--color-surface-2);
+  box-shadow: var(--shadow-elev);
+  padding: 0.75rem 1rem;
+  font-size: 0.8125rem;
+  animation: var(--animate-rise);
+}
+
+@media print {
+  html.protected-content body * {
+    display: none !important;
+  }
+
+  html.protected-content body::after {
+    content: "Contenido confidencial — impresión deshabilitada";
+    display: block !important;
+    color: #000;
+    background: #000;
+    font-size: 12px;
+  }
+
+  html.protected-content body {
+    background: #000 !important;
+    color: #000 !important;
+  }
+}
