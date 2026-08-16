@@ -9,12 +9,16 @@ import {
   LogOut,
   PlusCircle,
   Settings,
+  Shield,
   User,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Wordmark } from "./brand";
+import { AccessBanner } from "./AccessBanner";
+import { useProfile } from "@/hooks/useProfile";
 import { cn } from "@/lib/utils";
+
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
