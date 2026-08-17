@@ -59,6 +59,8 @@ export function AppShell({
     "/admin",
     "/nueva",
     "/journal",
+    "/libros",
+
     "/stats",
     "/perfil",
     "/weekly",
