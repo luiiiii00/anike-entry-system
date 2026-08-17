@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BookOpen, Download, ExternalLink } from "lucide-react";
+import { BookOpen, ExternalLink } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 
 import tendencia from "@/assets/libros/1._Tendencia-y-Canal.pdf.json";
@@ -155,16 +155,9 @@ function Libros() {
                   href={book.asset.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs text-foreground transition-colors hover:bg-surface-2"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" /> Abrir
-                </a>
-                <a
-                  href={book.asset.url}
-                  download={book.asset.original_filename}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
                 >
-                  <Download className="h-3.5 w-3.5" /> Descargar
+                  <ExternalLink className="h-3.5 w-3.5" /> Abrir
                 </a>
               </div>
             </div>
