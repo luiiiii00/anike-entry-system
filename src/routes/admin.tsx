@@ -1,6 +1,6 @@
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   CheckCircle2,
@@ -103,7 +103,28 @@ function AdminPanel() {
       await sweepExpired().catch(() => 0);
       return fetchAllProfiles();
     },
+    // Los registros nuevos deben aparecer casi al instante para poder aprobarlos.
+    staleTime: 0,
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always",
   });
+
+  // Realtime: cualquier registro o cambio en profiles refresca la lista al instante.
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-profiles-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      })
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+
 
   const rows = users.data ?? [];
 
