@@ -6,6 +6,7 @@ import {
   BookOpen,
   CalendarRange,
   LayoutDashboard,
+  Library,
   LogOut,
   PlusCircle,
   Settings,
@@ -25,6 +26,7 @@ const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/nueva", label: "Evaluación", icon: PlusCircle },
   { to: "/journal", label: "Journal", icon: BookOpen },
+  { to: "/libros", label: "Libros", icon: Library },
   { to: "/stats", label: "Stats", icon: BarChart3 },
   { to: "/perfil", label: "Perfil", icon: User },
 ] as const;
@@ -33,6 +35,7 @@ const DESKTOP_EXTRA = [
   { to: "/weekly", label: "Weekly Review", icon: CalendarRange },
   { to: "/perfil", label: "Configuración", icon: Settings },
 ] as const;
+
 
 export function AppShell({
   children,
