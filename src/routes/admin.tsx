@@ -103,7 +103,14 @@ function AdminPanel() {
       await sweepExpired().catch(() => 0);
       return fetchAllProfiles();
     },
+    // Los registros nuevos deben aparecer casi al instante para poder aprobarlos.
+    staleTime: 0,
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always",
   });
+
 
   const rows = users.data ?? [];
 
