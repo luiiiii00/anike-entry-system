@@ -111,6 +111,20 @@ function AdminPanel() {
     refetchOnMount: "always",
   });
 
+  // Realtime: cualquier registro o cambio en profiles refresca la lista al instante.
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-profiles-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      })
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+
 
   const rows = users.data ?? [];
 
