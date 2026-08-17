@@ -21,6 +21,7 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedJournalRouteImport } from './routes/_authenticated/journal'
+import { Route as AuthenticatedLibrosRouteImport } from './routes/_authenticated/libros'
 import { Route as AuthenticatedNuevaRouteImport } from './routes/_authenticated/nueva'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedStatsRouteImport } from './routes/_authenticated/stats'
@@ -86,6 +87,11 @@ const AuthenticatedJournalRoute = AuthenticatedJournalRouteImport.update({
   path: '/journal',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedLibrosRoute = AuthenticatedLibrosRouteImport.update({
+  id: '/libros',
+  path: '/libros',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedNuevaRoute = AuthenticatedNuevaRouteImport.update({
   id: '/nueva',
   path: '/nueva',
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/journal': typeof AuthenticatedJournalRoute
+  '/libros': typeof AuthenticatedLibrosRoute
   '/nueva': typeof AuthenticatedNuevaRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/stats': typeof AuthenticatedStatsRoute
@@ -142,6 +149,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/journal': typeof AuthenticatedJournalRoute
+  '/libros': typeof AuthenticatedLibrosRoute
   '/nueva': typeof AuthenticatedNuevaRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/stats': typeof AuthenticatedStatsRoute
@@ -162,6 +170,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/journal': typeof AuthenticatedJournalRoute
+  '/_authenticated/libros': typeof AuthenticatedLibrosRoute
   '/_authenticated/nueva': typeof AuthenticatedNuevaRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/stats': typeof AuthenticatedStatsRoute
@@ -182,6 +191,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/dashboard'
     | '/journal'
+    | '/libros'
     | '/nueva'
     | '/perfil'
     | '/stats'
@@ -200,6 +210,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/dashboard'
     | '/journal'
+    | '/libros'
     | '/nueva'
     | '/perfil'
     | '/stats'
@@ -219,6 +230,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/dashboard'
     | '/_authenticated/journal'
+    | '/_authenticated/libros'
     | '/_authenticated/nueva'
     | '/_authenticated/perfil'
     | '/_authenticated/stats'
@@ -325,6 +337,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedJournalRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/libros': {
+      id: '/_authenticated/libros'
+      path: '/libros'
+      fullPath: '/libros'
+      preLoaderRoute: typeof AuthenticatedLibrosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/nueva': {
       id: '/_authenticated/nueva'
       path: '/nueva'
@@ -366,6 +385,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedJournalRoute: typeof AuthenticatedJournalRoute
+  AuthenticatedLibrosRoute: typeof AuthenticatedLibrosRoute
   AuthenticatedNuevaRoute: typeof AuthenticatedNuevaRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedStatsRoute: typeof AuthenticatedStatsRoute
@@ -376,6 +396,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedJournalRoute: AuthenticatedJournalRoute,
+  AuthenticatedLibrosRoute: AuthenticatedLibrosRoute,
   AuthenticatedNuevaRoute: AuthenticatedNuevaRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedStatsRoute: AuthenticatedStatsRoute,
