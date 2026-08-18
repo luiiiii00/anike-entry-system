@@ -288,7 +288,7 @@ function PaymentModal({
   onReceipt,
 }: {
   modal: NonNullable<Modal>;
-  person?: { name: string; email: string };
+  person?: { name: string; email: string } | undefined;
   busy: boolean;
   onClose: () => void;
   onApprove: () => void;
@@ -491,7 +491,7 @@ function PlanEditor({
   busy,
   onSave,
 }: {
-  plan: ReturnType<typeof Object> extends never ? never : import("@/lib/payments").PaymentPlan;
+  plan: PaymentPlan;
   busy: boolean;
   onSave: (patch: Record<string, unknown>) => void;
 }) {
