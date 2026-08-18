@@ -41,6 +41,81 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_reviews: {
+        Row: {
+          created_at: string
+          evaluation_id: string | null
+          id: string
+          next_time: string
+          review_type: string
+          summary: string
+          trade_id: string | null
+          user_id: string
+          what_failed: string
+          what_learned: string
+          what_worked: string
+        }
+        Insert: {
+          created_at?: string
+          evaluation_id?: string | null
+          id?: string
+          next_time?: string
+          review_type: string
+          summary?: string
+          trade_id?: string | null
+          user_id: string
+          what_failed?: string
+          what_learned?: string
+          what_worked?: string
+        }
+        Update: {
+          created_at?: string
+          evaluation_id?: string | null
+          id?: string
+          next_time?: string
+          review_type?: string
+          summary?: string
+          trade_id?: string | null
+          user_id?: string
+          what_failed?: string
+          what_learned?: string
+          what_worked?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_reviews_evaluation_id_fkey"
+            columns: ["evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "evaluations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_reviews_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "evaluations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_settings: {
+        Row: {
+          ai_daily_limit: number
+          id: boolean
+          updated_at: string
+        }
+        Insert: {
+          ai_daily_limit?: number
+          id?: boolean
+          updated_at?: string
+        }
+        Update: {
+          ai_daily_limit?: number
+          id?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_outbox: {
         Row: {
           created_at: string
