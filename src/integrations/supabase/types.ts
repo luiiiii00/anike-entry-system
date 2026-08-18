@@ -540,15 +540,15 @@ export type Database = {
         Returns: undefined
       }
       attach_payment_receipt: {
-        Args: { _path: string; _request: string }
+        Args: { _path: string; _request: string; _user: string }
         Returns: undefined
       }
       cancel_my_payment_request: {
-        Args: { _request: string }
+        Args: { _request: string; _user: string }
         Returns: undefined
       }
       create_payment_request: {
-        Args: { _notes?: string; _plan_key: string }
+        Args: { _notes?: string; _plan_key: string; _user: string }
         Returns: string
       }
       enqueue_email: {
