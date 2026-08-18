@@ -5,6 +5,10 @@ import { toast } from "sonner";
 import { LogOut } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { ProtectionLog } from "@/components/ProtectionLog";
+import { PaymentHistory } from "@/components/PaymentHistory";
+import { useProfile } from "@/hooks/useProfile";
+import { formatDate, formatExpiration, PLAN_LABEL } from "@/lib/access";
+import { Link } from "@tanstack/react-router";
 import { fetchSettings, saveSettings } from "@/lib/db";
 import { SETUPS } from "@/lib/checklist";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +32,7 @@ export const Route = createFileRoute("/_authenticated/perfil")({
 
 function Perfil() {
   const { user } = useAuth();
+  const { profile } = useProfile();
   const queryClient = useQueryClient();
   const { data } = useQuery({
     queryKey: ["settings", user?.id],
@@ -76,7 +81,31 @@ function Perfil() {
       <div className="panel p-4">
         <p className="label-mono">Cuenta</p>
         <p className="mt-2 text-sm">{user?.email ?? "—"}</p>
+        {profile && (
+          <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <dt className="label-mono">Plan actual</dt>
+              <dd className="mt-1">{PLAN_LABEL[profile.plan]}</dd>
+            </div>
+            <div>
+              <dt className="label-mono">Inicio</dt>
+              <dd className="mt-1">{formatDate(profile.access_start)}</dd>
+            </div>
+            <div className="col-span-2">
+              <dt className="label-mono">Vencimiento</dt>
+              <dd className="mt-1 tabular-nums">{formatExpiration(profile)}</dd>
+            </div>
+          </dl>
+        )}
+        <Link
+          to="/activar"
+          className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-primary/60 text-sm font-semibold tracking-wide text-primary"
+        >
+          {profile?.plan === "LIFETIME" ? "VER PLANES" : "RENOVAR O CAMBIAR PLAN"}
+        </Link>
       </div>
+
+      <PaymentHistory />
 
       <div className="panel mt-4 grid gap-3 p-4 sm:grid-cols-2">
         <Field label="Capital de cuenta" value={capital} onChange={setCapital} type="number" />
