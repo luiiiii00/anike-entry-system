@@ -48,7 +48,9 @@ export const promoStatusFn = createServerFn({ method: "POST" })
 export const createPaymentRequestFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) =>
-    z.object({ planKey: z.string().min(1).max(40), notes: z.string().max(500).optional() }).parse(data),
+    z
+      .object({ planKey: z.string().min(1).max(40), notes: z.string().max(500).optional() })
+      .parse(data),
   )
   .handler(async ({ data, context }) => {
     const db = await adminClient();

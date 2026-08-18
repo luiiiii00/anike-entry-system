@@ -1,4 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
+import {
+  attachReceiptFn,
+  cancelPaymentRequestFn,
+  createPaymentRequestFn,
+  promoStatusFn,
+} from "@/lib/payments.functions";
 import type { Database } from "@/integrations/supabase/types";
 
 export type PaymentPlan = Database["public"]["Tables"]["payment_plans"]["Row"];
@@ -74,7 +80,6 @@ export async function fetchPromoStatus(): Promise<{ taken: number; total: number
   return await promoStatusFn();
 }
 
-
 export async function fetchMyPaymentRequests(): Promise<PaymentRequest[]> {
   const { data, error } = await supabase
     .from("payment_requests")
@@ -96,17 +101,13 @@ export async function fetchAllPaymentRequests(): Promise<PaymentRequest[]> {
 
 /** El servidor fija el precio oficial: el cliente solo envía la clave del plan. */
 export async function createPaymentRequest(planKey: string, notes?: string): Promise<string> {
-  const { data, error } = await supabase.rpc("create_payment_request", {
-    _plan_key: planKey,
-    ...(notes ? { _notes: notes } : {}),
+  return await createPaymentRequestFn({
+    data: { planKey, ...(notes ? { notes } : {}) },
   });
-  if (error) throw error;
-  return data as unknown as string;
 }
 
 export async function cancelMyPaymentRequest(id: string) {
-  const { error } = await supabase.rpc("cancel_my_payment_request", { _request: id });
-  if (error) throw error;
+  await cancelPaymentRequestFn({ data: { request: id } });
 }
 
 const ALLOWED = ["image/jpeg", "image/jpg", "image/png", "application/pdf"];
@@ -120,11 +121,7 @@ export async function uploadReceipt(userId: string, requestId: string, file: Fil
     .from(RECEIPTS_BUCKET)
     .upload(path, file, { contentType: file.type, upsert: false });
   if (error) throw error;
-  const { error: linkError } = await supabase.rpc("attach_payment_receipt", {
-    _request: requestId,
-    _path: path,
-  });
-  if (linkError) throw linkError;
+  await attachReceiptFn({ data: { request: requestId, path } });
   return path;
 }
 
