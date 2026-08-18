@@ -236,7 +236,7 @@ function ActivarPage() {
 
         {/* ---------- PASO 2: TRANSFERENCIA ---------- */}
         {activePlan && (
-          <section className="panel mt-6 p-4 sm:p-5">
+          <section ref={transferRef} className="panel mt-6 p-4 sm:p-5">
             <p className="label-mono">2 · Pago por transferencia</p>
             <div className="mt-3 flex flex-wrap items-baseline gap-2">
               <p className="font-display text-xl font-semibold">{activePlan.name}</p>
