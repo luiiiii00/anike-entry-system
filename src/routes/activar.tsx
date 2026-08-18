@@ -190,7 +190,7 @@ function ActivarPage() {
                   key={plan.key}
                   plan={plan}
                   selected={selected?.key === plan.key}
-                  onSelect={() => setSelected(plan)}
+                  onSelect={() => selectPlan(plan)}
                 />
               ))}
             </div>
