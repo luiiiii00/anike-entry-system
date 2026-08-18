@@ -49,6 +49,15 @@ function ActivarPage() {
   const { user, loading } = useProfile();
   const [selected, setSelected] = useState<PaymentPlan | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const transferRef = useRef<HTMLElement>(null);
+
+  const selectPlan = (plan: PaymentPlan) => {
+    setSelected(plan);
+    // Dejar que el DOM renderice la sección antes de deslizar
+    setTimeout(() => {
+      transferRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  };
 
   useEffect(() => {
     if (!loading && !user) router.navigate({ to: "/login", replace: true });
