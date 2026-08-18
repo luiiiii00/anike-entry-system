@@ -218,7 +218,7 @@ function ActivarPage() {
                 </p>
                 {slotsLeft > 0 && (
                   <button
-                    onClick={() => setSelected(launch)}
+                    onClick={() => selectPlan(launch)}
                     className={cn(
                       "mt-3 min-h-12 w-full rounded-xl text-sm font-semibold tracking-wide",
                       selected?.key === launch.key
