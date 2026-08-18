@@ -49,6 +49,15 @@ function ActivarPage() {
   const { user, loading } = useProfile();
   const [selected, setSelected] = useState<PaymentPlan | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const transferRef = useRef<HTMLElement>(null);
+
+  const selectPlan = (plan: PaymentPlan) => {
+    setSelected(plan);
+    // Dejar que el DOM renderice la sección antes de deslizar
+    setTimeout(() => {
+      transferRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  };
 
   useEffect(() => {
     if (!loading && !user) router.navigate({ to: "/login", replace: true });
@@ -181,7 +190,7 @@ function ActivarPage() {
                   key={plan.key}
                   plan={plan}
                   selected={selected?.key === plan.key}
-                  onSelect={() => setSelected(plan)}
+                  onSelect={() => selectPlan(plan)}
                 />
               ))}
             </div>
@@ -209,7 +218,7 @@ function ActivarPage() {
                 </p>
                 {slotsLeft > 0 && (
                   <button
-                    onClick={() => setSelected(launch)}
+                    onClick={() => selectPlan(launch)}
                     className={cn(
                       "mt-3 min-h-12 w-full rounded-xl text-sm font-semibold tracking-wide",
                       selected?.key === launch.key
@@ -227,7 +236,7 @@ function ActivarPage() {
 
         {/* ---------- PASO 2: TRANSFERENCIA ---------- */}
         {activePlan && (
-          <section className="panel mt-6 p-4 sm:p-5">
+          <section ref={transferRef} className="panel mt-6 p-4 sm:p-5">
             <p className="label-mono">2 · Pago por transferencia</p>
             <div className="mt-3 flex flex-wrap items-baseline gap-2">
               <p className="font-display text-xl font-semibold">{activePlan.name}</p>
