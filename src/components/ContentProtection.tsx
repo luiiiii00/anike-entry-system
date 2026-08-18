@@ -1,17 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ShieldAlert } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
 import { logProtectionEvent } from "@/lib/protection-log";
 
 /**
  * Capa de protección visual: bloquea atajos de captura/impresión sin romper la
  * navegación con teclado ni los formularios, oculta el contenido al perder foco
- * (o al cambiar de app en móvil), añade marca de agua con el usuario, avisa si
- * detecta grabación de pantalla y registra cada evento con fecha y hora.
+ * (o al cambiar de app en móvil), avisa si detecta grabación de pantalla y
+ * registra cada evento con fecha y hora.
  */
 export function ContentProtection() {
-  const { user } = useAuth();
-  const label = user?.email ?? user?.id ?? "CONFIDENCIAL";
+
 
   const [hidden, setHidden] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
