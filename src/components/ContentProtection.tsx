@@ -28,15 +28,14 @@ export function ContentProtection() {
     return () => window.clearTimeout(t);
   }, [notice]);
 
-  // Marca de agua + clases globales de protección.
+  // Clases globales de protección.
   useEffect(() => {
     const root = document.documentElement;
     root.classList.add("protected-content");
-    root.style.setProperty("--watermark-text", `"${label}"`);
     return () => {
       root.classList.remove("protected-content");
     };
-  }, [label]);
+  }, []);
 
   // Ocultar contenido al perder foco o cambiar de app / multitarea.
   // Se aplica con una pequeña espera y se verifica document.hasFocus() para que
