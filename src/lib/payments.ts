@@ -69,13 +69,11 @@ export async function savePlan(key: string, patch: Partial<PaymentPlan>) {
   if (error) throw error;
 }
 
-/** Cupos reales de la promoción de lanzamiento (solo pagos aprobados). */
+/** Cupos reales de la promoción de lanzamiento (solo pagos aprobados, calculado en el servidor). */
 export async function fetchPromoStatus(): Promise<{ taken: number; total: number }> {
-  const { data, error } = await supabase.rpc("launch_promo_status");
-  if (error) throw error;
-  const row = Array.isArray(data) ? data[0] : data;
-  return { taken: row?.taken ?? 0, total: row?.total ?? 0 };
+  return await promoStatusFn();
 }
+
 
 export async function fetchMyPaymentRequests(): Promise<PaymentRequest[]> {
   const { data, error } = await supabase
