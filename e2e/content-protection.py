@@ -124,17 +124,10 @@ async def main() -> int:
         check("Ctrl+A no bloqueado en formularios", selection == len(value), str(selection))
         await page.evaluate("() => document.getElementById('e2e-probe')?.remove()")
 
-        box = await page.locator("[data-testid='watermark-layer']").bounding_box()
-        font = await page.eval_on_selector(
-            ".watermark-tile", "el => parseFloat(getComputedStyle(el).fontSize)"
-        )
-        vw = await page.evaluate("() => window.innerWidth")
-        check(
-            "marca de agua dentro del viewport",
-            bool(box) and abs(box["width"] - vw) < 2,
-            f"{box['width'] if box else '?'} vs {vw}",
-        )
-        check("tamano de marca de agua legible", 9 <= font <= 16, f"{font}px")
+        count = await page.locator("[data-testid='watermark-layer']").count()
+        check("sin marca de agua", count == 0, str(count))
+
+
 
         log = await page.evaluate(
             "() => JSON.parse(window.localStorage.getItem('anike:protection-log') || '[]')"
