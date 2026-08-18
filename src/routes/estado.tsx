@@ -1,5 +1,5 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Clock, ShieldOff, Ban, TimerOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,8 @@ import {
   timeRemaining,
 } from "@/lib/access";
 import { useNow } from "@/hooks/useNow";
+import { PaymentHistory } from "@/components/PaymentHistory";
+import { fetchMyPaymentRequests, formatGs } from "@/lib/payments";
 
 export const Route = createFileRoute("/estado")({
   ssr: false,
@@ -68,6 +70,12 @@ function EstadoPage() {
   const queryClient = useQueryClient();
   const { user, profile, loading } = useProfile();
   const now = useNow(15_000);
+  const payments = useQuery({
+    queryKey: ["my-payments", user?.id],
+    queryFn: fetchMyPaymentRequests,
+    enabled: !!user,
+    refetchInterval: 15_000,
+  });
 
   useEffect(() => {
     if (loading) return;
@@ -96,6 +104,11 @@ function EstadoPage() {
   const status = effectiveStatus(profile);
   const screen = SCREENS[status as keyof typeof SCREENS] ?? SCREENS.PENDING;
   const Icon = screen.icon;
+  const list = payments.data ?? [];
+  const pendingPayment = list.find((r) => r.status === "PENDING") ?? null;
+  const rejectedPayment = !pendingPayment
+    ? (list.find((r) => r.status === "REJECTED") ?? null)
+    : null;
   const reason =
     status === "REJECTED"
       ? profile.rejection_reason
@@ -110,7 +123,9 @@ function EstadoPage() {
         <Wordmark />
         <div className="panel animate-rise mt-7 p-6">
           <Icon className={`h-8 w-8 ${screen.tone}`} />
-          <h1 className="mt-4 font-display text-2xl font-semibold tracking-tight">{screen.title}</h1>
+          <h1 className="mt-4 font-display text-2xl font-semibold tracking-tight">
+            {screen.title}
+          </h1>
           {screen.lines.map((line) => (
             <p key={line} className="mt-2 text-sm text-muted-foreground">
               {line}
@@ -147,13 +162,46 @@ function EstadoPage() {
             </div>
           </dl>
 
+          {pendingPayment ? (
+            <div className="mt-6 rounded-xl border border-warn/40 bg-warn/10 p-4 text-sm text-warn">
+              <p className="font-semibold">🟡 PAGO PENDIENTE</p>
+              <p className="mt-1">
+                {pendingPayment.receipt_path
+                  ? "Estamos verificando tu comprobante."
+                  : "Falta subir tu comprobante de transferencia."}
+              </p>
+              <p className="mt-1 tabular-nums opacity-80">
+                {pendingPayment.plan_name} · {formatGs(pendingPayment.amount)}
+              </p>
+            </div>
+          ) : rejectedPayment ? (
+            <div className="mt-6 rounded-xl border border-danger/40 bg-danger/10 p-4 text-sm text-danger">
+              <p className="font-semibold">🔴 PAGO RECHAZADO</p>
+              <p className="mt-1">
+                Motivo: {rejectedPayment.rejection_reason ?? "No especificado."}
+              </p>
+            </div>
+          ) : null}
+
+          <button
+            onClick={() => router.navigate({ to: "/activar" })}
+            className="mt-6 min-h-13 w-full rounded-xl bg-primary text-sm font-semibold tracking-wide text-primary-foreground"
+          >
+            {pendingPayment
+              ? "VER MI SOLICITUD DE PAGO"
+              : status === "EXPIRED"
+                ? "RENOVAR ACCESO"
+                : "ACTIVAR ACCESO"}
+          </button>
+
           <button
             onClick={signOut}
-            className="mt-7 min-h-12 w-full rounded-xl border border-border bg-surface-2 text-sm font-semibold tracking-wide transition-colors hover:bg-surface"
+            className="mt-3 min-h-12 w-full rounded-xl border border-border bg-surface-2 text-sm font-semibold tracking-wide transition-colors hover:bg-surface"
           >
             CERRAR SESIÓN
           </button>
         </div>
+        <PaymentHistory />
       </div>
     </div>
   );
