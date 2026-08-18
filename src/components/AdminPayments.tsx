@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatDateTime } from "@/lib/access";
 import { fetchAllProfiles } from "@/lib/admin";
 import {
-  METHOD_LABEL,
   PAYMENT_STATUS_BADGE,
   PAYMENT_STATUS_LABEL,
   REJECTION_REASONS,
