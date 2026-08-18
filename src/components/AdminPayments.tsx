@@ -19,6 +19,7 @@ import {
   savePaymentSettings,
   savePlan,
   signedReceiptUrl,
+  type PaymentPlan,
   type PaymentRequest,
 } from "@/lib/payments";
 import { approvePaymentFn, rejectPaymentFn } from "@/lib/payments.functions";
