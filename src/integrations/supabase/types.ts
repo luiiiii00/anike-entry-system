@@ -176,6 +176,143 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_plans: {
+        Row: {
+          access_plan: Database["public"]["Enums"]["access_plan"]
+          description: string
+          duration_days: number | null
+          is_active: boolean
+          is_promo: boolean
+          key: string
+          name: string
+          price_pyg: number
+          promo_limit: number | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          access_plan: Database["public"]["Enums"]["access_plan"]
+          description?: string
+          duration_days?: number | null
+          is_active?: boolean
+          is_promo?: boolean
+          key: string
+          name: string
+          price_pyg: number
+          promo_limit?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          access_plan?: Database["public"]["Enums"]["access_plan"]
+          description?: string
+          duration_days?: number | null
+          is_active?: boolean
+          is_promo?: boolean
+          key?: string
+          name?: string
+          price_pyg?: number
+          promo_limit?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      payment_requests: {
+        Row: {
+          access_plan: Database["public"]["Enums"]["access_plan"]
+          amount: number
+          created_at: string
+          currency: string
+          duration_days: number | null
+          id: string
+          notes: string | null
+          payment_method: string
+          plan_key: string
+          plan_name: string
+          receipt_path: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          access_plan: Database["public"]["Enums"]["access_plan"]
+          amount: number
+          created_at?: string
+          currency?: string
+          duration_days?: number | null
+          id?: string
+          notes?: string | null
+          payment_method?: string
+          plan_key: string
+          plan_name: string
+          receipt_path?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          access_plan?: Database["public"]["Enums"]["access_plan"]
+          amount?: number
+          created_at?: string
+          currency?: string
+          duration_days?: number | null
+          id?: string
+          notes?: string | null
+          payment_method?: string
+          plan_key?: string
+          plan_name?: string
+          receipt_path?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_requests_plan_key_fkey"
+            columns: ["plan_key"]
+            isOneToOne: false
+            referencedRelation: "payment_plans"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      payment_settings: {
+        Row: {
+          account_number: string
+          alias: string
+          bank_name: string
+          holder_name: string
+          id: boolean
+          instructions: string
+          updated_at: string
+        }
+        Insert: {
+          account_number?: string
+          alias?: string
+          bank_name?: string
+          holder_name?: string
+          id?: boolean
+          instructions?: string
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string
+          alias?: string
+          bank_name?: string
+          holder_name?: string
+          id?: boolean
+          instructions?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           access_expiration: string | null
@@ -355,6 +492,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_approve_payment: {
+        Args: { _admin: string; _request: string }
+        Returns: string
+      }
       admin_approve_user: {
         Args: {
           _admin: string
@@ -377,6 +518,10 @@ export type Database = {
         Args: { _admin: string; _target: string }
         Returns: string
       }
+      admin_reject_payment: {
+        Args: { _admin: string; _reason?: string; _request: string }
+        Returns: undefined
+      }
       admin_reject_user: {
         Args: { _admin: string; _reason?: string; _target: string }
         Returns: undefined
@@ -394,6 +539,18 @@ export type Database = {
         }
         Returns: undefined
       }
+      attach_payment_receipt: {
+        Args: { _path: string; _request: string }
+        Returns: undefined
+      }
+      cancel_my_payment_request: {
+        Args: { _request: string }
+        Returns: undefined
+      }
+      create_payment_request: {
+        Args: { _notes?: string; _plan_key: string }
+        Returns: string
+      }
       enqueue_email: {
         Args: { _payload?: Json; _template: string; _user_id: string }
         Returns: undefined
@@ -405,6 +562,13 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      launch_promo_status: {
+        Args: never
+        Returns: {
+          taken: number
+          total: number
+        }[]
       }
     }
     Enums: {
