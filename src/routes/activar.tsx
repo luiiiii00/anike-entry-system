@@ -210,7 +210,7 @@ function ActivarPage() {
                 <p className="font-display text-2xl font-semibold text-primary">
                   Precio de lanzamiento: {formatGs(launch.price_pyg)}
                 </p>
-                <p className="mt-1 text-sm text-muted-foreground">Primeros 5 usuarios.</p>
+                <p className="mt-1 text-sm text-muted-foreground">Primeros 3 usuarios.</p>
                 <p className="mt-2 text-sm font-semibold tabular-nums">
                   {slotsLeft === 0
                     ? "PROMOCIÓN AGOTADA"
