@@ -124,9 +124,7 @@ function ActivarPage() {
   const slotsLeft = Math.max(slots.total - slots.taken, 0);
   const bank = settings.data;
 
-  const activePlan = pending
-    ? all.find((p) => p.key === pending.plan_key) ?? null
-    : selected;
+  const activePlan = pending ? (all.find((p) => p.key === pending.plan_key) ?? null) : selected;
 
   async function copyAlias() {
     if (!bank?.alias) return;
@@ -190,10 +188,7 @@ function ActivarPage() {
 
             {launch && (
               <div
-                className={cn(
-                  "panel mt-4 border-primary/50 p-4",
-                  slotsLeft === 0 && "opacity-60",
-                )}
+                className={cn("panel mt-4 border-primary/50 p-4", slotsLeft === 0 && "opacity-60")}
               >
                 <div className="flex items-center gap-2 text-primary">
                   <Flame className="h-4 w-4" />
@@ -343,7 +338,9 @@ function ActivarPage() {
                   )}
                   {pending.receipt_path ? "REEMPLAZAR COMPROBANTE" : "SUBIR COMPROBANTE"}
                 </button>
-                <p className="mt-2 text-xs text-muted-foreground">Formatos: JPG, JPEG, PNG o PDF.</p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Formatos: JPG, JPEG, PNG o PDF.
+                </p>
 
                 <button
                   onClick={() => cancel.mutate()}
@@ -385,10 +382,7 @@ function PlanCard({
 }) {
   return (
     <div
-      className={cn(
-        "panel flex flex-col p-4",
-        selected && "border-primary ring-1 ring-primary/40",
-      )}
+      className={cn("panel flex flex-col p-4", selected && "border-primary ring-1 ring-primary/40")}
     >
       <p className="label-mono">{plan.name}</p>
       <p className="mt-1 font-display text-2xl font-semibold">{formatGs(plan.price_pyg)}</p>

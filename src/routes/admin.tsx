@@ -125,8 +125,6 @@ function AdminPanel() {
     };
   }, [queryClient]);
 
-
-
   const rows = users.data ?? [];
 
   const counts = useMemo(() => {
@@ -206,9 +204,7 @@ function AdminPanel() {
             >
               <Icon className="h-4 w-4 shrink-0" /> <span className="truncate">{label}</span>
               {key !== "ALL" && (
-                <span className="ml-auto text-xs tabular-nums">
-                  {counts[key as AccountStatus]}
-                </span>
+                <span className="ml-auto text-xs tabular-nums">{counts[key as AccountStatus]}</span>
               )}
             </button>
           ))}
@@ -315,7 +311,9 @@ function AdminPanel() {
                           </button>
                         </td>
                         <td className="py-3 pr-3 text-muted-foreground">{u.email ?? "—"}</td>
-                        <td className="py-3 pr-3 text-muted-foreground">{formatDate(u.created_at)}</td>
+                        <td className="py-3 pr-3 text-muted-foreground">
+                          {formatDate(u.created_at)}
+                        </td>
                         <td className="py-3 pr-3">
                           <StatusBadge status={status} />
                         </td>
@@ -332,31 +330,45 @@ function AdminPanel() {
                           <div className="flex flex-wrap gap-1.5">
                             {status === "PENDING" && (
                               <>
-                                <RowBtn tone="ok" onClick={() => setModal({ kind: "approve", user: u })}>
+                                <RowBtn
+                                  tone="ok"
+                                  onClick={() => setModal({ kind: "approve", user: u })}
+                                >
                                   APROBAR
                                 </RowBtn>
-                                <RowBtn tone="danger" onClick={() => setModal({ kind: "reject", user: u })}>
+                                <RowBtn
+                                  tone="danger"
+                                  onClick={() => setModal({ kind: "reject", user: u })}
+                                >
                                   RECHAZAR
                                 </RowBtn>
                               </>
                             )}
                             {(status === "APPROVED" || status === "EXPIRED") && (
                               <>
-                                <RowBtn onClick={() => setModal({ kind: "detail", user: u })}>VER</RowBtn>
+                                <RowBtn onClick={() => setModal({ kind: "detail", user: u })}>
+                                  VER
+                                </RowBtn>
                                 {u.plan === "PRO" && (
                                   <RowBtn onClick={() => setModal({ kind: "renew", user: u })}>
                                     RENOVAR
                                   </RowBtn>
                                 )}
-                                <RowBtn onClick={() => setModal({ kind: "plan", user: u })}>PLAN</RowBtn>
+                                <RowBtn onClick={() => setModal({ kind: "plan", user: u })}>
+                                  PLAN
+                                </RowBtn>
                                 <RowBtn
-                                  onClick={() => setModal({ kind: "suspend", user: u, revoke: false })}
+                                  onClick={() =>
+                                    setModal({ kind: "suspend", user: u, revoke: false })
+                                  }
                                 >
                                   SUSPENDER
                                 </RowBtn>
                                 <RowBtn
                                   tone="danger"
-                                  onClick={() => setModal({ kind: "suspend", user: u, revoke: true })}
+                                  onClick={() =>
+                                    setModal({ kind: "suspend", user: u, revoke: true })
+                                  }
                                 >
                                   REVOCAR
                                 </RowBtn>
@@ -380,7 +392,10 @@ function AdminPanel() {
                               </RowBtn>
                             )}
                             {status === "REJECTED" && (
-                              <RowBtn tone="ok" onClick={() => setModal({ kind: "approve", user: u })}>
+                              <RowBtn
+                                tone="ok"
+                                onClick={() => setModal({ kind: "approve", user: u })}
+                              >
                                 APROBAR
                               </RowBtn>
                             )}
@@ -575,9 +590,9 @@ function ModalHost({
         {modal.kind === "renew" && (
           <div className="mt-5 space-y-4">
             <p className="text-sm text-muted-foreground">
-              Vencimiento actual: <span className="tabular-nums">{formatExpiration(user)}</span>.
-              Si ya venció, el nuevo período empieza en este momento; si no, se suma al tiempo
-              restante ({timeRemaining(user)}).
+              Vencimiento actual: <span className="tabular-nums">{formatExpiration(user)}</span>. Si
+              ya venció, el nuevo período empieza en este momento; si no, se suma al tiempo restante
+              ({timeRemaining(user)}).
             </p>
             <DaysPicker days={days} setDays={setDays} />
             <Confirm
@@ -710,9 +725,7 @@ function Confirm({
       onClick={onConfirm}
       className={cn(
         "min-h-12 w-full rounded-xl text-sm font-semibold tracking-wide transition-transform active:scale-[0.99] disabled:opacity-60",
-        tone === "danger"
-          ? "bg-danger text-white"
-          : "bg-primary text-primary-foreground",
+        tone === "danger" ? "bg-danger text-white" : "bg-primary text-primary-foreground",
       )}
     >
       {busy ? "PROCESANDO..." : label}
@@ -807,7 +820,8 @@ function UserDetail({ user, people }: { user: Profile; people: Record<string, st
               <p className="mt-0.5">
                 {ACTION_LABEL[entry.action] ?? entry.action}
                 <span className="text-muted-foreground">
-                  {" "}· {people[entry.admin_user_id] ?? entry.admin_user_id.slice(0, 8)}
+                  {" "}
+                  · {people[entry.admin_user_id] ?? entry.admin_user_id.slice(0, 8)}
                 </span>
               </p>
               {entry.details && Object.keys(entry.details).length > 0 && (

@@ -37,7 +37,9 @@ export function formatGs(amount: number): string {
   return `${new Intl.NumberFormat("es-PY").format(amount)} Gs`;
 }
 
-export function planDurationLabel(plan: Pick<PaymentPlan, "duration_days" | "access_plan">): string {
+export function planDurationLabel(
+  plan: Pick<PaymentPlan, "duration_days" | "access_plan">,
+): string {
   if (plan.access_plan === "LIFETIME" || !plan.duration_days) return "De por vida";
   return `${plan.duration_days} días de acceso`;
 }

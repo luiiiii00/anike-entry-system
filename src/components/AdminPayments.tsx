@@ -26,9 +26,7 @@ import { cn } from "@/lib/utils";
 
 type Tab = "PENDING" | "APPROVED" | "REJECTED";
 type Modal =
-  | { kind: "approve"; row: PaymentRequest }
-  | { kind: "reject"; row: PaymentRequest }
-  | null;
+  { kind: "approve"; row: PaymentRequest } | { kind: "reject"; row: PaymentRequest } | null;
 
 export function AdminPayments() {
   const queryClient = useQueryClient();
@@ -123,9 +121,24 @@ export function AdminPayments() {
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Card label="Pendientes" value={`${totals.base.PENDING}`} sub={formatGs(totals.money.PENDING)} tone="text-warn" />
-        <Card label="Aprobados" value={`${totals.base.APPROVED}`} sub={formatGs(totals.money.APPROVED)} tone="text-ok" />
-        <Card label="Rechazados" value={`${totals.base.REJECTED}`} sub={formatGs(totals.money.REJECTED)} tone="text-danger" />
+        <Card
+          label="Pendientes"
+          value={`${totals.base.PENDING}`}
+          sub={formatGs(totals.money.PENDING)}
+          tone="text-warn"
+        />
+        <Card
+          label="Aprobados"
+          value={`${totals.base.APPROVED}`}
+          sub={formatGs(totals.money.APPROVED)}
+          tone="text-ok"
+        />
+        <Card
+          label="Rechazados"
+          value={`${totals.base.REJECTED}`}
+          sub={formatGs(totals.money.REJECTED)}
+          tone="text-danger"
+        />
         <Card
           label="Cupos lanzamiento"
           value={`${Math.max((promo.data?.total ?? 0) - (promo.data?.taken ?? 0), 0)} / ${promo.data?.total ?? 0}`}
@@ -156,20 +169,29 @@ export function AdminPayments() {
           <table className="w-full min-w-[860px] text-sm">
             <thead>
               <tr className="border-b border-border text-left">
-                {["Usuario", "Email", "Plan", "Monto", "Fecha", "Estado", "Comprobante", "Acciones"].map(
-                  (h) => (
-                    <th key={h} className="label-mono pb-3 pr-3 font-normal">
-                      {h}
-                    </th>
-                  ),
-                )}
+                {[
+                  "Usuario",
+                  "Email",
+                  "Plan",
+                  "Monto",
+                  "Fecha",
+                  "Estado",
+                  "Comprobante",
+                  "Acciones",
+                ].map((h) => (
+                  <th key={h} className="label-mono pb-3 pr-3 font-normal">
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {filtered.map((r) => (
                 <tr key={r.id} className="border-b border-border/60">
                   <td className="py-3 pr-3 font-medium">{people[r.user_id]?.name ?? "—"}</td>
-                  <td className="py-3 pr-3 text-muted-foreground">{people[r.user_id]?.email ?? "—"}</td>
+                  <td className="py-3 pr-3 text-muted-foreground">
+                    {people[r.user_id]?.email ?? "—"}
+                  </td>
                   <td className="py-3 pr-3">{r.plan_name}</td>
                   <td className="py-3 pr-3 tabular-nums">{formatGs(r.amount)}</td>
                   <td className="py-3 pr-3 text-muted-foreground tabular-nums">
@@ -444,8 +466,16 @@ function PaymentConfig() {
       <p className="label-mono">Configuración de pagos</p>
       <h3 className="mt-1 font-display text-lg font-semibold">Datos bancarios</h3>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        <Field label="Banco" value={form.bank_name} onChange={(v) => setForm({ ...form, bank_name: v })} />
-        <Field label="Titular" value={form.holder_name} onChange={(v) => setForm({ ...form, holder_name: v })} />
+        <Field
+          label="Banco"
+          value={form.bank_name}
+          onChange={(v) => setForm({ ...form, bank_name: v })}
+        />
+        <Field
+          label="Titular"
+          value={form.holder_name}
+          onChange={(v) => setForm({ ...form, holder_name: v })}
+        />
         <Field label="Alias" value={form.alias} onChange={(v) => setForm({ ...form, alias: v })} />
         <Field
           label="Número de cuenta"

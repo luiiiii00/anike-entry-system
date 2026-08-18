@@ -40,7 +40,6 @@ function Perfil() {
     enabled: !!user,
   });
 
-
   const [capital, setCapital] = useState("1000");
   const [maxRisk, setMaxRisk] = useState("1");
   const [minRR, setMinRR] = useState("2");
@@ -110,9 +109,19 @@ function Perfil() {
       <div className="panel mt-4 grid gap-3 p-4 sm:grid-cols-2">
         <Field label="Capital de cuenta" value={capital} onChange={setCapital} type="number" />
         <Field label="Moneda" value={currency} onChange={setCurrency} />
-        <Field label="Riesgo máximo por operación (%)" value={maxRisk} onChange={setMaxRisk} type="number" />
+        <Field
+          label="Riesgo máximo por operación (%)"
+          value={maxRisk}
+          onChange={setMaxRisk}
+          type="number"
+        />
         <Field label="R:R mínimo aceptable" value={minRR} onChange={setMinRR} type="number" />
-        <Field label="Máximo de operaciones por día" value={maxTrades} onChange={setMaxTrades} type="number" />
+        <Field
+          label="Máximo de operaciones por día"
+          value={maxTrades}
+          onChange={setMaxTrades}
+          type="number"
+        />
       </div>
 
       <div className="panel mt-4 p-4">

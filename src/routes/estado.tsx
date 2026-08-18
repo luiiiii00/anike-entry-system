@@ -107,7 +107,7 @@ function EstadoPage() {
   const list = payments.data ?? [];
   const pendingPayment = list.find((r) => r.status === "PENDING") ?? null;
   const rejectedPayment = !pendingPayment
-    ? list.find((r) => r.status === "REJECTED") ?? null
+    ? (list.find((r) => r.status === "REJECTED") ?? null)
     : null;
   const reason =
     status === "REJECTED"
@@ -123,7 +123,9 @@ function EstadoPage() {
         <Wordmark />
         <div className="panel animate-rise mt-7 p-6">
           <Icon className={`h-8 w-8 ${screen.tone}`} />
-          <h1 className="mt-4 font-display text-2xl font-semibold tracking-tight">{screen.title}</h1>
+          <h1 className="mt-4 font-display text-2xl font-semibold tracking-tight">
+            {screen.title}
+          </h1>
           {screen.lines.map((line) => (
             <p key={line} className="mt-2 text-sm text-muted-foreground">
               {line}
@@ -175,7 +177,9 @@ function EstadoPage() {
           ) : rejectedPayment ? (
             <div className="mt-6 rounded-xl border border-danger/40 bg-danger/10 p-4 text-sm text-danger">
               <p className="font-semibold">🔴 PAGO RECHAZADO</p>
-              <p className="mt-1">Motivo: {rejectedPayment.rejection_reason ?? "No especificado."}</p>
+              <p className="mt-1">
+                Motivo: {rejectedPayment.rejection_reason ?? "No especificado."}
+              </p>
             </div>
           ) : null}
 
@@ -183,7 +187,11 @@ function EstadoPage() {
             onClick={() => router.navigate({ to: "/activar" })}
             className="mt-6 min-h-13 w-full rounded-xl bg-primary text-sm font-semibold tracking-wide text-primary-foreground"
           >
-            {pendingPayment ? "VER MI SOLICITUD DE PAGO" : status === "EXPIRED" ? "RENOVAR ACCESO" : "ACTIVAR ACCESO"}
+            {pendingPayment
+              ? "VER MI SOLICITUD DE PAGO"
+              : status === "EXPIRED"
+                ? "RENOVAR ACCESO"
+                : "ACTIVAR ACCESO"}
           </button>
 
           <button
