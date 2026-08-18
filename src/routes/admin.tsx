@@ -18,6 +18,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { Wordmark } from "@/components/brand";
 import { ContentProtection } from "@/components/ContentProtection";
+import { AdminPayments } from "@/components/AdminPayments";
 import { friendlyAuthError } from "@/lib/auth-errors";
 import {
   effectiveStatus,
@@ -399,6 +400,8 @@ function AdminPanel() {
               </table>
             </div>
           </section>
+
+          <AdminPayments />
         </main>
       </div>
 
