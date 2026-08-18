@@ -275,14 +275,7 @@ export function ContentProtection() {
 
   return (
     <>
-      {/* Marca de agua diagonal permanente, texto consistente y responsive */}
-      <div aria-hidden className="watermark-layer" data-testid="watermark-layer">
-        <div className="watermark-tile">
-          {Array.from({ length: 36 }).map((_, i) => (
-            <span key={i}>{label} · CONFIDENCIAL</span>
-          ))}
-        </div>
-      </div>
+
 
       {/* Cortina al perder foco / cambiar de app / grabar pantalla */}
       <div
