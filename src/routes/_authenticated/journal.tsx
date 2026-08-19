@@ -176,7 +176,17 @@ function Journal() {
                     <td className="px-3 py-3">
                       <StateBadge e={e} />
                     </td>
+                    <td className="px-3 py-3">
+                      <Link
+                        to="/trade/$id"
+                        params={{ id: e.id }}
+                        className="text-xs font-medium text-primary"
+                      >
+                        {analyzed?.has(e.id) ? "VER ANÁLISIS" : "ANALIZAR CON IA"}
+                      </Link>
+                    </td>
                   </tr>
+
                 ))}
               </tbody>
             </table>
