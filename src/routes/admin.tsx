@@ -416,7 +416,10 @@ function AdminPanel() {
             </div>
           </section>
 
+          <AdminAiSettings />
+
           <AdminPayments />
+
         </main>
       </div>
 
