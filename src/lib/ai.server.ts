@@ -102,6 +102,7 @@ export async function runAnikeAi(userPrompt: string): Promise<AiResult> {
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userPrompt },
         ],
+        temperature: 0.85,
         response_format: {
           type: "json_schema",
           json_schema: { name: "anike_review", strict: true, schema: SCHEMA },
@@ -215,7 +216,78 @@ function breakdownLines(b: EvalRow["breakdown"]) {
     .join("\n");
 }
 
-export function buildEvaluationPrompt(e: EvalRow, type: AiReviewType): string {
+/** Secciones donde se perdieron más puntos, ordenadas: sirve para "lo que más pesó". */
+function lostPointsLines(b: EvalRow["breakdown"]) {
+  if (!b) return "- Puntos perdidos: no registrado";
+  const lost = Object.entries(b)
+    .map(([k, v]) => ({
+      label: SECTION_LABELS[k] ?? k,
+      lost: Math.max(0, Number(v?.weight ?? 0) - Number(v?.earned ?? 0)),
+      weight: Number(v?.weight ?? 0),
+    }))
+    .filter((x) => x.lost > 0)
+    .sort((a, b2) => b2.lost - a.lost)
+    .slice(0, 5);
+  if (lost.length === 0) return "- No se perdieron puntos en ninguna sección.";
+  return lost
+    .map((x, i) => `- ${i + 1}. ${x.label}: perdió ${x.lost} de ${x.weight} puntos`)
+    .join("\n");
+}
+
+/** Respuestas del trader por sección, para no repetirlas sino agregar valor. */
+function answerLines(a: EvalRow["answers"]) {
+  if (!a || Object.keys(a).length === 0) return "- Respuestas del checklist: no registradas";
+  return Object.entries(a)
+    .slice(0, 40)
+    .map(([k, v]) => `- ${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`)
+    .join("\n");
+}
+
+export type TraderHistoryInput = {
+  sample: number;
+  avgScore: number | null;
+  winRate: number | null;
+  avgR: number | null;
+  avgScoreWinners: number | null;
+  avgScoreLosers: number | null;
+  impulsive: number;
+  offPlan: number;
+  topRules: string[];
+  bestSetup: string | null;
+  worstSetup: string | null;
+};
+
+function historyBlock(h: TraderHistoryInput | null): string[] {
+  if (!h || h.sample === 0) {
+    return [
+      "",
+      "HISTORIAL DEL TRADER: no hay operaciones previas suficientes. No afirmes patrones; dilo si hace falta.",
+    ];
+  }
+  return [
+    "",
+    `HISTORIAL RECIENTE DEL TRADER (${h.sample} operaciones registradas — úsalo solo para detectar patrones, con la prudencia que corresponde a esta cantidad de muestras):`,
+    line("Score promedio", h.avgScore),
+    line("Win rate", h.winRate === null ? null : `${h.winRate}%`),
+    line("Promedio R", h.avgR),
+    line("Score promedio en operaciones ganadoras", h.avgScoreWinners),
+    line("Score promedio en operaciones perdedoras", h.avgScoreLosers),
+    line("Operaciones con freno emocional", h.impulsive),
+    line("Operaciones fuera del plan", h.offPlan),
+    line("Mejor setup histórico", h.bestSetup),
+    line("Peor setup histórico", h.worstSetup),
+    line(
+      "Reglas duras más repetidas",
+      h.topRules.length > 0 ? h.topRules.join(" | ") : "ninguna repetida",
+    ),
+  ];
+}
+
+export function buildEvaluationPrompt(
+  e: EvalRow,
+  type: AiReviewType,
+  history: TraderHistoryInput | null = null,
+): string {
   const rr = rrOf(e.risk);
   const base = [
     "DATOS DE LA EVALUACIÓN (sistema ANIKE EJEPIKA):",
@@ -245,6 +317,13 @@ export function buildEvaluationPrompt(e: EvalRow, type: AiReviewType): string {
     "",
     "PUNTAJE POR SECCIÓN:",
     breakdownLines(e.breakdown),
+    "",
+    "DÓNDE SE PERDIERON LOS PUNTOS (ordenado por peso):",
+    lostPointsLines(e.breakdown),
+    "",
+    "RESPUESTAS DEL TRADER EN EL CHECKLIST (no las repitas, agrega valor sobre ellas):",
+    answerLines(e.answers),
+    ...historyBlock(history),
   ];
 
   if (type === "POST_TRADE") {
@@ -277,14 +356,18 @@ export function buildEvaluationPrompt(e: EvalRow, type: AiReviewType): string {
       line("Qué dice el trader que funcionó", e.review?.["worked"]),
       line("Qué dice el trader que falló", e.review?.["failed"]),
       "",
-      "Además de las cuatro secciones, en 'summary' indica si el resultado fue coherente con la calidad del proceso, distinguiendo entre buena operación con mal resultado y mala operación con buen resultado.",
+      "Esta operación ya está cerrada. Compara el plan con la ejecución real: qué parte del proceso fue correcta, cuál fue el error real, la enseñanza y la acción concreta.",
+      "En 'summary' juzga la coherencia entre resultado y calidad del proceso. Si ganó con proceso débil, no permitas que el resultado justifique la entrada. Si perdió con proceso sólido y riesgo controlado, dilo con claridad: es una pérdida que forma parte de un proceso válido.",
     );
   } else if (type === "NO_TRADE") {
-    base.push("", "Esta operación fue DESCARTADA por el sistema. Explica con precisión por qué.");
+    base.push(
+      "",
+      "Esta operación fue DESCARTADA por el sistema. Explica con precisión por qué se descartó y qué habría hecho falta para que la idea llegara limpia, sin sugerir en ningún caso que podría entrarse igual.",
+    );
   } else {
     base.push(
       "",
-      "Esta evaluación fue aprobada por el sistema. Explica qué elementos contribuyeron a esa clasificación, sin recomendar ejecutar.",
+      "Esta evaluación fue aprobada por el sistema y todavía no tiene resultado. Explica qué elementos sostienen esa clasificación y cuáles dejan la entrada menos limpia de lo que podría estar, sin recomendar ejecutar ni anticipar el resultado.",
     );
   }
 
@@ -320,6 +403,6 @@ export function buildWeeklyPrompt(s: WeeklyStatsInput): string {
       s.recurringRules.length > 0 ? s.recurringRules.join(" | ") : "ninguno registrado",
     ),
     "",
-    "Analiza la SEMANA completa: en 'summary' responde qué funcionó esta semana y cuál fue el principal problema; en 'what_failed' identifica el patrón que se está repitiendo; en 'next_time' propón qué trabajar la próxima semana. No generes recomendaciones de inversión.",
+    "Analiza la SEMANA completa como mentor: en 'summary' lee la calidad del proceso semanal (no solo los resultados) y cierra con la línea '🚨 EL PUNTO CLAVE:'; en 'what_failed' identifica el patrón que se está repitiendo y sé prudente si hay pocas operaciones; en 'next_time' propón qué trabajar la próxima semana. No generes recomendaciones de inversión ni señales.",
   ].join("\n");
 }
