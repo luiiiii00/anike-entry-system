@@ -433,17 +433,25 @@ function Field({
   type?: string;
   hint?: string;
 }) {
+  const isNumeric = type === "number";
   return (
     <label className="block">
       <span className="label-mono">{label}</span>
       <input
-        type={type}
-        inputMode={type === "number" ? "decimal" : undefined}
+        type={isNumeric ? "text" : type}
+        inputMode={isNumeric ? "decimal" : undefined}
+        autoComplete="off"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          if (!isNumeric) return onChange(e.target.value);
+          // Permite decimales con punto o coma (teclados en español) y negativos.
+          const cleaned = e.target.value.replace(/[^0-9.,-]/g, "");
+          if (cleaned === "" || /^-?\d*[.,]?\d*$/.test(cleaned)) onChange(cleaned);
+        }}
         className="mt-1.5 min-h-11 w-full rounded-xl border border-input bg-background px-3 text-base outline-none focus:border-primary"
       />
       {hint && <span className="mt-1 block text-[11px] leading-snug text-muted-foreground">{hint}</span>}
     </label>
   );
+
 }
