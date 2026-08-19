@@ -130,7 +130,7 @@ function Journal() {
         <>
           <div className="mt-4 space-y-2 lg:hidden">
             {rows.map((e) => (
-              <MobileCard key={e.id} e={e} />
+              <MobileCard key={e.id} e={e} analyzed={analyzed?.has(e.id) ?? false} />
             ))}
           </div>
 
@@ -138,7 +138,7 @@ function Journal() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left">
-                  {["Fecha", "Activo", "Dir", "Setup", "Score", "Riesgo", "R:R", "R", "$", "Disc.", "Estado"].map(
+                  {["Fecha", "Activo", "Dir", "Setup", "Score", "Riesgo", "R:R", "R", "$", "Disc.", "Estado", "ANIKE IA"].map(
                     (h) => (
                       <th key={h} className="label-mono px-3 py-3 font-normal">
                         {h}
@@ -147,6 +147,7 @@ function Journal() {
                   )}
                 </tr>
               </thead>
+
               <tbody>
                 {rows.map((e) => (
                   <tr key={e.id} className="border-b border-border/60 last:border-0 hover:bg-surface-2">
