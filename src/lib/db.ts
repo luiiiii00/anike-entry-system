@@ -37,9 +37,53 @@ export type Evaluation = {
   result_money: number | null;
   followed_plan: string | null;
   review: Record<string, string>;
+  notes?: string | null;
   created_at: string;
   updated_at: string;
+  // POST-TRADE (calculado y guardado en servidor)
+  market_type?: string | null;
+  currency?: string | null;
+  entry_price?: number | null;
+  exit_price?: number | null;
+  quantity?: number | null;
+  lot_size?: number | null;
+  contract_size?: number | null;
+  leverage?: number | null;
+  margin?: number | null;
+  notional_value?: number | null;
+  stop_loss?: number | null;
+  take_profit?: number | null;
+  gross_pnl?: number | null;
+  fees?: number | null;
+  net_pnl?: number | null;
+  price_change_percent?: number | null;
+  roi_margin?: number | null;
+  risk_amount?: number | null;
+  risk_percent?: number | null;
+  planned_rr?: number | null;
+  realized_rr?: number | null;
+  trade_result?: string | null;
+  post_trade_inputs?: Record<string, unknown> | null;
+  calculated_at?: string | null;
 };
+
+/** Crea una operación en el Journal sin evaluación previa (registro directo). */
+export async function createJournalTrade(userId: string): Promise<Evaluation> {
+  const trade_no = await nextTradeNumber();
+  const { data, error } = await supabase
+    .from("evaluations")
+    .insert({
+      user_id: userId,
+      trade_no,
+      status: "completed",
+      decision: "registrado",
+      classification: "REGISTRO DIRECTO",
+    } as never)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as unknown as Evaluation;
+}
 
 export async function fetchSettings(userId: string): Promise<Settings> {
   const { data, error } = await supabase.from("settings").select("*").eq("user_id", userId).maybeSingle();
