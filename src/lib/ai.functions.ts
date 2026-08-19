@@ -75,6 +75,16 @@ export const analyzeEvaluationFn = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!row) throw new Error("evaluation_not_found");
 
+    // Historial reciente del propio usuario: solo lectura, para detectar patrones.
+    const { data: recent } = await db
+      .from("evaluations")
+      .select("score,result_r,emotional_stop,followed_plan,hard_rules,setup,status")
+      .eq("user_id", context.userId)
+      .neq("id", row.id)
+      .order("trade_date", { ascending: false })
+      .limit(30);
+    const history = buildHistory(recent ?? []);
+
     const isNoTrade = row.classification === "NO TRADE" || row.decision === "no_trade";
     const hasResult = row.result_r !== null && row.result_r !== undefined;
     const reviewType =
@@ -118,6 +128,7 @@ export const analyzeEvaluationFn = createServerFn({ method: "POST" })
         trade_result: row.trade_result,
       },
       reviewType,
+      history,
     );
 
     let result;
@@ -185,3 +196,56 @@ export const analyzeWeekFn = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return saved;
   });
+
+
+type HistoryRow = {
+  score: number | null;
+  result_r: number | null;
+  emotional_stop: boolean | null;
+  followed_plan: string | null;
+  hard_rules: string[] | null;
+  setup: string | null;
+  status: string | null;
+};
+
+function avg(list: number[]) {
+  if (list.length === 0) return null;
+  return Number((list.reduce((a, b) => a + b, 0) / list.length).toFixed(2));
+}
+
+function buildHistory(rows: HistoryRow[]) {
+  if (rows.length === 0) return null;
+  const closed = rows.filter((r) => r.result_r !== null && r.result_r !== undefined);
+  const winners = closed.filter((r) => Number(r.result_r) > 0);
+  const losers = closed.filter((r) => Number(r.result_r) < 0);
+  const scores = rows.filter((r) => r.score !== null).map((r) => Number(r.score));
+
+  const ruleCount = new Map<string, number>();
+  for (const r of rows) for (const k of r.hard_rules ?? []) ruleCount.set(k, (ruleCount.get(k) ?? 0) + 1);
+  const topRules = [...ruleCount.entries()]
+    .filter(([, n]) => n > 1)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([k, n]) => `${k} (${n}x)`);
+
+  const setupR = new Map<string, number>();
+  for (const r of closed) {
+    const key = r.setup ?? "sin setup";
+    setupR.set(key, Number(((setupR.get(key) ?? 0) + Number(r.result_r)).toFixed(2)));
+  }
+  const ranked = [...setupR.entries()].sort((a, b) => b[1] - a[1]);
+
+  return {
+    sample: rows.length,
+    avgScore: avg(scores),
+    winRate: closed.length === 0 ? null : Number(((winners.length / closed.length) * 100).toFixed(1)),
+    avgR: avg(closed.map((r) => Number(r.result_r))),
+    avgScoreWinners: avg(winners.filter((r) => r.score !== null).map((r) => Number(r.score))),
+    avgScoreLosers: avg(losers.filter((r) => r.score !== null).map((r) => Number(r.score))),
+    impulsive: rows.filter((r) => r.emotional_stop).length,
+    offPlan: rows.filter((r) => r.followed_plan === "no").length,
+    topRules,
+    bestSetup: ranked[0]?.[0] ?? null,
+    worstSetup: ranked.length > 1 ? (ranked[ranked.length - 1]?.[0] ?? null) : null,
+  };
+}
