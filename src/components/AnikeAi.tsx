@@ -79,7 +79,7 @@ export function AnikeAiPanel(props: Props) {
         </div>
         <div className="min-w-[190px] flex-1">
           <p className="font-display text-base font-semibold">🤖 ANIKE IA</p>
-          <p className="text-xs text-muted-foreground">Tu mentor para entender tus decisiones.</p>
+          <p className="text-xs text-muted-foreground">El mentor que te obliga a aprender de cada operación.</p>
           <p className="mt-2 text-sm text-muted-foreground">
             {isEvaluation && props.noTrade
               ? "¿Quieres entender por qué esta operación fue descartada?"
@@ -170,11 +170,11 @@ export function AiReviewBody({ review }: { review: AiReview }) {
           {new Date(review.created_at).toLocaleString("es-PY")} · {review.review_type}
         </p>
       </div>
-      <Block title="¿Por qué se tomó esta decisión?" text={review.summary} />
-      <Block title="1. ¿Qué funcionó? ✅" text={review.what_worked} />
-      <Block title="2. ¿Qué falló? ❌" text={review.what_failed} />
-      <Block title="3. ¿Qué aprendí? 🧠" text={review.what_learned} />
-      <Block title="4. ¿Qué haré diferente la próxima vez? 🎯" text={review.next_time} />
+      <Block title="🎯 MI LECTURA" text={review.summary} highlightKeyPoint />
+      <Block title="✅ LO QUE HICISTE BIEN" text={review.what_worked} />
+      <Block title="⚠️ LO QUE NO ME CONVENCE" text={review.what_failed} />
+      <Block title="🧠 ¿QUÉ APRENDÍ?" text={review.what_learned} />
+      <Block title="🎯 ¿QUÉ HARÉ DIFERENTE?" text={review.next_time} />
       <p className="text-[11px] text-muted-foreground">
         ANIKE IA es una herramienta educativa de revisión de procesos. No emite señales de compra o
         venta, no predice el mercado ni garantiza resultados.
@@ -183,21 +183,50 @@ export function AiReviewBody({ review }: { review: AiReview }) {
   );
 }
 
-function Block({ title, text }: { title: string; text: string }) {
+function Block({
+  title,
+  text,
+  highlightKeyPoint = false,
+}: {
+  title: string;
+  text: string;
+  highlightKeyPoint?: boolean;
+}) {
   if (!text) return null;
+  const lines = text
+    .split("\n")
+    .map((l) => l.replace(/^[*#>]+\s*/, "").replace(/\*\*/g, "").trim())
+    .filter(Boolean);
+
   return (
     <div className="rounded-xl border border-border bg-surface-2 p-4">
-      <p className="text-sm font-semibold">{title}</p>
+      <p className="label-mono">{title}</p>
       <div className="mt-2 space-y-1.5 text-sm leading-relaxed text-foreground/90">
-        {text
-          .split("\n")
-          .map((l) => l.replace(/^[*#]+\s*/, "").trim())
-          .filter(Boolean)
-          .map((l, i) => (
-            <p key={i} className={cn(l.startsWith("- ") && "pl-3")}>
+        {lines.map((l, i) => {
+          const isKey = highlightKeyPoint && /^🚨/.test(l);
+          const isAlert = /^(🚨|OJO CON ESTO)/i.test(l) || /^-\s*🚨/.test(l);
+          if (isKey) {
+            return (
+              <p
+                key={i}
+                className="mt-3 rounded-lg border border-primary/40 bg-primary/10 p-3 text-sm font-medium text-foreground"
+              >
+                {l}
+              </p>
+            );
+          }
+          return (
+            <p
+              key={i}
+              className={cn(
+                l.startsWith("- ") && "pl-3",
+                isAlert && "font-medium text-stop",
+              )}
+            >
               {l.startsWith("- ") ? `• ${l.slice(2)}` : l}
             </p>
-          ))}
+          );
+        })}
       </div>
     </div>
   );
