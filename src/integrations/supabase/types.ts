@@ -159,28 +159,52 @@ export type Database = {
           asset: string | null
           before_screenshot_url: string | null
           breakdown: Json
+          calculated_at: string | null
           classification: string | null
+          contract_size: number | null
           created_at: string
+          currency: string | null
           decision: string | null
           direction: string | null
           discipline_status: string | null
           emotional_stop: boolean
+          entry_price: number | null
+          exit_price: number | null
+          fees: number | null
           followed_plan: string | null
+          gross_pnl: number | null
           hard_rules: string[]
           id: string
           idea: string | null
+          leverage: number | null
+          lot_size: number | null
+          margin: number | null
           market: string | null
+          market_type: string | null
+          net_pnl: number | null
           notes: string | null
+          notional_value: number | null
+          planned_rr: number | null
+          post_trade_inputs: Json
+          price_change_percent: number | null
+          quantity: number | null
+          realized_rr: number | null
           result_money: number | null
           result_r: number | null
           review: Json
           risk: Json
+          risk_amount: number | null
+          risk_percent: number | null
+          roi_margin: number | null
           score: number | null
           session: string | null
           setup: string | null
           status: string
+          stop_loss: number | null
+          take_profit: number | null
           trade_date: string
           trade_no: number | null
+          trade_result: string | null
           trade_time: string | null
           updated_at: string
           user_id: string
@@ -191,28 +215,52 @@ export type Database = {
           asset?: string | null
           before_screenshot_url?: string | null
           breakdown?: Json
+          calculated_at?: string | null
           classification?: string | null
+          contract_size?: number | null
           created_at?: string
+          currency?: string | null
           decision?: string | null
           direction?: string | null
           discipline_status?: string | null
           emotional_stop?: boolean
+          entry_price?: number | null
+          exit_price?: number | null
+          fees?: number | null
           followed_plan?: string | null
+          gross_pnl?: number | null
           hard_rules?: string[]
           id?: string
           idea?: string | null
+          leverage?: number | null
+          lot_size?: number | null
+          margin?: number | null
           market?: string | null
+          market_type?: string | null
+          net_pnl?: number | null
           notes?: string | null
+          notional_value?: number | null
+          planned_rr?: number | null
+          post_trade_inputs?: Json
+          price_change_percent?: number | null
+          quantity?: number | null
+          realized_rr?: number | null
           result_money?: number | null
           result_r?: number | null
           review?: Json
           risk?: Json
+          risk_amount?: number | null
+          risk_percent?: number | null
+          roi_margin?: number | null
           score?: number | null
           session?: string | null
           setup?: string | null
           status?: string
+          stop_loss?: number | null
+          take_profit?: number | null
           trade_date?: string
           trade_no?: number | null
+          trade_result?: string | null
           trade_time?: string | null
           updated_at?: string
           user_id: string
@@ -223,28 +271,52 @@ export type Database = {
           asset?: string | null
           before_screenshot_url?: string | null
           breakdown?: Json
+          calculated_at?: string | null
           classification?: string | null
+          contract_size?: number | null
           created_at?: string
+          currency?: string | null
           decision?: string | null
           direction?: string | null
           discipline_status?: string | null
           emotional_stop?: boolean
+          entry_price?: number | null
+          exit_price?: number | null
+          fees?: number | null
           followed_plan?: string | null
+          gross_pnl?: number | null
           hard_rules?: string[]
           id?: string
           idea?: string | null
+          leverage?: number | null
+          lot_size?: number | null
+          margin?: number | null
           market?: string | null
+          market_type?: string | null
+          net_pnl?: number | null
           notes?: string | null
+          notional_value?: number | null
+          planned_rr?: number | null
+          post_trade_inputs?: Json
+          price_change_percent?: number | null
+          quantity?: number | null
+          realized_rr?: number | null
           result_money?: number | null
           result_r?: number | null
           review?: Json
           risk?: Json
+          risk_amount?: number | null
+          risk_percent?: number | null
+          roi_margin?: number | null
           score?: number | null
           session?: string | null
           setup?: string | null
           status?: string
+          stop_loss?: number | null
+          take_profit?: number | null
           trade_date?: string
           trade_no?: number | null
+          trade_result?: string | null
           trade_time?: string | null
           updated_at?: string
           user_id?: string

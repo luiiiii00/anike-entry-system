@@ -9,7 +9,8 @@ import { AnikeAiPanel } from "@/components/AnikeAi";
 import { ScoreDial } from "@/components/ScoreDial";
 import { TrafficLight } from "@/components/TrafficLight";
 import { lightFor } from "@/components/TrafficLight";
-import { deleteEvaluation, fetchEvaluation, upsertEvaluation } from "@/lib/db";
+import { deleteEvaluation, fetchEvaluation, fetchSettings, upsertEvaluation } from "@/lib/db";
+import { PostTradeCalculator } from "@/components/PostTradeCalculator";
 import { SECTIONS } from "@/lib/checklist";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -42,21 +43,23 @@ function TradeDetail() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
+  const { data: settings } = useQuery({
+    queryKey: ["settings", user?.id],
+    queryFn: () => fetchSettings(user!.id),
+    enabled: !!user,
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ["evaluation", id],
     queryFn: () => fetchEvaluation(id),
     enabled: !!user,
   });
 
-  const [resultR, setResultR] = useState("");
-  const [resultMoney, setResultMoney] = useState("");
   const [followed, setFollowed] = useState("");
   const [review, setReview] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!data) return;
-    setResultR(data.result_r === null ? "" : String(data.result_r));
-    setResultMoney(data.result_money === null ? "" : String(data.result_money));
     setFollowed(data.followed_plan ?? "");
     setReview(data.review ?? {});
   }, [data]);
@@ -66,8 +69,6 @@ function TradeDetail() {
       upsertEvaluation({
         id,
         user_id: user!.id,
-        result_r: resultR === "" ? null : Number(resultR),
-        result_money: resultMoney === "" ? null : Number(resultMoney),
         followed_plan: followed || null,
         review,
       }),
@@ -169,6 +170,12 @@ function TradeDetail() {
         </div>
       )}
 
+      <PostTradeCalculator
+        evaluation={data}
+        capital={Number(settings?.account_capital ?? 1000)}
+        currency={settings?.currency ?? "USD"}
+      />
+
       <AnikeAiPanel
         variant="evaluation"
         evaluationId={id}
@@ -203,11 +210,7 @@ function TradeDetail() {
       </section>
 
       <section className="mt-6 space-y-3">
-        <p className="label-mono">Resultado y revisión post-trade</p>
-        <div className="panel grid gap-3 p-4 sm:grid-cols-2">
-          <Field label="Resultado en R" value={resultR} onChange={setResultR} type="number" />
-          <Field label="Resultado en dinero" value={resultMoney} onChange={setResultMoney} type="number" />
-        </div>
+        <p className="label-mono">REFLEXIÓN POST-TRADE</p>
         <div className="panel p-4">
           <p className="label-mono">¿Seguí mi plan?</p>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -266,29 +269,5 @@ function Info({ label, value }: { label: string; value: number | undefined }) {
       <p className="label-mono">{label}</p>
       <p className="mt-1 font-mono text-base tabular-nums">{value ?? "—"}</p>
     </div>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  type = "text",
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  type?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="label-mono">{label}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="mt-1.5 min-h-11 w-full rounded-xl border border-input bg-background px-3 text-base outline-none focus:border-primary"
-      />
-    </label>
   );
 }

@@ -130,6 +130,24 @@ type EvalRow = {
   breakdown: Record<string, { earned?: number; weight?: number }> | null;
   review: Record<string, string> | null;
   notes: string | null;
+  market_type?: string | null;
+  currency?: string | null;
+  entry_price?: number | null;
+  exit_price?: number | null;
+  stop_loss?: number | null;
+  take_profit?: number | null;
+  leverage?: number | null;
+  margin?: number | null;
+  gross_pnl?: number | null;
+  fees?: number | null;
+  net_pnl?: number | null;
+  price_change_percent?: number | null;
+  roi_margin?: number | null;
+  risk_amount?: number | null;
+  risk_percent?: number | null;
+  planned_rr?: number | null;
+  realized_rr?: number | null;
+  trade_result?: string | null;
 };
 
 const SECTION_LABELS: Record<string, string> = {
@@ -206,6 +224,25 @@ export function buildEvaluationPrompt(e: EvalRow, type: AiReviewType): string {
       line("Resultado en R", e.result_r),
       line("¿Siguió el plan?", e.followed_plan),
       line("Notas post-trade del trader", e.notes),
+      "",
+      "DATOS CALCULADOS POR LA CALCULADORA POST-TRADE:",
+      line("Mercado", e.market_type),
+      line("Precio de entrada", e.entry_price),
+      line("Precio de salida", e.exit_price),
+      line("Stop Loss", e.stop_loss),
+      line("Take Profit", e.take_profit),
+      line("Apalancamiento", e.leverage === null || e.leverage === undefined ? null : `${e.leverage}x`),
+      line("Margen utilizado", e.margin),
+      line("P&L bruto", e.gross_pnl),
+      line("Comisiones y costos", e.fees),
+      line("P&L neto", e.net_pnl === null || e.net_pnl === undefined ? null : `${e.net_pnl} ${e.currency ?? ""}`),
+      line("Movimiento del precio %", e.price_change_percent),
+      line("ROI sobre margen %", e.roi_margin),
+      line("Riesgo monetario", e.risk_amount),
+      line("Riesgo % sobre capital", e.risk_percent),
+      line("R:R planificado", e.planned_rr),
+      line("R:R realizado", e.realized_rr),
+      line("Clasificación del resultado", e.trade_result),
       line("Qué dice el trader que funcionó", e.review?.["worked"]),
       line("Qué dice el trader que falló", e.review?.["failed"]),
       "",

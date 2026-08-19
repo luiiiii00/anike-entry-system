@@ -23,6 +23,8 @@ import {
   computeStats,
   equityCurve,
   longVsShort,
+  rDistribution,
+  byAsset,
   scoreVsResult,
   setupDistribution,
 } from "@/lib/stats";
@@ -59,6 +61,8 @@ function StatsPage() {
   const svr = scoreVsResult(list);
   const ls = longVsShort(list);
   const insights = buildInsights(list, stats);
+  const rDist = rDistribution(list);
+  const assets = byAsset(list).slice(0, 8);
 
   return (
     <AppShell title="Estadísticas" subtitle="Calculadas únicamente con tus operaciones registradas.">
@@ -71,6 +75,16 @@ function StatsPage() {
         <Cell2 label="Score promedio" value={stats.avgScore ?? "—"} />
         <Cell2 label="Impulsivas" value={stats.impulsive} />
         <Cell2 label="Fuera del plan" value={stats.offPlan} />
+        <Cell2 label="Ganadoras" value={stats.wins} />
+        <Cell2 label="Perdedoras" value={stats.losses} />
+        <Cell2 label="Break even" value={stats.breakEven} />
+        <Cell2 label="P&L acumulado" value={stats.netPnl.toFixed(2)} />
+        <Cell2 label="ROI promedio" value={stats.avgRoi === null ? "—" : `${stats.avgRoi}%`} />
+        <Cell2 label="Resultado promedio" value={stats.avgMoney === null ? "—" : stats.avgMoney.toFixed(2)} />
+        <Cell2 label="Mejor R" value={stats.bestR === null ? "—" : stats.bestR.toFixed(2)} />
+        <Cell2 label="Peor R" value={stats.worstR === null ? "—" : stats.worstR.toFixed(2)} />
+        <Cell2 label="Mejor operación" value={stats.bestTrade === null ? "—" : stats.bestTrade.toFixed(2)} />
+        <Cell2 label="Peor operación" value={stats.worstTrade === null ? "—" : stats.worstTrade.toFixed(2)} />
       </div>
 
       <section className="mt-6 space-y-4">
@@ -124,6 +138,32 @@ function StatsPage() {
             )}
           </Panel>
         </div>
+
+        <Panel title="Distribución de resultados en R">
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={rDist}>
+              <CartesianGrid stroke="var(--border)" vertical={false} />
+              <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={10} />
+              <YAxis stroke="var(--muted-foreground)" fontSize={11} allowDecimals={false} />
+              <Tooltip contentStyle={TOOLTIP} />
+              <Bar dataKey="value" name="Operaciones" fill="var(--accent)" radius={6} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Panel>
+
+        {assets.length > 0 && (
+          <Panel title="Resultados por activo (R)">
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={assets}>
+                <CartesianGrid stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={10} />
+                <YAxis stroke="var(--muted-foreground)" fontSize={11} />
+                <Tooltip contentStyle={TOOLTIP} />
+                <Bar dataKey="r" name="R" fill="var(--ok)" radius={6} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Panel>
+        )}
 
         <Panel title="LONG vs SHORT">
           <ResponsiveContainer width="100%" height={200}>
