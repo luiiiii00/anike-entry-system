@@ -233,7 +233,7 @@ function StateBadge({ e }: { e: Evaluation }) {
   );
 }
 
-function MobileCard({ e }: { e: Evaluation }) {
+function MobileCard({ e, analyzed }: { e: Evaluation; analyzed: boolean }) {
   return (
     <Link
       to="/trade/$id"
