@@ -74,6 +74,18 @@ function Weekly() {
   const stats = computeStats(weekList);
   const insights = buildInsights(weekList, stats);
 
+  const topRules = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const e of weekList) {
+      for (const r of e.hard_rules ?? []) counts.set(r, (counts.get(r) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([rule, n]) => `${rule} (${n}x)`);
+  }, [weekList]);
+
+
   const save = useMutation({
     mutationFn: async () => {
       const { error } = await supabase
