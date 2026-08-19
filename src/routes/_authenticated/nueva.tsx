@@ -597,7 +597,28 @@ function ResultStep({
         <Row label="Disciplina" value={decision.emotional ? "REVISAR" : "OK"} />
       </div>
 
+      {decision.classification === "NO TRADE" && (
+        <div className="panel border-primary/30 bg-primary/5 p-5">
+          <p className="font-display text-base font-semibold">🤖 ANALIZAR CON ANIKE IA</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            ¿Quieres entender por qué esta operación fue descartada?
+          </p>
+          <button
+            onClick={onNoTrade}
+            disabled={saving}
+            className="mt-4 min-h-12 w-full rounded-xl border border-primary/40 bg-primary/10 text-sm font-semibold tracking-wide text-primary disabled:opacity-50"
+          >
+            ANALIZAR CON IA
+          </button>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Guardamos la evaluación como NO TRADE y ANIKE IA la revisará contigo. La IA no emite
+            señales de compra o venta.
+          </p>
+        </div>
+      )}
+
       <div className="panel p-5">
+
         <p className="font-display text-base font-semibold">¿Ejecutar esta operación?</p>
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           <button
