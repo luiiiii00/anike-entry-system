@@ -17,6 +17,15 @@ export type Stats = {
   offPlan: number;
   bestSetup: string | null;
   worstSetup: string | null;
+  losses: number;
+  breakEven: number;
+  netPnl: number;
+  avgRoi: number | null;
+  avgMoney: number | null;
+  bestR: number | null;
+  worstR: number | null;
+  bestTrade: number | null;
+  worstTrade: number | null;
 };
 
 const completed = (e: Evaluation) => e.status === "completed";
@@ -38,7 +47,24 @@ export function computeStats(list: Evaluation[]): Stats {
     .map(([setup, values]) => ({ setup, avg: avg(values)!, n: values.length }))
     .sort((a, b) => b.avg - a.avg);
 
+  const withPnl = done.filter((e) => e.net_pnl !== null && e.net_pnl !== undefined);
+  const rois = done
+    .filter((e) => e.roi_margin !== null && e.roi_margin !== undefined)
+    .map((e) => Number(e.roi_margin));
+  const monies = closed
+    .filter((e) => e.result_money !== null && e.result_money !== undefined)
+    .map((e) => Number(e.result_money));
+
   return {
+    losses: closed.filter((e) => (e.result_r ?? 0) < 0).length,
+    breakEven: closed.filter((e) => Number(e.result_r) === 0).length,
+    netPnl: round(withPnl.reduce((a, e) => a + Number(e.net_pnl), 0), 2),
+    avgRoi: avg(rois) === null ? null : round(avg(rois)!, 2),
+    avgMoney: avg(monies) === null ? null : round(avg(monies)!, 2),
+    bestR: rs.length ? round(Math.max(...rs), 2) : null,
+    worstR: rs.length ? round(Math.min(...rs), 2) : null,
+    bestTrade: monies.length ? round(Math.max(...monies), 2) : null,
+    worstTrade: monies.length ? round(Math.min(...monies), 2) : null,
     total: done.length,
     approved: done.filter((e) => e.classification && e.classification !== "NO TRADE").length,
     noTrade: done.filter((e) => e.classification === "NO TRADE").length,
@@ -165,4 +191,40 @@ export function buildInsights(list: Evaluation[], stats: Stats): string[] {
 
 function mean(values: number[]) {
   return values.reduce((a, b) => a + b, 0) / (values.length || 1);
+}
+
+/** Distribución de resultados en R (independiente del tamaño monetario). */
+export function rDistribution(list: Evaluation[]) {
+  const buckets = [
+    { name: "≤ -2R", min: -Infinity, max: -2 },
+    { name: "-2R a -1R", min: -2, max: -1 },
+    { name: "-1R a 0", min: -1, max: 0 },
+    { name: "0 a 1R", min: 0, max: 1 },
+    { name: "1R a 2R", min: 1, max: 2 },
+    { name: "> 2R", min: 2, max: Infinity },
+  ];
+  const out = buckets.map((b) => ({ name: b.name, value: 0 }));
+  for (const e of list) {
+    if (e.status !== "completed" || e.result_r === null || e.result_r === undefined) continue;
+    const r = Number(e.result_r);
+    const i = buckets.findIndex((b) => r > b.min && r <= b.max);
+    const idx = i === -1 ? (r <= -2 ? 0 : out.length - 1) : i;
+    out[idx]!.value += 1;
+  }
+  return out;
+}
+
+/** Resultados agregados por activo. */
+export function byAsset(list: Evaluation[]) {
+  const map = new Map<string, { name: string; trades: number; r: number; money: number }>();
+  for (const e of list) {
+    if (e.status !== "completed" || e.result_r === null || e.result_r === undefined) continue;
+    const key = e.asset ?? "Sin activo";
+    const row = map.get(key) ?? { name: key, trades: 0, r: 0, money: 0 };
+    row.trades += 1;
+    row.r = round(row.r + Number(e.result_r), 2);
+    row.money = round(row.money + Number(e.result_money ?? 0), 2);
+    map.set(key, row);
+  }
+  return [...map.values()].sort((a, b) => b.r - a.r);
 }
