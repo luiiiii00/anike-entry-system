@@ -19,31 +19,31 @@ export type FeeMode = "none" | "total" | "sides" | "percent";
 export type PostTradeInput = {
   marketType: MarketType;
   direction: Direction;
-  symbol?: string | null;
-  entryDate?: string | null;
-  exitDate?: string | null;
-  entryPrice?: number | null;
-  exitPrice?: number | null;
+  symbol?: string | null | undefined;
+  entryDate?: string | null | undefined;
+  exitDate?: string | null | undefined;
+  entryPrice?: number | null | undefined;
+  exitPrice?: number | null | undefined;
   /** Unidades / contratos ya calculados (si se conoce, manda sobre el lotaje). */
-  quantity?: number | null;
+  quantity?: number | null | undefined;
   /** Lotaje: se multiplica por el tamaño de contrato para obtener unidades. */
-  lotSize?: number | null;
-  contractSize?: number | null;
-  leverage?: number | null;
+  lotSize?: number | null | undefined;
+  contractSize?: number | null | undefined;
+  leverage?: number | null | undefined;
   /** Margen introducido manualmente: si existe, no se recalcula. */
-  margin?: number | null;
-  capital?: number | null;
-  stopLoss?: number | null;
-  takeProfit?: number | null;
-  feeMode?: FeeMode;
-  feeTotal?: number | null;
-  feeEntry?: number | null;
-  feeExit?: number | null;
+  margin?: number | null | undefined;
+  capital?: number | null | undefined;
+  stopLoss?: number | null | undefined;
+  takeProfit?: number | null | undefined;
+  feeMode?: FeeMode | undefined;
+  feeTotal?: number | null | undefined;
+  feeEntry?: number | null | undefined;
+  feeExit?: number | null | undefined;
   /** Comisión en % sobre el volumen operado (entrada + salida). */
-  feePercent?: number | null;
-  otherCosts?: number | null;
-  currency?: Currency;
-  decimals?: number | null;
+  feePercent?: number | null | undefined;
+  otherCosts?: number | null | undefined;
+  currency?: Currency | undefined;
+  decimals?: number | null | undefined;
 };
 
 export type PostTradeResult = {
