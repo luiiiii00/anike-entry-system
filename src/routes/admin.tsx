@@ -19,6 +19,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Wordmark } from "@/components/brand";
 import { ContentProtection } from "@/components/ContentProtection";
 import { AdminPayments } from "@/components/AdminPayments";
+import { AdminAiSettings } from "@/components/AdminAiSettings";
+
 import { friendlyAuthError } from "@/lib/auth-errors";
 import {
   effectiveStatus,
