@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
+import { AnikeAiPanel } from "@/components/AnikeAi";
+
 import { fetchEvaluations } from "@/lib/db";
 import { buildInsights, computeStats } from "@/lib/stats";
 import { supabase } from "@/integrations/supabase/client";
@@ -98,6 +100,23 @@ function Weekly() {
         <Item label="Impulsivas" value={stats.impulsive} />
         <Item label="Fuera del plan" value={stats.offPlan} />
       </div>
+
+      <AnikeAiPanel
+        variant="weekly"
+        getPayload={() => ({
+          weekStart,
+          total: stats.total,
+          winRate: stats.winRate,
+          avgR: stats.avgR,
+          avgScore: stats.avgScore,
+          impulsive: stats.impulsive,
+          offPlan: stats.offPlan,
+          bestSetup: stats.bestSetup,
+          worstSetup: stats.worstSetup,
+          recurringRules: topRules,
+        })}
+      />
+
 
       <section className="mt-6">
         <p className="label-mono">Lo que tus operaciones están mostrando</p>
