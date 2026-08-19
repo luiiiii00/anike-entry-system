@@ -1,8 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { toast } from "sonner";
+import { Plus } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
-import { fetchEvaluations, type Evaluation } from "@/lib/db";
+import { createJournalTrade, fetchEvaluations, type Evaluation } from "@/lib/db";
 import { fetchAnalyzedEvaluationIds } from "@/lib/ai";
 
 import { useAuth } from "@/hooks/useAuth";
@@ -37,6 +39,17 @@ function Journal() {
   });
 
 
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const register = useMutation({
+    mutationFn: () => createJournalTrade(user!.id),
+    onSuccess: (row) => {
+      queryClient.invalidateQueries({ queryKey: ["evaluations"] });
+      router.navigate({ to: "/trade/$id", params: { id: row.id } });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const [asset, setAsset] = useState("");
   const [from, setFrom] = useState("");
   const [setup, setSetup] = useState("Todos");
@@ -55,7 +68,19 @@ function Journal() {
   }, [data, asset, from, setup, direction, state]);
 
   return (
-    <AppShell title="Trading Journal" subtitle="Cada evaluación registrada, con su decisión y resultado.">
+    <AppShell
+      title="Trading Journal"
+      subtitle="Cada evaluación registrada, con su decisión y resultado."
+      action={
+        <button
+          onClick={() => register.mutate()}
+          disabled={register.isPending || !user}
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+        >
+          <Plus className="h-4 w-4" /> REGISTRAR OPERACIÓN
+        </button>
+      }
+    >
       <div className="panel grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
         <label className="block">
           <span className="label-mono">Activo</span>
