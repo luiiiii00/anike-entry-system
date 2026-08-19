@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { fetchEvaluations, type Evaluation } from "@/lib/db";
+import { fetchAnalyzedEvaluationIds } from "@/lib/ai";
+
 import { useAuth } from "@/hooks/useAuth";
 import { SETUPS } from "@/lib/checklist";
 import { cn } from "@/lib/utils";
@@ -28,6 +30,12 @@ function Journal() {
     queryFn: fetchEvaluations,
     enabled: !!user,
   });
+  const { data: analyzed } = useQuery({
+    queryKey: ["ai-reviews", "ids", user?.id],
+    queryFn: fetchAnalyzedEvaluationIds,
+    enabled: !!user,
+  });
+
 
   const [asset, setAsset] = useState("");
   const [from, setFrom] = useState("");
