@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { AnikeAiPanel } from "@/components/AnikeAi";
+
 import { ScoreDial } from "@/components/ScoreDial";
 import { TrafficLight } from "@/components/TrafficLight";
 import { lightFor } from "@/components/TrafficLight";
@@ -166,6 +168,13 @@ function TradeDetail() {
           <p className="mt-2 text-sm leading-relaxed">{data.idea}</p>
         </div>
       )}
+
+      <AnikeAiPanel
+        variant="evaluation"
+        evaluationId={id}
+        noTrade={data.classification === "NO TRADE" || data.decision === "no_trade"}
+      />
+
 
       <section className="mt-6">
         <p className="label-mono">Respuestas del checklist</p>

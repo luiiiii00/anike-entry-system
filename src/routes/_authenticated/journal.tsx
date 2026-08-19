@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { fetchEvaluations, type Evaluation } from "@/lib/db";
+import { fetchAnalyzedEvaluationIds } from "@/lib/ai";
+
 import { useAuth } from "@/hooks/useAuth";
 import { SETUPS } from "@/lib/checklist";
 import { cn } from "@/lib/utils";
@@ -28,6 +30,12 @@ function Journal() {
     queryFn: fetchEvaluations,
     enabled: !!user,
   });
+  const { data: analyzed } = useQuery({
+    queryKey: ["ai-reviews", "ids", user?.id],
+    queryFn: fetchAnalyzedEvaluationIds,
+    enabled: !!user,
+  });
+
 
   const [asset, setAsset] = useState("");
   const [from, setFrom] = useState("");
@@ -122,7 +130,7 @@ function Journal() {
         <>
           <div className="mt-4 space-y-2 lg:hidden">
             {rows.map((e) => (
-              <MobileCard key={e.id} e={e} />
+              <MobileCard key={e.id} e={e} analyzed={analyzed?.has(e.id) ?? false} />
             ))}
           </div>
 
@@ -130,7 +138,7 @@ function Journal() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left">
-                  {["Fecha", "Activo", "Dir", "Setup", "Score", "Riesgo", "R:R", "R", "$", "Disc.", "Estado"].map(
+                  {["Fecha", "Activo", "Dir", "Setup", "Score", "Riesgo", "R:R", "R", "$", "Disc.", "Estado", "ANIKE IA"].map(
                     (h) => (
                       <th key={h} className="label-mono px-3 py-3 font-normal">
                         {h}
@@ -139,6 +147,7 @@ function Journal() {
                   )}
                 </tr>
               </thead>
+
               <tbody>
                 {rows.map((e) => (
                   <tr key={e.id} className="border-b border-border/60 last:border-0 hover:bg-surface-2">
@@ -167,7 +176,17 @@ function Journal() {
                     <td className="px-3 py-3">
                       <StateBadge e={e} />
                     </td>
+                    <td className="px-3 py-3">
+                      <Link
+                        to="/trade/$id"
+                        params={{ id: e.id }}
+                        className="text-xs font-medium text-primary"
+                      >
+                        {analyzed?.has(e.id) ? "VER ANÁLISIS" : "ANALIZAR CON IA"}
+                      </Link>
+                    </td>
                   </tr>
+
                 ))}
               </tbody>
             </table>
@@ -214,7 +233,7 @@ function StateBadge({ e }: { e: Evaluation }) {
   );
 }
 
-function MobileCard({ e }: { e: Evaluation }) {
+function MobileCard({ e, analyzed }: { e: Evaluation; analyzed: boolean }) {
   return (
     <Link
       to="/trade/$id"
@@ -233,11 +252,13 @@ function MobileCard({ e }: { e: Evaluation }) {
           <StateBadge e={e} />
         </div>
       </div>
-      <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
+      <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
         <span>R:R {rrOf(e)}</span>
         <span className={rTone(e.result_r)}>Resultado {e.result_r ?? "—"}R</span>
         <span>{e.emotional_stop ? "Disciplina: REVISAR" : "Disciplina: OK"}</span>
+        <span className="text-primary">🤖 {analyzed ? "VER ANÁLISIS" : "ANALIZAR CON IA"}</span>
       </div>
+
     </Link>
   );
 }

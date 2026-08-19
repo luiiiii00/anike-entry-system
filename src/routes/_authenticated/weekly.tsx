@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
+import { AnikeAiPanel } from "@/components/AnikeAi";
+
 import { fetchEvaluations } from "@/lib/db";
 import { buildInsights, computeStats } from "@/lib/stats";
 import { supabase } from "@/integrations/supabase/client";
@@ -72,6 +74,18 @@ function Weekly() {
   const stats = computeStats(weekList);
   const insights = buildInsights(weekList, stats);
 
+  const topRules = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const e of weekList) {
+      for (const r of e.hard_rules ?? []) counts.set(r, (counts.get(r) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([rule, n]) => `${rule} (${n}x)`);
+  }, [weekList]);
+
+
   const save = useMutation({
     mutationFn: async () => {
       const { error } = await supabase
@@ -98,6 +112,23 @@ function Weekly() {
         <Item label="Impulsivas" value={stats.impulsive} />
         <Item label="Fuera del plan" value={stats.offPlan} />
       </div>
+
+      <AnikeAiPanel
+        variant="weekly"
+        getPayload={() => ({
+          weekStart,
+          total: stats.total,
+          winRate: stats.winRate,
+          avgR: stats.avgR,
+          avgScore: stats.avgScore,
+          impulsive: stats.impulsive,
+          offPlan: stats.offPlan,
+          bestSetup: stats.bestSetup,
+          worstSetup: stats.worstSetup,
+          recurringRules: topRules,
+        })}
+      />
+
 
       <section className="mt-6">
         <p className="label-mono">Lo que tus operaciones están mostrando</p>
