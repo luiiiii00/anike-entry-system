@@ -192,11 +192,12 @@ function Journal() {
                     </td>
                     <td className="px-3 py-3 font-mono">{rrOf(e)}</td>
                     <td className={cn("px-3 py-3 font-mono", rTone(e.result_r))}>
-                      {e.result_r ?? "—"}
+                      {fix2(e.result_r)}
                     </td>
                     <td className={cn("px-3 py-3 font-mono", rTone(e.result_money))}>
-                      {e.result_money ?? "—"}
+                      {fix2(e.result_money)}
                     </td>
+
                     <td className="px-3 py-3">{e.emotional_stop ? "REVISAR" : "OK"}</td>
                     <td className="px-3 py-3">
                       <StateBadge e={e} />
