@@ -233,7 +233,14 @@ function rrOf(e: Evaluation) {
   return d ? (Math.abs(target - entry) / d).toFixed(2) : "—";
 }
 
+/** Muestra R y $ siempre con dos decimales. */
+function fix2(v: number | null | undefined) {
+  if (v === null || v === undefined || !Number.isFinite(Number(v))) return "—";
+  return Number(v).toFixed(2);
+}
+
 function rTone(v: number | null) {
+
   if (v === null || v === undefined) return "";
   return v > 0 ? "text-ok" : v < 0 ? "text-stop" : "";
 }
