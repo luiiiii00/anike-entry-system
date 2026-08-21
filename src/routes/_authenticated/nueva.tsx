@@ -456,9 +456,10 @@ export function RiskPanel({
 
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Metric label={`Riesgo (${currency})`} value={m.riskMoney} />
-        <Metric label="Distancia al stop" value={m.stopDistance} />
+        <Metric label="Distancia al stop" value={m.stopDistance} digits={5} />
         <Metric label="R:R" value={m.rr} tone={underRR ? "stop" : m.rr ? "ok" : "none"} />
-        <Metric label="Tamaño de posición" value={m.positionSize} />
+        <Metric label="Tamaño de posición" value={m.positionSize} digits={4} />
+
       </div>
 
       {(overRisk || underRR) && (
