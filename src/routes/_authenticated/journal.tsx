@@ -280,7 +280,7 @@ function MobileCard({ e, analyzed }: { e: Evaluation; analyzed: boolean }) {
       </div>
       <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
         <span>R:R {rrOf(e)}</span>
-        <span className={rTone(e.result_r)}>Resultado {e.result_r ?? "—"}R</span>
+        <span className={rTone(e.result_r)}>Resultado {fix2(e.result_r)}R</span>
         <span>{e.emotional_stop ? "Disciplina: REVISAR" : "Disciplina: OK"}</span>
         <span className="text-primary">🤖 {analyzed ? "VER ANÁLISIS" : "ANALIZAR CON IA"}</span>
       </div>
