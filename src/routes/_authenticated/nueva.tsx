@@ -491,10 +491,12 @@ function Metric({
   label,
   value,
   tone,
+  digits = 2,
 }: {
   label: string;
   value: number | null;
   tone?: "ok" | "stop" | "none";
+  digits?: number;
 }) {
   return (
     <div className="rounded-xl border border-border bg-surface-2 p-3">
@@ -506,11 +508,14 @@ function Metric({
           tone === "stop" && "text-stop",
         )}
       >
-        {value === null ? "—" : value}
+        {value === null || value === undefined || !Number.isFinite(value)
+          ? "—"
+          : value.toFixed(digits)}
       </p>
     </div>
   );
 }
+
 
 function ResultStep({
   decision,
