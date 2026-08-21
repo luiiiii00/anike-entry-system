@@ -259,10 +259,11 @@ export function calculatePostTrade(input: PostTradeInput): PostTradeResult {
 
 /* ------------------------------ Presentación ------------------------------ */
 
-export function fmtMoney(value: number | null | undefined, currency: Currency, decimals = 2) {
+export function fmtMoney(value: number | null | undefined, currency: Currency, _decimals = 2) {
   if (value === null || value === undefined || !Number.isFinite(value)) return "—";
   const abs = Math.abs(value);
-  const digits = currency === "PYG" ? 0 : decimals;
+  // Dinero siempre con 2 decimales (PYG sin decimales), sin importar el mercado.
+  const digits = currency === "PYG" ? 0 : 2;
   const body = abs.toLocaleString("es-PY", {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
@@ -271,6 +272,7 @@ export function fmtMoney(value: number | null | undefined, currency: Currency, d
   const unit = currency === "PYG" ? "Gs" : currency;
   return `${sign}${body} ${unit}`;
 }
+
 
 export function fmtNumber(value: number | null | undefined, decimals = 2) {
   if (value === null || value === undefined || !Number.isFinite(value)) return "—";

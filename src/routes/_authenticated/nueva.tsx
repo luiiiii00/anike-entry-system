@@ -456,9 +456,10 @@ export function RiskPanel({
 
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Metric label={`Riesgo (${currency})`} value={m.riskMoney} />
-        <Metric label="Distancia al stop" value={m.stopDistance} />
+        <Metric label="Distancia al stop" value={m.stopDistance} digits={5} />
         <Metric label="R:R" value={m.rr} tone={underRR ? "stop" : m.rr ? "ok" : "none"} />
-        <Metric label="Tamaño de posición" value={m.positionSize} />
+        <Metric label="Tamaño de posición" value={m.positionSize} digits={4} />
+
       </div>
 
       {(overRisk || underRR) && (
@@ -491,10 +492,12 @@ function Metric({
   label,
   value,
   tone,
+  digits = 2,
 }: {
   label: string;
   value: number | null;
   tone?: "ok" | "stop" | "none";
+  digits?: number;
 }) {
   return (
     <div className="rounded-xl border border-border bg-surface-2 p-3">
@@ -506,11 +509,14 @@ function Metric({
           tone === "stop" && "text-stop",
         )}
       >
-        {value === null ? "—" : value}
+        {value === null || value === undefined || !Number.isFinite(value)
+          ? "—"
+          : value.toFixed(digits)}
       </p>
     </div>
   );
 }
+
 
 function ResultStep({
   decision,
@@ -587,12 +593,13 @@ function ResultStep({
       <div className="panel divide-y divide-border">
         <Row label="Score" value={`${decision.score} / 100`} />
         <Row label="Estado" value={decision.classification} />
-        <Row label="Riesgo" value={metrics.riskPctUsed === null ? "—" : `${metrics.riskPctUsed}%`} />
+        <Row label="Riesgo" value={metrics.riskPctUsed === null ? "—" : `${metrics.riskPctUsed.toFixed(2)}%`} />
         <Row
           label={`Riesgo (${currency})`}
-          value={metrics.riskMoney === null ? "—" : String(metrics.riskMoney)}
+          value={metrics.riskMoney === null ? "—" : metrics.riskMoney.toFixed(2)}
         />
-        <Row label="R:R" value={metrics.rr === null ? "—" : String(metrics.rr)} />
+        <Row label="R:R" value={metrics.rr === null ? "—" : metrics.rr.toFixed(2)} />
+
         <Row label="Confirmación" value={confirmation ?? "—"} />
         <Row label="Disciplina" value={decision.emotional ? "REVISAR" : "OK"} />
       </div>

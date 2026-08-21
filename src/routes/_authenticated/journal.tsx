@@ -192,11 +192,12 @@ function Journal() {
                     </td>
                     <td className="px-3 py-3 font-mono">{rrOf(e)}</td>
                     <td className={cn("px-3 py-3 font-mono", rTone(e.result_r))}>
-                      {e.result_r ?? "—"}
+                      {fix2(e.result_r)}
                     </td>
                     <td className={cn("px-3 py-3 font-mono", rTone(e.result_money))}>
-                      {e.result_money ?? "—"}
+                      {fix2(e.result_money)}
                     </td>
+
                     <td className="px-3 py-3">{e.emotional_stop ? "REVISAR" : "OK"}</td>
                     <td className="px-3 py-3">
                       <StateBadge e={e} />
@@ -232,7 +233,14 @@ function rrOf(e: Evaluation) {
   return d ? (Math.abs(target - entry) / d).toFixed(2) : "—";
 }
 
+/** Muestra R y $ siempre con dos decimales. */
+function fix2(v: number | null | undefined) {
+  if (v === null || v === undefined || !Number.isFinite(Number(v))) return "—";
+  return Number(v).toFixed(2);
+}
+
 function rTone(v: number | null) {
+
   if (v === null || v === undefined) return "";
   return v > 0 ? "text-ok" : v < 0 ? "text-stop" : "";
 }
@@ -279,7 +287,7 @@ function MobileCard({ e, analyzed }: { e: Evaluation; analyzed: boolean }) {
       </div>
       <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
         <span>R:R {rrOf(e)}</span>
-        <span className={rTone(e.result_r)}>Resultado {e.result_r ?? "—"}R</span>
+        <span className={rTone(e.result_r)}>Resultado {fix2(e.result_r)}R</span>
         <span>{e.emotional_stop ? "Disciplina: REVISAR" : "Disciplina: OK"}</span>
         <span className="text-primary">🤖 {analyzed ? "VER ANÁLISIS" : "ANALIZAR CON IA"}</span>
       </div>
