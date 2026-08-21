@@ -350,7 +350,7 @@ function ResultCard({
         <Row label="P&L bruto" value={fmtMoney(r.grossPnl, r.currency, decimals)} />
         <Row label="Comisiones" value={fmtMoney(-Math.abs(r.fees), r.currency, decimals)} />
         <Row label="ROI sobre margen" value={fmtPercent(r.roiMargin)} tone={r.roiMargin} />
-        <Row label="Valor nocional" value={fmtNumber(r.notionalValue, decimals)} />
+        <Row label="Valor nocional" value={fmtNumber(r.notionalValue, 2)} />
         <Row label="Margen utilizado" value={fmtMoney(Math.abs(r.margin ?? 0), r.currency, decimals)} />
         <Row label="Apalancamiento" value={`${r.leverage.toFixed(2)}x`} />
         <Row label="P&L sobre capital" value={fmtPercent(r.pnlPercentOnCapital)} tone={r.pnlPercentOnCapital} />
