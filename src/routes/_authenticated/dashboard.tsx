@@ -82,7 +82,7 @@ function Dashboard() {
                 classification={last.classification ?? "—"}
                 message={
                   last.decision === "registrado"
-                    ? `Resultado: ${last.result_r === null ? "operación abierta" : `${last.result_r}R`}`
+                    ? `Resultado: ${last.result_r === null ? "operación abierta" : `${Number(last.result_r).toFixed(2)}R`}`
                     : "Decisión: NO TRADE"
                 }
               />
