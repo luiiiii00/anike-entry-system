@@ -139,7 +139,7 @@ function formatSize(bytes: number) {
 function Libros() {
   return (
     <AppShell
-      title="Libros de Trading"
+      title="Biblioteca de Trading"
       subtitle="Material de estudio para reforzar tu criterio antes de operar."
     >
       <div className="grid gap-4 sm:grid-cols-2">
