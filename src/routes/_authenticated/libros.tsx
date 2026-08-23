@@ -12,17 +12,19 @@ import graficosCambio from "@/assets/libros/7._Patrones-Graficos-de-Cambio.pdf.j
 import graficosCont from "@/assets/libros/8._Patrones-Graficos-de-Continuidad.pdf.json";
 import macd from "@/assets/libros/11._MACD.pdf.json";
 import rsi from "@/assets/libros/12._RSI.pdf.json";
+import estrategia from "@/assets/libros/Estrategia-ANIKE-EJEPIKA.pdf.json";
+import esquema from "@/assets/libros/Esquema-ANIKE-EJEPIKA.pdf.json";
 
 export const Route = createFileRoute("/_authenticated/libros")({
   head: () => ({
     meta: [
-      { title: "Libros de Trading — ANIKE EJEPIKA" },
+      { title: "Biblioteca de Trading — ANIKE EJEPIKA" },
       {
         name: "description",
         content:
           "Biblioteca de material de estudio: tendencia, patrones de continuación y cambio, MACD y RSI.",
       },
-      { property: "og:title", content: "Libros de Trading — ANIKE EJEPIKA" },
+      { property: "og:title", content: "Biblioteca de Trading — ANIKE EJEPIKA" },
       {
         property: "og:description",
         content: "Material de estudio en PDF para reforzar tu proceso de análisis técnico.",
