@@ -4,6 +4,8 @@
  * La clave del proveedor nunca llega al navegador.
  */
 
+import { SECTIONS } from "./checklist";
+
 export type AiReviewType = "PRE_TRADE" | "NO_TRADE" | "POST_TRADE" | "WEEKLY_REVIEW";
 
 export type AiResult = {
