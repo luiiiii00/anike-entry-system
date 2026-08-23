@@ -186,14 +186,24 @@ const SECTION_LABELS: Record<string, string> = {
   contexto: "Contexto",
   estructura: "Estructura",
   zona: "Zona",
-  volatilidad: "Volatilidad",
-  momentum: "Momentum",
+  volatilidad: "Volatilidad (histórico)",
+  momentum: "Momentum (histórico)",
   confirmacion: "Confirmación",
   riesgo: "Riesgo",
   recorrido: "Recorrido",
   ejecucion: "Ejecución",
   disciplina: "Disciplina",
 };
+
+/** Etiqueta legible de una respuesta del checklist; null si la evaluación es anterior al criterio. */
+function labelOf(qid: string, a: EvalRow["answers"]): string | null {
+  const v = a?.[qid];
+  if (v === null || v === undefined || v === "") return null;
+  const q = SECTIONS.flatMap((s) => s.groups.flatMap((g) => g.questions)).find(
+    (x) => x.id === qid,
+  );
+  return q?.options.find((o) => o.v === String(v))?.label ?? String(v);
+}
 
 function line(label: string, value: unknown) {
   if (value === null || value === undefined || value === "") return `- ${label}: no registrado`;
@@ -323,6 +333,15 @@ export function buildEvaluationPrompt(
     "",
     "RESPUESTAS DEL TRADER EN EL CHECKLIST (no las repitas, agrega valor sobre ellas):",
     answerLines(e.answers),
+    "",
+    "LECTURA TÉCNICA DECLARADA (horaria = contexto/estructura, 5M = confirmación de entrada; \"no aplica\" o \"no registrado\" no es un error):",
+    line("Patrón de cambio (horaria)", labelOf("h1_pattern_change", e.answers)),
+    line("Patrón de continuidad (horaria)", labelOf("h1_pattern_cont", e.answers)),
+    line("Nivel de Fibonacci (horaria)", labelOf("h1_fibo", e.answers)),
+    line("Divergencia precio/RSI (horaria)", labelOf("h1_rsi_div", e.answers)),
+    line("MACD histograma en zona Fibonacci (horaria)", labelOf("h1_macd", e.answers)),
+    line("Cruce de líneas MACD tras romper la diagonal (5M)", labelOf("cf5_macd", e.answers)),
+    line("RSI evita sobrecompra/sobreventa en la entrada (5M)", labelOf("cf5_rsi", e.answers)),
     ...historyBlock(history),
   ];
 
