@@ -312,7 +312,7 @@ export const SECTIONS: Section[] = [
   },
   {
     id: "riesgo",
-    step: "07",
+    step: "05",
     title: "Riesgo",
     weight: 15,
     groups: [
@@ -357,7 +357,7 @@ export const SECTIONS: Section[] = [
   },
   {
     id: "recorrido",
-    step: "08",
+    step: "06",
     title: "Recorrido",
     weight: 5,
     groups: [
@@ -384,9 +384,9 @@ export const SECTIONS: Section[] = [
   },
   {
     id: "ejecucion",
-    step: "09",
+    step: "07",
     title: "Ejecución",
-    weight: 3,
+    weight: 5,
     groups: [
       {
         questions: [
@@ -412,9 +412,9 @@ export const SECTIONS: Section[] = [
   },
   {
     id: "disciplina",
-    step: "10",
+    step: "08",
     title: "Disciplina",
-    weight: 2,
+    weight: 3,
     groups: [
       {
         questions: [
@@ -463,7 +463,7 @@ export const SECTION_BY_ID = Object.fromEntries(SECTIONS.map((s) => [s.id, s])) 
 export const WIZARD_STEPS = [
   { key: "trade", step: "00", title: "Trade" },
   ...SECTIONS.map((s) => ({ key: s.id, step: s.step, title: s.title })),
-  { key: "resultado", step: "11", title: "Resultado" },
+  { key: "resultado", step: "09", title: "Resultados" },
 ];
 
 export const SETUPS = ["Continuación", "Reversión", "Ruptura", "Retesteo", "Otro"];
