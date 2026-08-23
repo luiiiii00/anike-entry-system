@@ -1,0 +1,11 @@
+import { SECTIONS } from "../src/lib/checklist";
+import { computeScore } from "../src/lib/scoring";
+console.log("weights", SECTIONS.reduce((a,s)=>a+s.weight,0));
+const all: Record<string,string> = {};
+for (const s of SECTIONS) for (const g of s.groups) for (const q of g.questions) all[q.id]=q.options.filter(o=>!o.na).reduce((b,o)=>o.pts>b.pts?o:b,q.options[0]!).v;
+console.log("perfect", computeScore(all).score);
+const na: Record<string,string> = {...all};
+for (const k of ["h1_pattern_change","h1_pattern_cont","h1_fibo","h1_rsi_div","h1_macd","cf5_macd","cf5_rsi"]) na[k]="na";
+console.log("all-na-new-criteria", computeScore(na).score);
+console.log("empty", computeScore({}).score);
+console.log("legacy old answers", computeScore({v_bb:"comprimidas",mo_force:"si",h1_struct:"si"}).score);
