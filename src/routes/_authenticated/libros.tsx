@@ -115,6 +115,20 @@ const BOOKS: Book[] = [
     description: "Uso del RSI para medir fuerza, sobrecompra y divergencias.",
     asset: rsi,
   },
+  {
+    order: 11,
+    title: "Estrategia ANIKE EJEPIKA",
+    category: "Metodología",
+    description: "La estrategia completa del sistema: criterios, contexto y ejecución.",
+    asset: estrategia,
+  },
+  {
+    order: 12,
+    title: "Esquema para Evitar Compras Innecesarias",
+    category: "Metodología",
+    description: "Filtro de decisión para no entrar al mercado sin condiciones válidas.",
+    asset: esquema,
+  },
 ];
 
 function formatSize(bytes: number) {
