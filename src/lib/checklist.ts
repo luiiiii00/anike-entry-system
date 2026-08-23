@@ -1,11 +1,10 @@
-export type Option = { v: string; label: string; pts: number };
-export type Question = { id: string; label: string; options: Option[] };
+/** `na: true` marca una opción "No aplica": no penaliza ni suma, se excluye del cálculo. */
+export type Option = { v: string; label: string; pts: number; na?: boolean };
+export type Question = { id: string; label: string; hint?: string; options: Option[] };
 export type SectionId =
   | "contexto"
   | "estructura"
   | "zona"
-  | "volatilidad"
-  | "momentum"
   | "confirmacion"
   | "riesgo"
   | "recorrido"
