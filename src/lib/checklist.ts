@@ -466,6 +466,41 @@ export const WIZARD_STEPS = [
   { key: "resultado", step: "09", title: "Resultados" },
 ];
 
+/**
+ * Preguntas de bloques retirados (Volatilidad / Momentum).
+ * Solo se usan para VISUALIZAR evaluaciones antiguas ya guardadas.
+ * No forman parte del wizard ni del cálculo del score.
+ */
+export const LEGACY_SECTIONS: { id: string; title: string; questions: Question[] }[] = [
+  {
+    id: "legacy_volatilidad",
+    title: "Volatilidad (histórico)",
+    questions: [
+      { id: "v_candles", label: "Las velas se están haciendo:", options: [] },
+      { id: "v_market", label: "El mercado:", options: [] },
+      { id: "v_atr_level", label: "ATR (nivel):", options: [] },
+      { id: "v_atr_dir", label: "ATR (dirección):", options: [] },
+      { id: "v_bb", label: "Bandas de Bollinger:", options: [] },
+      { id: "v_range", label: "Rango del día:", options: [] },
+    ],
+  },
+  {
+    id: "legacy_momentum",
+    title: "Momentum (histórico)",
+    questions: [
+      { id: "mo_force", label: "¿El movimiento actual todavía tiene fuerza?", options: [] },
+      { id: "mo_candles", label: "Las velas mantienen:", options: [] },
+      { id: "mo_levels", label: "El precio:", options: [] },
+      { id: "mo_wicks", label: "¿Hay mechas que muestran rechazo?", options: [] },
+      { id: "mo_shorter", label: "¿Cada avance es más corto que el anterior?", options: [] },
+      { id: "mo_fails", label: "¿Hay fallos de continuación?", options: [] },
+      { id: "mo_rsi", label: "RSI acompaña:", options: [] },
+      { id: "mo_macd", label: "MACD: ¿El histograma se está achicando?", options: [] },
+      { id: "mo_volume", label: "Volumen: ¿Acompaña el movimiento?", options: [] },
+    ],
+  },
+];
+
 export const SETUPS = ["Continuación", "Reversión", "Ruptura", "Retesteo", "Otro"];
 export const MARKETS = ["Crypto", "Forex", "Índices", "Acciones", "Futuros", "Otro"];
 export const SESSIONS = ["Asia", "Londres", "Nueva York", "Overlap", "Fuera de sesión"];
