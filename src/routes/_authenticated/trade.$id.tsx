@@ -11,7 +11,7 @@ import { TrafficLight } from "@/components/TrafficLight";
 import { lightFor } from "@/components/TrafficLight";
 import { deleteEvaluation, fetchEvaluation, fetchSettings, upsertEvaluation } from "@/lib/db";
 import { PostTradeCalculator } from "@/components/PostTradeCalculator";
-import { SECTIONS } from "@/lib/checklist";
+import { LEGACY_SECTIONS, SECTIONS } from "@/lib/checklist";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
@@ -186,11 +186,28 @@ function TradeDetail() {
       <section className="mt-6">
         <p className="label-mono">Respuestas del checklist</p>
         <div className="mt-3 space-y-3">
-          {SECTIONS.map((s) => {
+          {[
+            ...SECTIONS.map((s) => ({
+              id: s.id,
+              title: s.title,
+              groups: s.groups,
+            })),
+            ...LEGACY_SECTIONS.map((s) => ({
+              id: s.id,
+              title: s.title,
+              groups: [{ questions: s.questions }],
+            })),
+          ].map((s) => {
             const rows = s.groups
               .flatMap((g) => g.questions)
               .filter((q) => data.answers?.[q.id])
-              .map((q) => ({ label: q.label, value: data.answers[q.id] as string }));
+              .map((q) => {
+                const raw = String(data.answers[q.id]);
+                return {
+                  label: q.label,
+                  value: q.options.find((o) => o.v === raw)?.label ?? raw,
+                };
+              });
             if (rows.length === 0) return null;
             return (
               <div key={s.id} className="panel p-4">

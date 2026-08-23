@@ -1,11 +1,10 @@
-export type Option = { v: string; label: string; pts: number };
-export type Question = { id: string; label: string; options: Option[] };
+/** `na: true` marca una opción "No aplica": no penaliza ni suma, se excluye del cálculo. */
+export type Option = { v: string; label: string; pts: number; na?: boolean };
+export type Question = { id: string; label: string; hint?: string; options: Option[] };
 export type SectionId =
   | "contexto"
   | "estructura"
   | "zona"
-  | "volatilidad"
-  | "momentum"
   | "confirmacion"
   | "riesgo"
   | "recorrido"
@@ -24,6 +23,14 @@ const yn = (yes = 1, no = 0): Option[] => [
   { v: "si", label: "Sí", pts: yes },
   { v: "no", label: "No", pts: no },
 ];
+
+/** Sí / No / No aplica — "No aplica" nunca penaliza (se excluye del cálculo). */
+const ynNa = (yes = 1, no = 0.3): Option[] => [
+  ...yn(yes, no),
+  { v: "na", label: "No aplica", pts: 0, na: true },
+];
+
+const NA_OPTION: Option = { v: "na", label: "No aplica", pts: 0, na: true };
 
 export const SECTIONS: Section[] = [
   {
@@ -69,7 +76,7 @@ export const SECTIONS: Section[] = [
     id: "estructura",
     step: "02",
     title: "Estructura",
-    weight: 15,
+    weight: 25,
     groups: [
       {
         title: "Diario",
@@ -91,11 +98,90 @@ export const SECTIONS: Section[] = [
         ],
       },
       {
-        title: "1 hora",
+        title: "Horaria · lectura de contexto y estructura",
         questions: [
           { id: "h1_struct", label: "¿La estructura acompaña mi idea?", options: yn() },
           { id: "h1_zone", label: "¿Estoy entrando cerca de una zona lógica?", options: yn() },
           { id: "h1_react", label: "¿Hay reacción clara en soporte/resistencia?", options: yn() },
+          {
+            id: "h1_pattern_change",
+            label: "¿Cuál es el patrón de cambio que estás viendo?",
+            hint: "Registra únicamente lo que observas. Seleccionar un patrón no implica que esté confirmado.",
+            options: [
+              { v: "doble_techo", label: "Doble techo — alcista a bajista", pts: 1 },
+              { v: "doble_suelo", label: "Doble suelo — bajista a alcista", pts: 1 },
+              { v: "triple_techo", label: "Triple techo — alcista a bajista", pts: 1 },
+              { v: "triple_suelo", label: "Triple suelo — bajista a alcista", pts: 1 },
+              { v: "hch", label: "Hombro cabeza hombro — alcista a bajista", pts: 1 },
+              { v: "hch_inv", label: "Hombro cabeza hombro invertido — bajista a alcista", pts: 1 },
+              { v: "cuna_asc", label: "Cuña ascendente — posible rotura bajista", pts: 1 },
+              { v: "cuna_desc", label: "Cuña descendente — posible rotura alcista", pts: 1 },
+              { v: "suelo_redondeado", label: "Suelo redondeado — bajista a alcista", pts: 1 },
+              { v: "techo_redondeado", label: "Techo redondeado — alcista a bajista", pts: 1 },
+              { v: "pua_bajista", label: "Púa bajista — alcista a bajista", pts: 1 },
+              { v: "pua_alcista", label: "Púa alcista — bajista a alcista", pts: 1 },
+              NA_OPTION,
+            ],
+          },
+          {
+            id: "h1_pattern_cont",
+            label: "¿Cuál es el patrón de continuidad que estás viendo?",
+            hint: "Son elementos de análisis, no una señal de entrada automática.",
+            options: [
+              {
+                v: "tri_simetrico",
+                label: "Triángulo simétrico — continuidad alcista o bajista según tendencia",
+                pts: 1,
+              },
+              { v: "tri_asc", label: "Triángulo ascendente — posible continuidad alcista", pts: 1 },
+              { v: "tri_desc", label: "Triángulo descendente — posible continuidad bajista", pts: 1 },
+              { v: "banderin_alcista", label: "Banderín alcista — posible continuidad alcista", pts: 1 },
+              { v: "banderin_bajista", label: "Banderín bajista — posible continuidad bajista", pts: 1 },
+              {
+                v: "bandera_rect_alcista",
+                label: "Bandera rectangular alcista — posible continuidad alcista",
+                pts: 1,
+              },
+              {
+                v: "bandera_rect_bajista",
+                label: "Bandera rectangular bajista — posible continuidad bajista",
+                pts: 1,
+              },
+              {
+                v: "rectangulo",
+                label: "Rectángulo — continuidad alcista o bajista según tendencia",
+                pts: 1,
+              },
+              NA_OPTION,
+            ],
+          },
+          {
+            id: "h1_fibo",
+            label: "¿En qué nivel de retroceso de Fibonacci se encuentra el precio?",
+            options: [
+              { v: "1_3", label: "1/3", pts: 0.8 },
+              { v: "1_2", label: "1/2", pts: 1 },
+              { v: "2_3", label: "2/3", pts: 0.8 },
+              NA_OPTION,
+            ],
+          },
+          {
+            id: "h1_rsi_div",
+            label: "¿Existe divergencia entre el precio y el RSI?",
+            hint: "Si el precio testea el nivel de Fibonacci pero el RSI no hace nuevos mínimos/máximos, el agotamiento del retroceso puede ser una señal de pérdida de fuerza.",
+            options: [
+              { v: "alcista", label: "Divergencia alcista", pts: 1 },
+              { v: "bajista", label: "Divergencia bajista", pts: 1 },
+              { v: "no_existe", label: "No existe divergencia", pts: 0.4 },
+              NA_OPTION,
+            ],
+          },
+          {
+            id: "h1_macd",
+            label: "¿El histograma del MACD empieza a perder fuerza en la zona de Fibonacci?",
+            hint: "Revisa que el histograma del MACD empiece a perder fuerza justo en la zona de Fibonacci.",
+            options: ynNa(1, 0.3),
+          },
         ],
       },
       {
@@ -160,116 +246,10 @@ export const SECTIONS: Section[] = [
     ],
   },
   {
-    id: "volatilidad",
-    step: "04",
-    title: "Volatilidad",
-    weight: 10,
-    groups: [
-      {
-        questions: [
-          {
-            id: "v_candles",
-            label: "Las velas se están haciendo:",
-            options: [
-              { v: "grandes", label: "Más grandes", pts: 1 },
-              { v: "pequenas", label: "Más pequeñas", pts: 0.3 },
-            ],
-          },
-          {
-            id: "v_market",
-            label: "El mercado:",
-            options: [
-              { v: "lento", label: "Se mueve lento", pts: 0.3 },
-              { v: "rapido", label: "Hace recorridos rápidos", pts: 1 },
-            ],
-          },
-          {
-            id: "v_atr_level",
-            label: "ATR:",
-            options: [
-              { v: "alto", label: "Relativamente alto", pts: 1 },
-              { v: "bajo", label: "Relativamente bajo", pts: 0.3 },
-            ],
-          },
-          {
-            id: "v_atr_dir",
-            label: "ATR:",
-            options: [
-              { v: "subiendo", label: "Subiendo", pts: 1 },
-              { v: "bajando", label: "Bajando", pts: 0.3 },
-            ],
-          },
-          {
-            id: "v_bb",
-            label: "Bandas de Bollinger:",
-            options: [
-              { v: "comprimidas", label: "Comprimidas", pts: 0.5 },
-              { v: "expandiendo", label: "Expandiéndose", pts: 1 },
-            ],
-          },
-          {
-            id: "v_range",
-            label: "Rango del día:",
-            options: [
-              { v: "extendido", label: "Muy extendido", pts: 0.3 },
-              { v: "apretado", label: "Sigue apretado", pts: 1 },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "momentum",
-    step: "05",
-    title: "Momentum",
-    weight: 10,
-    groups: [
-      {
-        questions: [
-          { id: "mo_force", label: "¿El movimiento actual todavía tiene fuerza?", options: yn() },
-          {
-            id: "mo_candles",
-            label: "Las velas mantienen:",
-            options: [
-              { v: "continuidad", label: "Tamaño y continuidad", pts: 1 },
-              { v: "debiles", label: "Ya se debilitan", pts: 0.2 },
-            ],
-          },
-          {
-            id: "mo_levels",
-            label: "El precio:",
-            options: [
-              { v: "sigue", label: "Rompe niveles y sigue", pts: 1 },
-              { v: "vuelve", label: "Rompe y vuelve", pts: 0.2 },
-            ],
-          },
-          { id: "mo_wicks", label: "¿Hay mechas que muestran rechazo?", options: yn(0.3, 1) },
-          {
-            id: "mo_shorter",
-            label: "¿Cada avance es más corto que el anterior?",
-            options: yn(0.2, 1),
-          },
-          { id: "mo_fails", label: "¿Hay fallos de continuación?", options: yn(0.2, 1) },
-          {
-            id: "mo_rsi",
-            label: "RSI acompaña:",
-            options: [
-              { v: "nuevos", label: "Nuevos máximos/mínimos", pts: 1 },
-              { v: "debilita", label: "Se debilita", pts: 0.3 },
-            ],
-          },
-          { id: "mo_macd", label: "MACD: ¿El histograma se está achicando?", options: yn(0.3, 1) },
-          { id: "mo_volume", label: "Volumen: ¿Acompaña el movimiento?", options: yn() },
-        ],
-      },
-    ],
-  },
-  {
     id: "confirmacion",
-    step: "06",
+    step: "04",
     title: "Confirmación",
-    weight: 15,
+    weight: 22,
     groups: [
       {
         questions: [
@@ -310,11 +290,29 @@ export const SECTIONS: Section[] = [
           },
         ],
       },
+      {
+        title: "5M · confirmación de entrada",
+        questions: [
+          {
+            id: "cf5_macd",
+            label: "Una vez rota la diagonal, ¿la entrada está validada por el cruce de líneas del MACD?",
+            hint: "Una vez rota la diagonal, valida la entrada con el cruce de líneas del MACD. Es un criterio de confirmación, no una orden de entrada.",
+            options: ynNa(1, 0.2),
+          },
+          {
+            id: "cf5_rsi",
+            label:
+              "¿El RSI confirma que no estás entrando cuando el movimiento ya está sobrecomprado o sobrevendido?",
+            hint: "El RSI sirve para evitar entrar justo cuando la ruptura ya dejó el movimiento sobrecomprado o sobrevendido.",
+            options: ynNa(1, 0.2),
+          },
+        ],
+      },
     ],
   },
   {
     id: "riesgo",
-    step: "07",
+    step: "05",
     title: "Riesgo",
     weight: 15,
     groups: [
@@ -359,7 +357,7 @@ export const SECTIONS: Section[] = [
   },
   {
     id: "recorrido",
-    step: "08",
+    step: "06",
     title: "Recorrido",
     weight: 5,
     groups: [
@@ -386,9 +384,9 @@ export const SECTIONS: Section[] = [
   },
   {
     id: "ejecucion",
-    step: "09",
+    step: "07",
     title: "Ejecución",
-    weight: 3,
+    weight: 5,
     groups: [
       {
         questions: [
@@ -414,9 +412,9 @@ export const SECTIONS: Section[] = [
   },
   {
     id: "disciplina",
-    step: "10",
+    step: "08",
     title: "Disciplina",
-    weight: 2,
+    weight: 3,
     groups: [
       {
         questions: [
@@ -465,7 +463,42 @@ export const SECTION_BY_ID = Object.fromEntries(SECTIONS.map((s) => [s.id, s])) 
 export const WIZARD_STEPS = [
   { key: "trade", step: "00", title: "Trade" },
   ...SECTIONS.map((s) => ({ key: s.id, step: s.step, title: s.title })),
-  { key: "resultado", step: "11", title: "Resultado" },
+  { key: "resultado", step: "09", title: "Resultados" },
+];
+
+/**
+ * Preguntas de bloques retirados (Volatilidad / Momentum).
+ * Solo se usan para VISUALIZAR evaluaciones antiguas ya guardadas.
+ * No forman parte del wizard ni del cálculo del score.
+ */
+export const LEGACY_SECTIONS: { id: string; title: string; questions: Question[] }[] = [
+  {
+    id: "legacy_volatilidad",
+    title: "Volatilidad (histórico)",
+    questions: [
+      { id: "v_candles", label: "Las velas se están haciendo:", options: [] },
+      { id: "v_market", label: "El mercado:", options: [] },
+      { id: "v_atr_level", label: "ATR (nivel):", options: [] },
+      { id: "v_atr_dir", label: "ATR (dirección):", options: [] },
+      { id: "v_bb", label: "Bandas de Bollinger:", options: [] },
+      { id: "v_range", label: "Rango del día:", options: [] },
+    ],
+  },
+  {
+    id: "legacy_momentum",
+    title: "Momentum (histórico)",
+    questions: [
+      { id: "mo_force", label: "¿El movimiento actual todavía tiene fuerza?", options: [] },
+      { id: "mo_candles", label: "Las velas mantienen:", options: [] },
+      { id: "mo_levels", label: "El precio:", options: [] },
+      { id: "mo_wicks", label: "¿Hay mechas que muestran rechazo?", options: [] },
+      { id: "mo_shorter", label: "¿Cada avance es más corto que el anterior?", options: [] },
+      { id: "mo_fails", label: "¿Hay fallos de continuación?", options: [] },
+      { id: "mo_rsi", label: "RSI acompaña:", options: [] },
+      { id: "mo_macd", label: "MACD: ¿El histograma se está achicando?", options: [] },
+      { id: "mo_volume", label: "Volumen: ¿Acompaña el movimiento?", options: [] },
+    ],
+  },
 ];
 
 export const SETUPS = ["Continuación", "Reversión", "Ruptura", "Retesteo", "Otro"];

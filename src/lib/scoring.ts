@@ -63,16 +63,17 @@ export function computeScore(answers: Answers): { score: number; breakdown: Brea
     let max = 0;
     let answered = 0;
     for (const q of questions) {
-      const best = Math.max(...q.options.map((o) => o.pts));
-      max += best;
       const value = answers[q.id];
-      if (value !== undefined) {
-        answered += 1;
-        const opt = q.options.find((o) => o.v === value);
-        got += opt ? opt.pts : 0;
-      }
+      const opt = value === undefined ? undefined : q.options.find((o) => o.v === value);
+      if (value !== undefined) answered += 1;
+      // "No aplica": criterio no evaluable — se excluye del cálculo (no penaliza ni suma).
+      if (opt?.na) continue;
+      const best = Math.max(...q.options.filter((o) => !o.na).map((o) => o.pts));
+      max += best;
+      if (opt) got += opt.pts;
     }
-    const earned = max > 0 ? round((got / max) * section.weight, 2) : 0;
+    // Si todos los criterios de la sección quedaron como "No aplica", la sección no penaliza.
+    const earned = max > 0 ? round((got / max) * section.weight, 2) : section.weight;
     breakdown[section.id] = { earned, weight: section.weight, answered, total: questions.length };
     total += earned;
   }

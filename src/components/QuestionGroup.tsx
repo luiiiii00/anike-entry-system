@@ -18,6 +18,9 @@ export function QuestionList({
       {questions.map((q) => (
         <div key={q.id} className="panel p-4">
           <p className="text-sm font-medium leading-snug">{q.label}</p>
+          {q.hint && (
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{q.hint}</p>
+          )}
           <div className="mt-3 flex flex-wrap gap-2">
             {q.options.map((o) => {
               const selected = answers[q.id] === o.v;
