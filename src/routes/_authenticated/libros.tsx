@@ -12,17 +12,19 @@ import graficosCambio from "@/assets/libros/7._Patrones-Graficos-de-Cambio.pdf.j
 import graficosCont from "@/assets/libros/8._Patrones-Graficos-de-Continuidad.pdf.json";
 import macd from "@/assets/libros/11._MACD.pdf.json";
 import rsi from "@/assets/libros/12._RSI.pdf.json";
+import estrategia from "@/assets/libros/Estrategia-ANIKE-EJEPIKA.pdf.json";
+import esquema from "@/assets/libros/Esquema-ANIKE-EJEPIKA.pdf.json";
 
 export const Route = createFileRoute("/_authenticated/libros")({
   head: () => ({
     meta: [
-      { title: "Libros de Trading — ANIKE EJEPIKA" },
+      { title: "Biblioteca de Trading — ANIKE EJEPIKA" },
       {
         name: "description",
         content:
           "Biblioteca de material de estudio: tendencia, patrones de continuación y cambio, MACD y RSI.",
       },
-      { property: "og:title", content: "Libros de Trading — ANIKE EJEPIKA" },
+      { property: "og:title", content: "Biblioteca de Trading — ANIKE EJEPIKA" },
       {
         property: "og:description",
         content: "Material de estudio en PDF para reforzar tu proceso de análisis técnico.",
@@ -113,6 +115,20 @@ const BOOKS: Book[] = [
     description: "Uso del RSI para medir fuerza, sobrecompra y divergencias.",
     asset: rsi,
   },
+  {
+    order: 11,
+    title: "Estrategia ANIKE EJEPIKA",
+    category: "Metodología",
+    description: "La estrategia completa del sistema: criterios, contexto y ejecución.",
+    asset: estrategia,
+  },
+  {
+    order: 12,
+    title: "Esquema para Evitar Compras Innecesarias",
+    category: "Metodología",
+    description: "Filtro de decisión para no entrar al mercado sin condiciones válidas.",
+    asset: esquema,
+  },
 ];
 
 function formatSize(bytes: number) {
@@ -123,7 +139,7 @@ function formatSize(bytes: number) {
 function Libros() {
   return (
     <AppShell
-      title="Libros de Trading"
+      title="Biblioteca de Trading"
       subtitle="Material de estudio para reforzar tu criterio antes de operar."
     >
       <div className="grid gap-4 sm:grid-cols-2">
