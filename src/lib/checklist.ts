@@ -24,6 +24,14 @@ const yn = (yes = 1, no = 0): Option[] => [
   { v: "no", label: "No", pts: no },
 ];
 
+/** Sí / No / No aplica — "No aplica" nunca penaliza (se excluye del cálculo). */
+const ynNa = (yes = 1, no = 0.3): Option[] => [
+  ...yn(yes, no),
+  { v: "na", label: "No aplica", pts: 0, na: true },
+];
+
+const NA_OPTION: Option = { v: "na", label: "No aplica", pts: 0, na: true };
+
 export const SECTIONS: Section[] = [
   {
     id: "contexto",
