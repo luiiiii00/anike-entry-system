@@ -76,7 +76,7 @@ export const SECTIONS: Section[] = [
     id: "estructura",
     step: "02",
     title: "Estructura",
-    weight: 15,
+    weight: 25,
     groups: [
       {
         title: "Diario",
