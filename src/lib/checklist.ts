@@ -290,6 +290,24 @@ export const SECTIONS: Section[] = [
           },
         ],
       },
+      {
+        title: "5M · confirmación de entrada",
+        questions: [
+          {
+            id: "cf5_macd",
+            label: "Una vez rota la diagonal, ¿la entrada está validada por el cruce de líneas del MACD?",
+            hint: "Una vez rota la diagonal, valida la entrada con el cruce de líneas del MACD. Es un criterio de confirmación, no una orden de entrada.",
+            options: ynNa(1, 0.2),
+          },
+          {
+            id: "cf5_rsi",
+            label:
+              "¿El RSI confirma que no estás entrando cuando el movimiento ya está sobrecomprado o sobrevendido?",
+            hint: "El RSI sirve para evitar entrar justo cuando la ruptura ya dejó el movimiento sobrecomprado o sobrevendido.",
+            options: ynNa(1, 0.2),
+          },
+        ],
+      },
     ],
   },
   {
