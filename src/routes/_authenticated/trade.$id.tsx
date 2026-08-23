@@ -201,7 +201,13 @@ function TradeDetail() {
             const rows = s.groups
               .flatMap((g) => g.questions)
               .filter((q) => data.answers?.[q.id])
-              .map((q) => ({ label: q.label, value: data.answers[q.id] as string }));
+              .map((q) => {
+                const raw = String(data.answers[q.id]);
+                return {
+                  label: q.label,
+                  value: q.options.find((o) => o.v === raw)?.label ?? raw,
+                };
+              });
             if (rows.length === 0) return null;
             return (
               <div key={s.id} className="panel p-4">
