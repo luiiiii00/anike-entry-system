@@ -1,4 +1,4 @@
-import { SECTIONS, type SectionId } from "./checklist";
+import { FIBO_SL_RATIO, SECTIONS, type SectionId } from "./checklist";
 
 export type Answers = Record<string, string>;
 
@@ -8,6 +8,11 @@ export type RiskData = {
   entry?: number;
   stop?: number;
   target?: number;
+  /** Extremos del impulso para calcular los niveles de Fibonacci (0,38 / 0,50 / 0,618 / 0,75). */
+  swingHigh?: number;
+  swingLow?: number;
+  /** SL predeterminado sugerido por Fibonacci 0,75 (nunca se ejecuta automáticamente). */
+  slFibo?: number;
 };
 
 export type RiskMetrics = {
@@ -40,6 +45,26 @@ export function computeRisk(r: RiskData): RiskMetrics {
   return { riskMoney: riskMoney === null ? null : round(riskMoney, 2), stopDistance: stopDistance === null ? null : round(stopDistance, 6), rr, positionSize, riskPctUsed: pct };
 }
 
+/**
+ * Niveles de retroceso de Fibonacci a partir del impulso declarado.
+ * `sl` corresponde al nivel 0,75: es un valor PREDETERMINADO/SUGERIDO, nunca una orden.
+ */
+export function fiboProjection(
+  r: RiskData,
+  direction: string | null | undefined,
+): { levels: { ratio: number; price: number }[]; sl: number | null } {
+  const high = num(r.swingHigh);
+  const low = num(r.swingLow);
+  if (high === null || low === null || high === low) return { levels: [], sl: null };
+  const top = Math.max(high, low);
+  const bottom = Math.min(high, low);
+  const range = top - bottom;
+  const isLong = direction !== "SHORT";
+  const at = (ratio: number) => round(isLong ? top - range * ratio : bottom + range * ratio, 6);
+  const levels = [0.38, 0.5, 0.618, FIBO_SL_RATIO].map((ratio) => ({ ratio, price: at(ratio) }));
+  return { levels, sl: at(FIBO_SL_RATIO) };
+}
+
 function num(v: unknown): number | null {
   if (v === null || v === undefined || v === "") return null;
   const n = Number(v);
@@ -55,10 +80,24 @@ export type Breakdown = Record<SectionId, { earned: number; weight: number; answ
 
 export function computeScore(answers: Answers): { score: number; breakdown: Breakdown } {
   const breakdown = {} as Breakdown;
+
+  // Los bloques post-trade (Resultados) solo entran en el cálculo cuando ya se respondieron:
+  // antes de tener resultado el peso se redistribuye para que el máximo siga siendo 100.
+  const active = SECTIONS.filter((section) => {
+    if (!section.postTrade) return true;
+    return section.groups
+      .flatMap((g) => g.questions)
+      .some((q) => answers[q.id] !== undefined && answers[q.id] !== "");
+  });
+  const activeWeight = active.reduce((sum, s) => sum + s.weight, 0);
+  const factor = activeWeight > 0 ? 100 / activeWeight : 1;
+
   let total = 0;
 
   for (const section of SECTIONS) {
     const questions = section.groups.flatMap((g) => g.questions);
+    const isActive = active.includes(section);
+    const weight = round(section.weight * (isActive ? factor : 0), 2);
     let got = 0;
     let max = 0;
     let answered = 0;
@@ -73,8 +112,8 @@ export function computeScore(answers: Answers): { score: number; breakdown: Brea
       if (opt) got += opt.pts;
     }
     // Si todos los criterios de la sección quedaron como "No aplica", la sección no penaliza.
-    const earned = max > 0 ? round((got / max) * section.weight, 2) : section.weight;
-    breakdown[section.id] = { earned, weight: section.weight, answered, total: questions.length };
+    const earned = max > 0 ? round((got / max) * weight, 2) : weight;
+    breakdown[section.id] = { earned, weight, answered, total: questions.length };
     total += earned;
   }
 
@@ -83,6 +122,7 @@ export function computeScore(answers: Answers): { score: number; breakdown: Brea
 
 export type Classification = "SETUP A+" | "SETUP A" | "SETUP B" | "NO TRADE";
 export type Light = "ok" | "warn" | "stop";
+export type FinalState = "APROBADA" | "CONDICIONAL" | "DESCARTADA";
 
 export function classify(score: number): { classification: Classification; light: Light; message: string } {
   if (score >= 85)
@@ -100,47 +140,122 @@ export function classify(score: number): { classification: Classification; light
 
 export const HARD_RULES: { id: string; label: string; test: (ctx: HardRuleCtx) => boolean }[] = [
   {
+    id: "context_conflict",
+    label: "El contexto no es compatible con la operación.",
+    test: ({ a }) => a["ctx_aligned"] === "no",
+  },
+  {
+    id: "structure_invalid",
+    label: "La estructura está invalidada o no definida.",
+    test: ({ a }) =>
+      a["h1_structure"] === "no_definida" ||
+      a["h1_struct"] === "no" ||
+      a["h1_pattern_change_state"] === "invalidado" ||
+      a["h1_pattern_cont_state"] === "invalidado",
+  },
+  {
+    id: "break_without_close",
+    label: "Ruptura sin cierre de vela de 5M fuera de la diagonal.",
+    test: ({ a }) => a["cf5_close"] === "no",
+  },
+  {
+    id: "missing_confirmation",
+    label: "Falta una confirmación esencial en 5M.",
+    test: ({ a }) => a["cf5_diag_break"] === "no" || a["cf_basis"] === "intuicion",
+  },
+  {
     id: "no_invalidation",
-    label: "No existe un punto claro de invalidación.",
-    test: ({ a }) => a["r_invalidation"] === "no" || a["r_stop_logic"] === "por_poner",
+    label: "El Stop Loss no es correcto: no existe un punto claro de invalidación.",
+    test: ({ a }) =>
+      a["r_invalidation"] === "no" || a["r_stop_logic"] === "por_poner" || a["r_sl_fibo_ok"] === "no",
+  },
+  {
+    id: "rr_below_2",
+    label: "La relación riesgo/beneficio es inferior a 1:2.",
+    test: ({ a, risk }) =>
+      a["r_rr"] === "menor_1" ||
+      a["r_rr"] === "1_1" ||
+      a["r_rr"] === "1_15" ||
+      (risk.rr !== null && risk.rr < 2),
+  },
+  {
+    id: "no_room",
+    label: "El recorrido hasta el objetivo es insuficiente.",
+    test: ({ a }) => a["rc_room"] === "no" || a["rc_rr2"] === "no" || a["z_space"] === "no",
+  },
+  {
+    id: "before_confirmation",
+    label: "La entrada fue anticipada: se ejecutó antes de la confirmación.",
+    test: ({ a }) => a["m5_timing"] === "antes" || a["ex_conditions"] === "no",
   },
   {
     id: "risk_over_limit",
     label: "El riesgo supera el límite establecido.",
-    test: ({ risk, maxRiskPct }) =>
-      risk.riskPctUsed !== null && risk.riskPctUsed !== undefined && risk.riskPctUsed > maxRiskPct,
+    test: ({ a, risk, maxRiskPct }) =>
+      a["r_limit"] === "no" ||
+      (risk.riskPctUsed !== null && risk.riskPctUsed !== undefined && risk.riskPctUsed > maxRiskPct),
   },
   {
-    id: "no_room",
-    label: "No existe espacio suficiente hacia el objetivo.",
-    test: ({ a }) => a["r_space"] === "no" || a["rc_room"] === "no",
-  },
-  {
-    id: "intuition",
-    label: "La entrada depende exclusivamente de intuición.",
-    test: ({ a }) => a["cf_basis"] === "intuicion",
-  },
-  {
-    id: "fomo",
-    label: "La operación está motivada por FOMO.",
-    test: ({ a }) => a["ds_motive"] === "fomo",
-  },
-  {
-    id: "revenge",
-    label: "La operación busca recuperar una pérdida.",
-    test: ({ a }) => a["ds_motive"] === "revancha",
-  },
-  {
-    id: "before_confirmation",
-    label: "Se está entrando antes de la confirmación definida.",
-    test: ({ a }) => a["m5_timing"] === "antes",
+    id: "discipline",
+    label: "Incumplimiento grave de disciplina.",
+    test: ({ a }) =>
+      a["ds_why"] === "impulso" ||
+      a["ds_revenge"] === "si" ||
+      a["ds_rules"] === "si" ||
+      a["ds_plan"] === "forzando" ||
+      a["ds_motive"] === "fomo" ||
+      a["ds_motive"] === "revancha",
   },
   {
     id: "off_plan",
     label: "El setup no pertenece al plan operativo.",
-    test: ({ a, setup, preferredSetups }) =>
-      a["ds_plan"] === "forzando" ||
-      (preferredSetups.length > 0 && !!setup && !preferredSetups.includes(setup)),
+    test: ({ setup, preferredSetups }) =>
+      preferredSetups.length > 0 && !!setup && !preferredSetups.includes(setup),
+  },
+];
+
+/** Elementos que dejan la operación CONDICIONAL sin descartarla. */
+export const CONDITIONAL_CHECKS: { id: string; label: string; test: (ctx: HardRuleCtx) => boolean }[] = [
+  {
+    id: "context_partial",
+    label: "El contexto acompaña solo parcialmente la operación.",
+    test: ({ a }) => a["ctx_aligned"] === "parcial" || a["h1_struct"] === "parcial",
+  },
+  {
+    id: "pattern_forming",
+    label: "El patrón todavía está en formación: no se interpreta como señal.",
+    test: ({ a }) =>
+      a["h1_pattern_change_state"] === "formacion" || a["h1_pattern_cont_state"] === "formacion",
+  },
+  {
+    id: "fibo_doubt",
+    label: "La reacción en Fibonacci es dudosa.",
+    test: ({ a }) => a["h1_fibo_react"] === "dudoso" || a["h1_fibo_weak"] === "dudoso",
+  },
+  {
+    id: "retest_pending",
+    label: "El retesteo no respeta con claridad la nueva estructura.",
+    test: ({ a }) => a["cf5_retest_ok"] === "dudoso" || a["cf5_retest"] === "no",
+  },
+  {
+    id: "rsi_extended",
+    label: "El movimiento ya está sobrecomprado/sobrevendido.",
+    test: ({ a }) => a["cf5_rsi_extended"] === "si" || a["cf5_rsi"] === "dudoso",
+  },
+  {
+    id: "volume_weak",
+    label: "El volumen no acompaña con claridad la ruptura.",
+    test: ({ a }) => a["cf5_volume"] === "no" || a["cf5_volume"] === "dudoso",
+  },
+  {
+    id: "sl_review",
+    label: "El nivel 0,75 es el SL predeterminado, pero la estructura requiere revisión antes de ejecutar.",
+    test: ({ a }) => a["r_sl_fibo_ok"] === "revision",
+  },
+  {
+    id: "conditions_partial",
+    label: "Las condiciones principales se cumplieron solo parcialmente.",
+    test: ({ a }) => a["ex_conditions"] === "parcial",
   },
 ];
 
@@ -156,9 +271,16 @@ export function checkHardRules(ctx: HardRuleCtx) {
   return HARD_RULES.filter((r) => r.test(ctx)).map((r) => r.label);
 }
 
+export function checkConditional(ctx: HardRuleCtx) {
+  return CONDITIONAL_CHECKS.filter((r) => r.test(ctx)).map((r) => r.label);
+}
+
 export function isEmotional(a: Answers) {
   return (
     a["ds_why"] === "impulso" ||
+    a["ds_revenge"] === "si" ||
+    a["ds_rules"] === "si" ||
+    a["ds_plan"] === "forzando" ||
     a["ds_motive"] === "fomo" ||
     a["ds_motive"] === "revancha" ||
     a["ds_motive"] === "aburrimiento"
@@ -172,6 +294,8 @@ export type Decision = {
   light: Light;
   message: string;
   hardRules: string[];
+  warnings: string[];
+  finalState: FinalState;
   emotional: boolean;
   blocked: boolean;
 };
@@ -185,16 +309,27 @@ export function evaluate(input: {
 }): Decision {
   const { score, breakdown } = computeScore(input.answers);
   const metrics = computeRisk(input.risk);
-  const hardRules = checkHardRules({
+  const ctx: HardRuleCtx = {
     a: input.answers,
     risk: metrics,
     maxRiskPct: input.maxRiskPct,
     setup: input.setup,
     preferredSetups: input.preferredSetups ?? [],
-  });
+  };
+  const hardRules = checkHardRules(ctx);
+  const warnings = checkConditional(ctx);
   const emotional = isEmotional(input.answers);
   const blocked = hardRules.length > 0 || emotional;
   const base = classify(score);
+
+  // El score no es el único mecanismo de decisión: una condición crítica descarta la operación.
+  const finalState: FinalState = blocked
+    ? "DESCARTADA"
+    : score < 65
+      ? "DESCARTADA"
+      : warnings.length > 0 || score < 75
+        ? "CONDICIONAL"
+        : "APROBADA";
 
   if (blocked) {
     return {
@@ -204,10 +339,18 @@ export function evaluate(input: {
       light: "stop",
       message: "No ejecutar.",
       hardRules,
+      warnings,
+      finalState,
       emotional,
       blocked,
     };
   }
 
-  return { score, breakdown, ...base, hardRules, emotional, blocked };
+  return { score, breakdown, ...base, hardRules, warnings, finalState, emotional, blocked };
 }
+
+export const FINAL_STATE_UI: Record<FinalState, { dot: string; label: string; light: Light }> = {
+  APROBADA: { dot: "🟢", label: "APROBADA", light: "ok" },
+  CONDICIONAL: { dot: "🟡", label: "CONDICIONAL", light: "warn" },
+  DESCARTADA: { dot: "🔴", label: "DESCARTADA", light: "stop" },
+};
