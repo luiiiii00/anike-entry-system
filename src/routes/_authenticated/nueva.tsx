@@ -725,7 +725,7 @@ function ResultStep({
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           <button
             onClick={onRegister}
-            disabled={saving || decision.blocked}
+            disabled={saving || decision.blocked || decision.finalState === "DESCARTADA"}
             className="min-h-13 rounded-xl bg-primary text-sm font-semibold tracking-wide text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-40"
           >
             REGISTRAR TRADE
@@ -738,12 +738,13 @@ function ResultStep({
             NO TRADE
           </button>
         </div>
-        {decision.blocked && (
+        {(decision.blocked || decision.finalState === "DESCARTADA") && (
           <p className="mt-3 text-xs text-stop">
-            El registro como entrada aprobada está desactivado: hay reglas críticas o señales
-            impulsivas activas.
+            El registro como entrada aprobada está desactivado: la operación está DESCARTADA por
+            reglas críticas, score insuficiente o señales impulsivas.
           </p>
         )}
+
       </div>
     </div>
   );
