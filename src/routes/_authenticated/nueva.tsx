@@ -429,12 +429,14 @@ export function RiskPanel({
   currency,
   maxRiskPct,
   minRR,
+  direction,
 }: {
   risk: RiskData;
   setRisk: (fn: (r: RiskData) => RiskData) => void;
   currency: string;
   maxRiskPct: number;
   minRR: number;
+  direction?: string | undefined;
 }) {
   const m = computeRisk(risk);
   const set = (k: keyof RiskData, v: string) =>
@@ -442,6 +444,7 @@ export function RiskPanel({
 
   const overRisk = m.riskPctUsed !== null && m.riskPctUsed > maxRiskPct;
   const underRR = m.rr !== null && m.rr < minRR;
+
 
   const fibo = fiboProjection(risk, direction);
 
