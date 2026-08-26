@@ -682,7 +682,12 @@ function ResultStep({
 
       <div className="panel divide-y divide-border">
         <Row label="Score" value={`${decision.score} / 100`} />
-        <Row label="Estado" value={decision.classification} />
+        <Row label="Clasificación" value={decision.classification} />
+        <Row
+          label="Estado final"
+          value={`${FINAL_STATE_UI[decision.finalState].dot} ${FINAL_STATE_UI[decision.finalState].label}`}
+        />
+
         <Row label="Riesgo" value={metrics.riskPctUsed === null ? "—" : `${metrics.riskPctUsed.toFixed(2)}%`} />
         <Row
           label={`Riesgo (${currency})`}
