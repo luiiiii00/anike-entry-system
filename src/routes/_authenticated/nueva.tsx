@@ -7,8 +7,16 @@ import { AppShell } from "@/components/AppShell";
 import { QuestionList } from "@/components/QuestionGroup";
 import { ScoreDial } from "@/components/ScoreDial";
 import { TrafficLight } from "@/components/TrafficLight";
-import { MARKETS, SECTIONS, SESSIONS, SETUPS, WIZARD_STEPS } from "@/lib/checklist";
-import { evaluate, computeRisk, type Answers, type RiskData } from "@/lib/scoring";
+import { FIBO_SL_RATIO, MARKETS, SECTIONS, SESSIONS, SETUPS, WIZARD_STEPS } from "@/lib/checklist";
+import {
+  evaluate,
+  computeRisk,
+  fiboProjection,
+  FINAL_STATE_UI,
+  type Answers,
+  type RiskData,
+} from "@/lib/scoring";
+
 import { fetchEvaluation, fetchSettings, nextTradeNumber, upsertEvaluation } from "@/lib/db";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
