@@ -502,7 +502,7 @@ export function RiskPanel({
             {fibo.sl !== null && (
               <button
                 type="button"
-                onClick={() => setRisk((r) => ({ ...r, slFibo: fibo.sl ?? undefined, stop: fibo.sl ?? undefined }))}
+                onClick={() => setRisk((r) => (fibo.sl === null ? r : { ...r, slFibo: fibo.sl, stop: fibo.sl }))}
                 className="mt-3 min-h-11 w-full rounded-xl border border-border bg-surface text-sm"
               >
                 Usar 0,75 ({fibo.sl}) como Stop Loss
