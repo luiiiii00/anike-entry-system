@@ -620,6 +620,36 @@ function ResultStep({
         </div>
       </div>
 
+      <div
+        className={cn(
+          "panel animate-rise p-5",
+          decision.finalState === "APROBADA" && "border-ok/50 bg-ok-soft/25",
+          decision.finalState === "CONDICIONAL" && "border-warn/50 bg-warn-soft/25",
+          decision.finalState === "DESCARTADA" && "border-stop/50 bg-stop-soft/30",
+        )}
+      >
+        <p className="font-display text-xl font-semibold">
+          {FINAL_STATE_UI[decision.finalState].dot} OPERACIÓN {FINAL_STATE_UI[decision.finalState].label}
+        </p>
+        <p className="mt-2 text-sm text-foreground/90">
+          {decision.finalState === "APROBADA"
+            ? "Todos los criterios críticos se cumplen. La decisión de ejecutar sigue siendo tuya."
+            : decision.finalState === "CONDICIONAL"
+              ? "Hay elementos sin resolver: espera confirmación antes de ejecutar."
+              : "Existe al menos una condición crítica incumplida: la operación no debe ejecutarse."}
+        </p>
+        {decision.warnings.length > 0 && (
+          <ul className="mt-3 space-y-1.5 text-sm text-foreground/90">
+            {decision.warnings.map((w) => (
+              <li key={w} className="flex gap-2">
+                <span className="text-warn">•</span> {w}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+
       {decision.hardRules.length > 0 && (
         <div className="panel animate-rise border-stop/50 bg-stop-soft/35 p-5">
           <div className="flex items-center gap-2 text-stop">
