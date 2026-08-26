@@ -271,6 +271,8 @@ function NuevaEvaluacion() {
               currency={settings?.currency ?? "USD"}
               maxRiskPct={Number(settings?.max_risk_pct ?? 1)}
               minRR={Number(settings?.min_rr ?? 2)}
+              direction={trade.direction}
+
             />
             {section.groups.map((g, i) => (
               <QuestionList
