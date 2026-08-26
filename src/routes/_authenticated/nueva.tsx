@@ -7,8 +7,16 @@ import { AppShell } from "@/components/AppShell";
 import { QuestionList } from "@/components/QuestionGroup";
 import { ScoreDial } from "@/components/ScoreDial";
 import { TrafficLight } from "@/components/TrafficLight";
-import { MARKETS, SECTIONS, SESSIONS, SETUPS, WIZARD_STEPS } from "@/lib/checklist";
-import { evaluate, computeRisk, type Answers, type RiskData } from "@/lib/scoring";
+import { FIBO_SL_RATIO, MARKETS, SECTIONS, SESSIONS, SETUPS, WIZARD_STEPS } from "@/lib/checklist";
+import {
+  evaluate,
+  computeRisk,
+  fiboProjection,
+  FINAL_STATE_UI,
+  type Answers,
+  type RiskData,
+} from "@/lib/scoring";
+
 import { fetchEvaluation, fetchSettings, nextTradeNumber, upsertEvaluation } from "@/lib/db";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -263,6 +271,8 @@ function NuevaEvaluacion() {
               currency={settings?.currency ?? "USD"}
               maxRiskPct={Number(settings?.max_risk_pct ?? 1)}
               minRR={Number(settings?.min_rr ?? 2)}
+              direction={trade.direction}
+
             />
             {section.groups.map((g, i) => (
               <QuestionList
@@ -429,12 +439,14 @@ export function RiskPanel({
   currency,
   maxRiskPct,
   minRR,
+  direction,
 }: {
   risk: RiskData;
   setRisk: (fn: (r: RiskData) => RiskData) => void;
   currency: string;
   maxRiskPct: number;
   minRR: number;
+  direction?: string | undefined;
 }) {
   const m = computeRisk(risk);
   const set = (k: keyof RiskData, v: string) =>
@@ -442,6 +454,9 @@ export function RiskPanel({
 
   const overRisk = m.riskPctUsed !== null && m.riskPctUsed > maxRiskPct;
   const underRR = m.rr !== null && m.rr < minRR;
+
+
+  const fibo = fiboProjection(risk, direction);
 
   return (
     <div className="panel p-4">
@@ -452,6 +467,49 @@ export function RiskPanel({
         <TextField label="Entrada" value={str(risk.entry)} onChange={(v) => set("entry", v)} type="number" />
         <TextField label="Stop" value={str(risk.stop)} onChange={(v) => set("stop", v)} type="number" />
         <TextField label="Objetivo" value={str(risk.target)} onChange={(v) => set("target", v)} type="number" />
+      </div>
+
+      <div className="mt-5 rounded-xl border border-border bg-surface-2 p-3">
+        <p className="label-mono">Fibonacci del impulso</p>
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          Introduce los extremos del impulso. El nivel 0,75 es el Stop Loss PREDETERMINADO sugerido:
+          nunca se envía ninguna orden.
+        </p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <TextField label="Máximo del impulso" value={str(risk.swingHigh)} onChange={(v) => set("swingHigh", v)} type="number" />
+          <TextField label="Mínimo del impulso" value={str(risk.swingLow)} onChange={(v) => set("swingLow", v)} type="number" />
+        </div>
+        {fibo.levels.length > 0 && (
+          <>
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {fibo.levels.map((l) => (
+                <div
+                  key={l.ratio}
+                  className={cn(
+                    "rounded-lg border p-2.5",
+                    l.ratio === FIBO_SL_RATIO
+                      ? "border-stop/50 bg-stop-soft/25"
+                      : "border-border bg-surface",
+                  )}
+                >
+                  <p className="label-mono">
+                    {l.ratio === FIBO_SL_RATIO ? "0,75 · SL" : String(l.ratio).replace(".", ",")}
+                  </p>
+                  <p className="mt-1 font-mono text-sm tabular-nums">{l.price}</p>
+                </div>
+              ))}
+            </div>
+            {fibo.sl !== null && (
+              <button
+                type="button"
+                onClick={() => setRisk((r) => (fibo.sl === null ? r : { ...r, slFibo: fibo.sl, stop: fibo.sl }))}
+                className="mt-3 min-h-11 w-full rounded-xl border border-border bg-surface text-sm"
+              >
+                Usar 0,75 ({fibo.sl}) como Stop Loss
+              </button>
+            )}
+          </>
+        )}
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -471,7 +529,8 @@ export function RiskPanel({
           )}
           {underRR && (
             <p className="text-warn">
-              El R:R ({m.rr}) está por debajo de tu mínimo configurado ({minRR}).
+              El R:R ({m.rr}) está por debajo de tu mínimo configurado ({minRR}). Por debajo de 1:2 la
+              operación queda descartada.
             </p>
           )}
         </div>
@@ -483,6 +542,7 @@ export function RiskPanel({
     </div>
   );
 }
+
 
 function str(v: number | undefined) {
   return v === undefined || v === null ? "" : String(v);
@@ -560,6 +620,36 @@ function ResultStep({
         </div>
       </div>
 
+      <div
+        className={cn(
+          "panel animate-rise p-5",
+          decision.finalState === "APROBADA" && "border-ok/50 bg-ok-soft/25",
+          decision.finalState === "CONDICIONAL" && "border-warn/50 bg-warn-soft/25",
+          decision.finalState === "DESCARTADA" && "border-stop/50 bg-stop-soft/30",
+        )}
+      >
+        <p className="font-display text-xl font-semibold">
+          {FINAL_STATE_UI[decision.finalState].dot} OPERACIÓN {FINAL_STATE_UI[decision.finalState].label}
+        </p>
+        <p className="mt-2 text-sm text-foreground/90">
+          {decision.finalState === "APROBADA"
+            ? "Todos los criterios críticos se cumplen. La decisión de ejecutar sigue siendo tuya."
+            : decision.finalState === "CONDICIONAL"
+              ? "Hay elementos sin resolver: espera confirmación antes de ejecutar."
+              : "Existe al menos una condición crítica incumplida: la operación no debe ejecutarse."}
+        </p>
+        {decision.warnings.length > 0 && (
+          <ul className="mt-3 space-y-1.5 text-sm text-foreground/90">
+            {decision.warnings.map((w) => (
+              <li key={w} className="flex gap-2">
+                <span className="text-warn">•</span> {w}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+
       {decision.hardRules.length > 0 && (
         <div className="panel animate-rise border-stop/50 bg-stop-soft/35 p-5">
           <div className="flex items-center gap-2 text-stop">
@@ -592,7 +682,12 @@ function ResultStep({
 
       <div className="panel divide-y divide-border">
         <Row label="Score" value={`${decision.score} / 100`} />
-        <Row label="Estado" value={decision.classification} />
+        <Row label="Clasificación" value={decision.classification} />
+        <Row
+          label="Estado final"
+          value={`${FINAL_STATE_UI[decision.finalState].dot} ${FINAL_STATE_UI[decision.finalState].label}`}
+        />
+
         <Row label="Riesgo" value={metrics.riskPctUsed === null ? "—" : `${metrics.riskPctUsed.toFixed(2)}%`} />
         <Row
           label={`Riesgo (${currency})`}
@@ -630,7 +725,7 @@ function ResultStep({
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           <button
             onClick={onRegister}
-            disabled={saving || decision.blocked}
+            disabled={saving || decision.blocked || decision.finalState === "DESCARTADA"}
             className="min-h-13 rounded-xl bg-primary text-sm font-semibold tracking-wide text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-40"
           >
             REGISTRAR TRADE
@@ -643,12 +738,13 @@ function ResultStep({
             NO TRADE
           </button>
         </div>
-        {decision.blocked && (
+        {(decision.blocked || decision.finalState === "DESCARTADA") && (
           <p className="mt-3 text-xs text-stop">
-            El registro como entrada aprobada está desactivado: hay reglas críticas o señales
-            impulsivas activas.
+            El registro como entrada aprobada está desactivado: la operación está DESCARTADA por
+            reglas críticas, score insuficiente o señales impulsivas.
           </p>
         )}
+
       </div>
     </div>
   );
