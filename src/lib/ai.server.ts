@@ -185,6 +185,8 @@ type EvalRow = {
 };
 
 const SECTION_LABELS: Record<string, string> = {
+  comercio: "Comercio",
+  resultados: "Resultados",
   contexto: "Contexto",
   estructura: "Estructura",
   zona: "Zona",
