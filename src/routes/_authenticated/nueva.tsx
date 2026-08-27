@@ -597,8 +597,20 @@ function ResultStep({
   onNoTrade: () => void;
   saving: boolean;
 }) {
-  const confirmation = SECTIONS.find((s) => s.id === "confirmacion")!
-    .groups[0]!.questions[0]!.options.find((o) => o.v === answers["cf_signal"])?.label;
+  // Busca la etiqueta de una respuesta por id en TODA la checklist:
+  // evita depender de la posición de la pregunta dentro del bloque.
+  const labelOfAnswer = (qid: string) => {
+    const value = answers[qid];
+    if (value === undefined || value === "") return null;
+    const q = SECTIONS.flatMap((s) => s.groups.flatMap((g) => g.questions)).find(
+      (x) => x.id === qid,
+    );
+    return q?.options.find((o) => o.v === value)?.label ?? value;
+  };
+  const confirmation =
+    labelOfAnswer("cf_signal") ??
+    labelOfAnswer("cf5_diag_break") ??
+    labelOfAnswer("cf_price_action");
 
   return (
     <div className="space-y-5">
@@ -695,7 +707,7 @@ function ResultStep({
         />
         <Row label="R:R" value={metrics.rr === null ? "—" : metrics.rr.toFixed(2)} />
 
-        <Row label="Confirmación" value={confirmation ?? "—"} />
+        <Row label="Confirmación" value={confirmation ?? "No registrado"} />
         <Row label="Disciplina" value={decision.emotional ? "REVISAR" : "OK"} />
       </div>
 
