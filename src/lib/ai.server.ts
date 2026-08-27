@@ -251,10 +251,57 @@ function lostPointsLines(b: EvalRow["breakdown"]) {
 /** Respuestas del trader por sección, para no repetirlas sino agregar valor. */
 function answerLines(a: EvalRow["answers"]) {
   if (!a || Object.keys(a).length === 0) return "- Respuestas del checklist: no registradas";
-  return Object.entries(a)
-    .slice(0, 40)
-    .map(([k, v]) => `- ${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`)
-    .join("\n");
+  const out: string[] = [];
+  for (const section of SECTIONS) {
+    const rows = section.groups
+      .flatMap((g) => g.questions)
+      .filter((q) => a[q.id] !== undefined && a[q.id] !== "")
+      .map((q) => `  - ${q.label} ${labelOf(q.id, a) ?? "no registrado"}`);
+    if (rows.length === 0) continue;
+    out.push(`- ${SECTION_LABELS[section.id] ?? section.title}:`, ...rows);
+  }
+  if (out.length === 0) return "- Respuestas del checklist: no registradas";
+  return out.slice(0, 140).join("\n");
+}
+
+/**
+ * Estado final del sistema (🟢 APROBADA / 🟡 CONDICIONAL / 🔴 DESCARTADA) reconstruido
+ * a partir de lo guardado: reglas duras, freno emocional, score y avisos condicionales.
+ */
+function finalStateBlock(e: EvalRow): string[] {
+  const answers = (e.answers ?? {}) as Record<string, string>;
+  const warnings = checkConditional({
+    a: answers,
+    risk: computeRisk((e.risk ?? {}) as RiskData),
+    maxRiskPct: Number.POSITIVE_INFINITY,
+    setup: e.setup,
+    preferredSetups: [],
+  });
+  const critical = (e.hard_rules?.length ?? 0) > 0 || e.emotional_stop === true;
+  const score = e.score ?? 0;
+  const finalState: FinalState = critical
+    ? "DESCARTADA"
+    : score < 65
+      ? "DESCARTADA"
+      : warnings.length > 0 || score < 75
+        ? "CONDICIONAL"
+        : "APROBADA";
+  const fibo = e.risk?.["slFibo"];
+  return [
+    "",
+    "ESTADO FINAL DEL SISTEMA (decisión que ya tomó ANIKE EJEPIKA; no la contradigas):",
+    line("Estado", `${FINAL_STATE_UI[finalState].dot} ${finalState}`),
+    line(
+      "Avisos condicionales (no descartan, exigen esperar)",
+      warnings.length > 0 ? warnings.join(" | ") : "ninguno",
+    ),
+    line(
+      "SL predeterminado por Fibonacci 0,75",
+      fibo === null || fibo === undefined || fibo === "" ? null : String(fibo),
+    ),
+    line("Extremo alto del impulso declarado", e.risk?.["swingHigh"]),
+    line("Extremo bajo del impulso declarado", e.risk?.["swingLow"]),
+  ];
 }
 
 export type TraderHistoryInput = {
