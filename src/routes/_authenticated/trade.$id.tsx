@@ -161,6 +161,9 @@ function TradeDetail() {
         <Info label="Stop" value={risk.stop} />
         <Info label="Objetivo" value={risk.target} />
         <Info label="Riesgo %" value={risk.riskPct} />
+        <Info label="Impulso — máximo" value={risk.swingHigh} />
+        <Info label="Impulso — mínimo" value={risk.swingLow} />
+        <Info label="SL Fibonacci 0,75" value={risk.slFibo} />
       </div>
 
       {data.idea && (
@@ -281,10 +284,18 @@ function TradeDetail() {
 }
 
 function Info({ label, value }: { label: string; value: number | undefined }) {
+  const empty = value === null || value === undefined || !Number.isFinite(Number(value));
   return (
     <div>
       <p className="label-mono">{label}</p>
-      <p className="mt-1 font-mono text-base tabular-nums">{value ?? "—"}</p>
+      <p
+        className={cn(
+          "mt-1 font-mono text-base tabular-nums",
+          empty && "text-xs text-muted-foreground",
+        )}
+      >
+        {empty ? "No registrado" : value}
+      </p>
     </div>
   );
 }

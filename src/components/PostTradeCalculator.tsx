@@ -78,7 +78,8 @@ function initialForm(e: Evaluation, capital: number, currency: string): Form {
     leverage: str(saved.leverage),
     margin: str(saved.margin),
     capital: str(saved.capital ?? capital),
-    stopLoss: str(saved.stopLoss ?? risk["stop"]),
+    // Si no se registró un stop manual, se prefija el SL predeterminado por Fibonacci 0,75.
+    stopLoss: str(saved.stopLoss ?? risk["stop"] ?? risk["slFibo"]),
     takeProfit: str(saved.takeProfit ?? risk["target"]),
     feeMode: (saved.feeMode as FeeMode) ?? "none",
     feeTotal: str(saved.feeTotal),
