@@ -5,6 +5,13 @@
  */
 
 import { SECTIONS } from "./checklist";
+import {
+  FINAL_STATE_UI,
+  checkConditional,
+  computeRisk,
+  type FinalState,
+  type RiskData,
+} from "./scoring";
 
 export type AiReviewType = "PRE_TRADE" | "NO_TRADE" | "POST_TRADE" | "WEEKLY_REVIEW";
 
@@ -393,6 +400,7 @@ export function buildEvaluationPrompt(
     line("MACD histograma en zona Fibonacci (horaria)", labelOf("h1_macd", e.answers)),
     line("Cruce de líneas MACD tras romper la diagonal (5M)", labelOf("cf5_macd", e.answers)),
     line("RSI evita sobrecompra/sobreventa en la entrada (5M)", labelOf("cf5_rsi", e.answers)),
+    ...finalStateBlock(e),
     ...historyBlock(history),
   ];
 
