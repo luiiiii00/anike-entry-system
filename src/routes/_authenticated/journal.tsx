@@ -8,7 +8,7 @@ import { createJournalTrade, fetchEvaluations, type Evaluation } from "@/lib/db"
 import { fetchAnalyzedEvaluationIds } from "@/lib/ai";
 
 import { useAuth } from "@/hooks/useAuth";
-import { SETUPS } from "@/lib/checklist";
+import { SETUP_GROUPS } from "@/lib/checklist";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/journal")({
