@@ -757,6 +757,60 @@ export const LEGACY_SECTIONS: { id: string; title: string; questions: Question[]
   },
 ];
 
-export const SETUPS = ["Continuación", "Reversión", "Ruptura", "Retesteo", "Otro"];
+/**
+ * Setups oficiales, alineados con la checklist definitiva:
+ * estructura/ejecución, patrones de cambio y patrones de continuidad.
+ */
+export const SETUP_GROUPS: { title: string; items: string[] }[] = [
+  {
+    title: "Estructura y ejecución",
+    items: [
+      "Continuación de tendencia",
+      "Reversión en zona",
+      "Cambio de estructura",
+      "Ruptura de diagonal",
+      "Retesteo de ruptura",
+      "Retroceso Fibonacci 0,38",
+      "Retroceso Fibonacci 0,50",
+      "Retroceso Fibonacci 0,618",
+      "Divergencia RSI",
+      "MACD pierde fuerza en zona",
+      "Otro",
+    ],
+  },
+  {
+    title: "Patrones de cambio",
+    items: [
+      "Doble techo",
+      "Doble suelo",
+      "Triple techo",
+      "Triple suelo",
+      "Hombro cabeza hombro",
+      "Hombro cabeza hombro invertido",
+      "Cuña ascendente",
+      "Cuña descendente",
+      "Suelo redondeado",
+      "Techo redondeado",
+      "Púa alcista",
+      "Púa bajista",
+    ],
+  },
+  {
+    title: "Patrones de continuidad",
+    items: [
+      "Triángulo simétrico",
+      "Triángulo ascendente",
+      "Triángulo descendente",
+      "Banderín alcista",
+      "Banderín bajista",
+      "Bandera rectangular alcista",
+      "Bandera rectangular bajista",
+      "Rectángulo",
+    ],
+  },
+];
+
+export const SETUPS = SETUP_GROUPS.flatMap((g) => g.items);
+
 export const MARKETS = ["Crypto", "Forex", "Índices", "Acciones", "Futuros", "Otro"];
 export const SESSIONS = ["Asia", "Londres", "Nueva York", "Overlap", "Fuera de sesión"];
