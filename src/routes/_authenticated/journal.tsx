@@ -8,7 +8,7 @@ import { createJournalTrade, fetchEvaluations, type Evaluation } from "@/lib/db"
 import { fetchAnalyzedEvaluationIds } from "@/lib/ai";
 
 import { useAuth } from "@/hooks/useAuth";
-import { SETUPS } from "@/lib/checklist";
+import { SETUP_GROUPS } from "@/lib/checklist";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/journal")({
@@ -107,11 +107,17 @@ function Journal() {
             onChange={(e) => setSetup(e.target.value)}
             className="mt-1.5 min-h-11 w-full rounded-xl border border-input bg-background px-3 text-base"
           >
-            {["Todos", ...SETUPS].map((s) => (
-              <option key={s}>{s}</option>
+            <option value="Todos">Todos</option>
+            {SETUP_GROUPS.map((g) => (
+              <optgroup key={g.title} label={g.title}>
+                {g.items.map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </label>
+
         <label className="block">
           <span className="label-mono">Dirección</span>
           <select
