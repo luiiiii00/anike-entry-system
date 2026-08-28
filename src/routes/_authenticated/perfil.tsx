@@ -10,7 +10,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { formatDate, formatExpiration, PLAN_LABEL } from "@/lib/access";
 import { Link } from "@tanstack/react-router";
 import { fetchSettings, saveSettings } from "@/lib/db";
-import { SETUPS } from "@/lib/checklist";
+import { SETUP_GROUPS } from "@/lib/checklist";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
