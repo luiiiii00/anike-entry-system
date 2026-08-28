@@ -323,6 +323,42 @@ export type Database = {
         }
         Relationships: []
       }
+      library_documents: {
+        Row: {
+          block: string
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          size: number
+          sort_order: number
+          storage_path: string
+          title: string
+        }
+        Insert: {
+          block: string
+          created_at?: string
+          created_by: string
+          description?: string
+          id?: string
+          size?: number
+          sort_order?: number
+          storage_path: string
+          title: string
+        }
+        Update: {
+          block?: string
+          created_at?: string
+          created_by?: string
+          description?: string
+          id?: string
+          size?: number
+          sort_order?: number
+          storage_path?: string
+          title?: string
+        }
+        Relationships: []
+      }
       payment_plans: {
         Row: {
           access_plan: Database["public"]["Enums"]["access_plan"]
