@@ -126,26 +126,32 @@ function Perfil() {
 
       <div className="panel mt-4 p-4">
         <p className="label-mono">Setups preferidos</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {SETUPS.map((s) => {
-            const on = setups.includes(s);
-            return (
-              <button
-                key={s}
-                onClick={() => setSetups((p) => (on ? p.filter((x) => x !== s) : [...p, s]))}
-                className={cn(
-                  "min-h-11 rounded-xl border px-3 text-sm",
-                  on
-                    ? "border-primary bg-primary/15"
-                    : "border-border bg-surface-2 text-muted-foreground",
-                )}
-              >
-                {s}
-              </button>
-            );
-          })}
-        </div>
+        {SETUP_GROUPS.map((g) => (
+          <div key={g.title} className="mt-4">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{g.title}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {g.items.map((s) => {
+                const on = setups.includes(s);
+                return (
+                  <button
+                    key={s}
+                    onClick={() => setSetups((p) => (on ? p.filter((x) => x !== s) : [...p, s]))}
+                    className={cn(
+                      "min-h-11 rounded-xl border px-3 text-sm",
+                      on
+                        ? "border-primary bg-primary/15"
+                        : "border-border bg-surface-2 text-muted-foreground",
+                    )}
+                  >
+                    {s}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
+
 
       <ProtectionLog />
 
