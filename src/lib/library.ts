@@ -68,7 +68,6 @@ export const LIBRARY_BLOCKS: LibraryBlock[] = [
         description: "Cómo identificar la tendencia dominante y operar dentro de canales.",
         asset: tendencia,
       },
-      { title: "Análisis Técnico", description: "Fundamentos de lectura técnica del precio." },
     ],
   },
   {
@@ -96,8 +95,6 @@ export const LIBRARY_BLOCKS: LibraryBlock[] = [
         description: "Referencia visual de las figuras que mantienen la tendencia.",
         asset: graficosCont,
       },
-      { title: "Estructura", description: "Máximos, mínimos y cambio de estructura." },
-      { title: "Fibonacci", description: "Niveles 0,38 · 0,50 · 0,618 · 0,75 y su uso." },
     ],
   },
   {
@@ -115,7 +112,6 @@ export const LIBRARY_BLOCKS: LibraryBlock[] = [
         description: "Lectura del MACD, cruces y divergencias aplicadas al proceso.",
         asset: macd,
       },
-      { title: "Fibonacci", description: "Fibonacci como herramienta de medición y stop 0,75." },
     ],
   },
   {
@@ -128,27 +124,18 @@ export const LIBRARY_BLOCKS: LibraryBlock[] = [
         description: "La estrategia completa del sistema: criterios, contexto y ejecución.",
         asset: estrategia,
       },
-      { title: "Sesiones", description: "Asia, Londres, Nueva York y solapamientos." },
-      { title: "Marco temporal MACD + RSI", description: "Combinación de 1D, 1H y 5M." },
       {
         title: "Esquema para evitar compras innecesarias",
         description: "Filtro de decisión para no entrar sin condiciones válidas.",
         asset: esquema,
       },
-      { title: "Gestión de riesgo", description: "Riesgo por operación, R:R y tamaño de posición." },
     ],
   },
   {
     id: "06",
     title: "06 — Trader",
     subtitle: "El factor humano detrás de cada resultado.",
-    docs: [
-      { title: "Psicología", description: "Control emocional y sesgos frecuentes." },
-      { title: "Disciplina", description: "Cumplimiento del proceso por encima del resultado." },
-      { title: "Journal", description: "Registro y revisión de cada operación." },
-      { title: "Resultados", description: "Métricas reales: R, PnL y expectativa." },
-      { title: "Errores y aprendizaje", description: "Detección de patrones repetidos y mejoras." },
-    ],
+    docs: [],
   },
 ];
 
