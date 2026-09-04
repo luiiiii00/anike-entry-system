@@ -9,7 +9,6 @@ import graficosCont from "@/assets/libros/8._Patrones-Graficos-de-Continuidad.pd
 import macd from "@/assets/libros/11._MACD.pdf.json";
 import rsi from "@/assets/libros/12._RSI.pdf.json";
 import estrategia from "@/assets/libros/Estrategia-ANIKE-EJEPIKA.pdf.json";
-import esquema from "@/assets/libros/Esquema-ANIKE-EJEPIKA.pdf.json";
 
 export const LIBRARY_BUCKET = "library";
 
@@ -123,11 +122,6 @@ export const LIBRARY_BLOCKS: LibraryBlock[] = [
         title: "Estrategia ANIKE",
         description: "La estrategia completa del sistema: criterios, contexto y ejecución.",
         asset: estrategia,
-      },
-      {
-        title: "Esquema para evitar compras innecesarias",
-        description: "Filtro de decisión para no entrar sin condiciones válidas.",
-        asset: esquema,
       },
     ],
   },
