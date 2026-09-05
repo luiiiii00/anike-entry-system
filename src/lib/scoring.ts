@@ -23,27 +23,51 @@ export type RiskMetrics = {
   riskPctUsed: number | null;
 };
 
-export function computeRisk(r: RiskData): RiskMetrics {
+export function computeRisk(r: RiskData, direction?: string | null): RiskMetrics {
   const capital = num(r.capital);
   const pct = num(r.riskPct);
   const entry = num(r.entry);
   const stop = num(r.stop);
   const target = num(r.target);
 
-  const riskMoney = capital !== null && pct !== null ? (capital * pct) / 100 : null;
-  const stopDistance = entry !== null && stop !== null ? Math.abs(entry - stop) : null;
-  const rewardDistance = entry !== null && target !== null ? Math.abs(target - entry) : null;
-  const rr =
-    stopDistance && rewardDistance && stopDistance > 0
-      ? round(rewardDistance / stopDistance, 2)
+  const riskMoney =
+    capital !== null && pct !== null && capital > 0 && pct > 0 ? (capital * pct) / 100 : null;
+
+  // Distancias con signo cuando se conoce la dirección: un TP al lado equivocado
+  // no puede producir un R/R positivo.
+  const isShort = direction === "SHORT";
+  const signed = (a: number, b: number) => (isShort ? b - a : a - b);
+  const hasDir = direction === "LONG" || direction === "SHORT";
+
+  const rawStopDistance =
+    entry !== null && stop !== null ? (hasDir ? signed(entry, stop) : Math.abs(entry - stop)) : null;
+  const rawRewardDistance =
+    entry !== null && target !== null
+      ? hasDir
+        ? signed(target, entry)
+        : Math.abs(target - entry)
       : null;
+
+  const stopDistance = rawStopDistance === null ? null : Math.abs(rawStopDistance);
+  const rr =
+    rawStopDistance !== null && rawRewardDistance !== null && rawStopDistance > 0
+      ? round(rawRewardDistance / rawStopDistance, 2)
+      : null;
+
   const positionSize =
     riskMoney !== null && stopDistance !== null && stopDistance > 0
       ? round(riskMoney / stopDistance, 4)
       : null;
 
-  return { riskMoney: riskMoney === null ? null : round(riskMoney, 2), stopDistance: stopDistance === null ? null : round(stopDistance, 6), rr, positionSize, riskPctUsed: pct };
+  return {
+    riskMoney: riskMoney === null ? null : round(riskMoney, 2),
+    stopDistance: stopDistance === null ? null : round(stopDistance, 6),
+    rr: rr === null || !Number.isFinite(rr) ? null : rr,
+    positionSize: positionSize !== null && Number.isFinite(positionSize) ? positionSize : null,
+    riskPctUsed: pct,
+  };
 }
+
 
 /**
  * Niveles de retroceso de Fibonacci a partir del impulso declarado.
