@@ -132,10 +132,11 @@ function NuevaEvaluacion() {
         maxRiskPct: Number(settings?.max_risk_pct ?? 1),
         setup: trade.setup,
         preferredSetups: settings?.preferred_setups ?? [],
+        direction: trade.direction,
       }),
-    [answers, risk, settings, trade.setup],
+    [answers, risk, settings, trade.setup, trade.direction],
   );
-  const metrics = useMemo(() => computeRisk(risk), [risk]);
+  const metrics = useMemo(() => computeRisk(risk, trade.direction), [risk, trade.direction]);
 
   const currentStep = WIZARD_STEPS[step]!;
   const section = SECTIONS.find((s) => s.id === currentStep.key);
@@ -448,7 +449,7 @@ export function RiskPanel({
   minRR: number;
   direction?: string | undefined;
 }) {
-  const m = computeRisk(risk);
+  const m = computeRisk(risk, direction);
   const set = (k: keyof RiskData, v: string) =>
     setRisk((r) => ({ ...r, [k]: v === "" ? undefined : Number(v) }));
 

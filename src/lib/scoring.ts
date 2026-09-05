@@ -330,9 +330,10 @@ export function evaluate(input: {
   maxRiskPct: number;
   setup?: string | null;
   preferredSetups?: string[];
+  direction?: string | null;
 }): Decision {
   const { score, breakdown } = computeScore(input.answers);
-  const metrics = computeRisk(input.risk);
+  const metrics = computeRisk(input.risk, input.direction);
   const ctx: HardRuleCtx = {
     a: input.answers,
     risk: metrics,
