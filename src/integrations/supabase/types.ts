@@ -171,6 +171,7 @@ export type Database = {
           entry_price: number | null
           exit_price: number | null
           fees: number | null
+          final_state: string | null
           followed_plan: string | null
           gross_pnl: number | null
           hard_rules: string[]
@@ -227,6 +228,7 @@ export type Database = {
           entry_price?: number | null
           exit_price?: number | null
           fees?: number | null
+          final_state?: string | null
           followed_plan?: string | null
           gross_pnl?: number | null
           hard_rules?: string[]
@@ -283,6 +285,7 @@ export type Database = {
           entry_price?: number | null
           exit_price?: number | null
           fees?: number | null
+          final_state?: string | null
           followed_plan?: string | null
           gross_pnl?: number | null
           hard_rules?: string[]
