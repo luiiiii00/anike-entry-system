@@ -279,7 +279,7 @@ function finalStateBlock(e: EvalRow): string[] {
   const answers = (e.answers ?? {}) as Record<string, string>;
   const warnings = checkConditional({
     a: answers,
-    risk: computeRisk((e.risk ?? {}) as RiskData),
+    risk: computeRisk((e.risk ?? {}) as RiskData, e.direction),
     maxRiskPct: Number.POSITIVE_INFINITY,
     setup: e.setup,
     preferredSetups: [],

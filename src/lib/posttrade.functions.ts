@@ -44,7 +44,23 @@ export const savePostTradeFn = createServerFn({ method: "POST" })
     const { calculatePostTrade } = await import("@/lib/posttrade");
     const { evaluationId, notes, ...input } = data;
 
+    // Una operación descartada por el sistema no puede cerrarse como registrada.
+    const { data: current, error: readError } = await context.supabase
+      .from("evaluations")
+      .select("classification, hard_rules, emotional_stop")
+      .eq("id", evaluationId)
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (readError) throw new Error(readError.message);
+    if (!current) throw new Error("trade_not_found");
+    const rejected =
+      current.classification === "NO TRADE" ||
+      (current.hard_rules?.length ?? 0) > 0 ||
+      current.emotional_stop === true;
+    if (rejected) throw new Error("trade_rejected_cannot_register");
+
     const r = calculatePostTrade(input);
+
 
     const patch = {
       market_type: r.marketType,

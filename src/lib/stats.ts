@@ -28,37 +28,63 @@ export type Stats = {
   worstTrade: number | null;
 };
 
-const completed = (e: Evaluation) => e.status === "completed";
+/* ------------------------ Fuente única de verdad ------------------------ */
+
+/** Evaluación finalizada (no borrador). */
+export const isCompleted = (e: Evaluation) => e.status === "completed";
+
+/** Operación realmente llevada al mercado. */
+export const isRegistered = (e: Evaluation) => isCompleted(e) && e.decision === "registrado";
+
+/** Operación descartada por el sistema o por el trader. */
+export const isNoTrade = (e: Evaluation) =>
+  isCompleted(e) && (e.decision === "no_trade" || e.classification === "NO TRADE");
+
+const finite = (v: unknown): number | null => {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
+/** Operación cerrada: registrada Y con resultado en R numérico. */
+export const isClosed = (e: Evaluation) =>
+  isRegistered(e) && !isNoTrade(e) && finite(e.result_r) !== null;
+
+/** Listas derivadas usadas por todos los cálculos. */
+export function partition(list: Evaluation[]) {
+  const done = list.filter(isCompleted);
+  const registered = done.filter(isRegistered).filter((e) => !isNoTrade(e));
+  const closed = registered.filter(isClosed);
+  return { done, registered, closed };
+}
 
 export function computeStats(list: Evaluation[]): Stats {
-  const done = list.filter(completed);
-  const registered = done.filter((e) => e.decision === "registrado");
-  const closed = registered.filter((e) => e.result_r !== null && e.result_r !== undefined);
-  const wins = closed.filter((e) => (e.result_r ?? 0) > 0).length;
-  const scores = done.map((e) => e.score ?? 0);
-  const rs = closed.map((e) => Number(e.result_r));
+  const { done, registered, closed } = partition(list);
+
+  const rs = closed.map((e) => finite(e.result_r)!);
+  const wins = rs.filter((r) => r > 0).length;
+
+  // Sólo evaluaciones con score real: un score ausente no vale 0.
+  const scores = done.map((e) => finite(e.score)).filter((n): n is number => n !== null);
 
   const bySetup = new Map<string, number[]>();
   for (const e of closed) {
     const key = e.setup ?? "Sin setup";
-    bySetup.set(key, [...(bySetup.get(key) ?? []), Number(e.result_r)]);
+    bySetup.set(key, [...(bySetup.get(key) ?? []), finite(e.result_r)!]);
   }
   const setupAvgs = [...bySetup.entries()]
     .map(([setup, values]) => ({ setup, avg: avg(values)!, n: values.length }))
     .sort((a, b) => b.avg - a.avg);
 
-  const withPnl = done.filter((e) => e.net_pnl !== null && e.net_pnl !== undefined);
-  const rois = done
-    .filter((e) => e.roi_margin !== null && e.roi_margin !== undefined)
-    .map((e) => Number(e.roi_margin));
-  const monies = closed
-    .filter((e) => e.result_money !== null && e.result_money !== undefined)
-    .map((e) => Number(e.result_money));
+  // Dinero y ROI sólo de operaciones cerradas con valor real registrado.
+  const pnls = closed.map((e) => finite(e.net_pnl)).filter((n): n is number => n !== null);
+  const rois = closed.map((e) => finite(e.roi_margin)).filter((n): n is number => n !== null);
+  const monies = closed.map((e) => finite(e.result_money)).filter((n): n is number => n !== null);
 
   return {
-    losses: closed.filter((e) => (e.result_r ?? 0) < 0).length,
-    breakEven: closed.filter((e) => Number(e.result_r) === 0).length,
-    netPnl: round(withPnl.reduce((a, e) => a + Number(e.net_pnl), 0), 2),
+    losses: rs.filter((r) => r < 0).length,
+    breakEven: rs.filter((r) => r === 0).length,
+    netPnl: round(sum(pnls), 2),
     avgRoi: avg(rois) === null ? null : round(avg(rois)!, 2),
     avgMoney: avg(monies) === null ? null : round(avg(monies)!, 2),
     bestR: rs.length ? round(Math.max(...rs), 2) : null,
@@ -66,19 +92,18 @@ export function computeStats(list: Evaluation[]): Stats {
     bestTrade: monies.length ? round(Math.max(...monies), 2) : null,
     worstTrade: monies.length ? round(Math.min(...monies), 2) : null,
     total: done.length,
+    // Aprobadas = evaluaciones cuya clasificación no fue NO TRADE (validez del setup,
+    // independiente de si finalmente se registró la operación).
     approved: done.filter((e) => e.classification && e.classification !== "NO TRADE").length,
-    noTrade: done.filter((e) => e.classification === "NO TRADE").length,
+    noTrade: done.filter(isNoTrade).length,
     registered: registered.length,
     closed: closed.length,
     wins,
     winRate: closed.length ? Math.round((wins / closed.length) * 100) : null,
     avgR: avg(rs) === null ? null : round(avg(rs)!, 2),
     avgScore: avg(scores) === null ? null : Math.round(avg(scores)!),
-    totalR: round(rs.reduce((a, b) => a + b, 0), 2),
-    totalMoney: round(
-      closed.reduce((a, e) => a + Number(e.result_money ?? 0), 0),
-      2,
-    ),
+    totalR: round(sum(rs), 2),
+    totalMoney: round(sum(monies), 2),
     impulsive: done.filter((e) => e.emotional_stop || isEmotional(e.answers ?? {})).length,
     offPlan: done.filter((e) => (e.hard_rules ?? []).length > 0).length,
     bestSetup: setupAvgs[0]?.setup ?? null,
@@ -86,31 +111,35 @@ export function computeStats(list: Evaluation[]): Stats {
   };
 }
 
+function sum(values: number[]) {
+  return values.reduce((a, b) => a + b, 0);
+}
+
 function avg(values: number[]) {
   if (!values.length) return null;
-  return values.reduce((a, b) => a + b, 0) / values.length;
+  return sum(values) / values.length;
 }
 
 function round(n: number, d: number) {
+  if (!Number.isFinite(n)) return 0;
   const f = 10 ** d;
   return Math.round(n * f) / f;
 }
 
 export function equityCurve(list: Evaluation[]) {
-  const closed = list
-    .filter((e) => e.status === "completed" && e.result_r !== null && e.result_r !== undefined)
-    .slice()
+  const closed = partition(list)
+    .closed.slice()
     .sort((a, b) => a.created_at.localeCompare(b.created_at));
   let acc = 0;
   return closed.map((e, i) => {
-    acc = round(acc + Number(e.result_r), 2);
+    acc = round(acc + finite(e.result_r)!, 2);
     return { name: `#${e.trade_no ?? i + 1}`, r: acc };
   });
 }
 
 export function setupDistribution(list: Evaluation[]) {
   const map = new Map<string, number>();
-  for (const e of list.filter(completed)) {
+  for (const e of list.filter(isCompleted)) {
     const key = e.setup ?? "Sin setup";
     map.set(key, (map.get(key) ?? 0) + 1);
   }
@@ -118,9 +147,9 @@ export function setupDistribution(list: Evaluation[]) {
 }
 
 export function scoreVsResult(list: Evaluation[]) {
-  return list
-    .filter((e) => e.status === "completed" && e.result_r !== null && e.score !== null)
-    .map((e) => ({ score: e.score as number, r: Number(e.result_r) }));
+  return partition(list)
+    .closed.filter((e) => finite(e.score) !== null)
+    .map((e) => ({ score: finite(e.score)!, r: finite(e.result_r)! }));
 }
 
 export function longVsShort(list: Evaluation[]) {
@@ -128,17 +157,18 @@ export function longVsShort(list: Evaluation[]) {
     { name: "LONG", trades: 0, r: 0 },
     { name: "SHORT", trades: 0, r: 0 },
   ];
-  for (const e of list.filter(completed)) {
+  // Sólo operaciones cerradas: una evaluación sin resultado no aporta R.
+  for (const e of partition(list).closed) {
     const row = e.direction === "SHORT" ? out[1]! : out[0]!;
     row.trades += 1;
-    row.r = round(row.r + Number(e.result_r ?? 0), 2);
+    row.r = round(row.r + finite(e.result_r)!, 2);
   }
   return out;
 }
 
 export function buildInsights(list: Evaluation[], stats: Stats): string[] {
   const insights: string[] = [];
-  const done = list.filter(completed);
+  const { done, closed } = partition(list);
   if (done.length < 3) {
     insights.push(
       "Aún hay pocas evaluaciones registradas. Con más datos podrás observar patrones reales en tu proceso.",
@@ -146,12 +176,11 @@ export function buildInsights(list: Evaluation[], stats: Stats): string[] {
     return insights;
   }
 
-  const closed = done.filter((e) => e.result_r !== null);
   const aPlus = closed.filter((e) => e.classification === "SETUP A+" || e.classification === "SETUP A");
   const b = closed.filter((e) => e.classification === "SETUP B");
   if (aPlus.length >= 2 && b.length >= 2) {
-    const avgA = mean(aPlus.map((e) => Number(e.result_r)));
-    const avgB = mean(b.map((e) => Number(e.result_r)));
+    const avgA = mean(aPlus.map((e) => finite(e.result_r)!));
+    const avgB = mean(b.map((e) => finite(e.result_r)!));
     insights.push(
       avgA > avgB
         ? `Tus operaciones con clasificación A/A+ muestran un promedio de ${avgA.toFixed(2)}R frente a ${avgB.toFixed(2)}R en las B.`
@@ -162,7 +191,7 @@ export function buildInsights(list: Evaluation[], stats: Stats): string[] {
   const rev = closed.filter((e) => e.setup === "Reversión");
   if (rev.length >= 3) {
     insights.push(
-      `Tus operaciones de reversión promedian ${mean(rev.map((e) => Number(e.result_r))).toFixed(2)}R en ${rev.length} registros.`,
+      `Tus operaciones de reversión promedian ${mean(rev.map((e) => finite(e.result_r)!)).toFixed(2)}R en ${rev.length} registros.`,
     );
   }
 
@@ -190,7 +219,7 @@ export function buildInsights(list: Evaluation[], stats: Stats): string[] {
 }
 
 function mean(values: number[]) {
-  return values.reduce((a, b) => a + b, 0) / (values.length || 1);
+  return sum(values) / (values.length || 1);
 }
 
 /** Distribución de resultados en R (independiente del tamaño monetario). */
@@ -204,9 +233,8 @@ export function rDistribution(list: Evaluation[]) {
     { name: "> 2R", min: 2, max: Infinity },
   ];
   const out = buckets.map((b) => ({ name: b.name, value: 0 }));
-  for (const e of list) {
-    if (e.status !== "completed" || e.result_r === null || e.result_r === undefined) continue;
-    const r = Number(e.result_r);
+  for (const e of partition(list).closed) {
+    const r = finite(e.result_r)!;
     const i = buckets.findIndex((b) => r > b.min && r <= b.max);
     const idx = i === -1 ? (r <= -2 ? 0 : out.length - 1) : i;
     out[idx]!.value += 1;
@@ -214,16 +242,17 @@ export function rDistribution(list: Evaluation[]) {
   return out;
 }
 
-/** Resultados agregados por activo. */
+/** Resultados agregados por activo (sólo operaciones cerradas). */
 export function byAsset(list: Evaluation[]) {
   const map = new Map<string, { name: string; trades: number; r: number; money: number }>();
-  for (const e of list) {
-    if (e.status !== "completed" || e.result_r === null || e.result_r === undefined) continue;
+  for (const e of partition(list).closed) {
     const key = e.asset ?? "Sin activo";
     const row = map.get(key) ?? { name: key, trades: 0, r: 0, money: 0 };
     row.trades += 1;
-    row.r = round(row.r + Number(e.result_r), 2);
-    row.money = round(row.money + Number(e.result_money ?? 0), 2);
+    row.r = round(row.r + finite(e.result_r)!, 2);
+    // El dinero sólo se suma cuando existe: nunca se inventa un 0.
+    const money = finite(e.result_money);
+    if (money !== null) row.money = round(row.money + money, 2);
     map.set(key, row);
   }
   return [...map.values()].sort((a, b) => b.r - a.r);

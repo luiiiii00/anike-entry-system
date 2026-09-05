@@ -69,7 +69,7 @@ export type Evaluation = {
 
 /** Crea una operación en el Journal sin evaluación previa (registro directo). */
 export async function createJournalTrade(userId: string): Promise<Evaluation> {
-  const trade_no = await nextTradeNumber();
+  const trade_no = await nextTradeNumber(userId);
   const { data, error } = await supabase
     .from("evaluations")
     .insert({
@@ -146,12 +146,20 @@ export async function deleteEvaluation(id: string) {
   if (error) throw error;
 }
 
-export async function nextTradeNumber(): Promise<number> {
-  const { data, error } = await supabase
-    .from("evaluations")
-    .select("trade_no")
-    .order("trade_no", { ascending: false })
-    .limit(1);
+/**
+ * Siguiente número de operación del usuario indicado (o del usuario en sesión).
+ * La numeración es por usuario; RLS ya limita las filas visibles, pero se filtra
+ * explícitamente para no depender de ello.
+ */
+export async function nextTradeNumber(userId?: string): Promise<number> {
+  let uid = userId;
+  if (!uid) {
+    const { data: auth } = await supabase.auth.getUser();
+    uid = auth.user?.id;
+  }
+  let query = supabase.from("evaluations").select("trade_no");
+  if (uid) query = query.eq("user_id", uid);
+  const { data, error } = await query.order("trade_no", { ascending: false }).limit(1);
   if (error) throw error;
   const top = data?.[0]?.trade_no ?? 0;
   return (top ?? 0) + 1;
