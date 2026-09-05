@@ -98,12 +98,12 @@ function NuevaEvaluacion() {
   }, [settings]);
 
   useEffect(() => {
-    if (!id) {
-      nextTradeNumber()
+    if (!id && user) {
+      nextTradeNumber(user.id)
         .then((n) => setTrade((t) => ({ ...t, trade_no: n })))
         .catch(() => undefined);
     }
-  }, [id]);
+  }, [id, user]);
 
   useEffect(() => {
     const d = draftQuery.data;
@@ -147,6 +147,8 @@ function NuevaEvaluacion() {
 
   async function persist(status: "draft" | "completed", decisionValue?: string) {
     if (!user) return null;
+    const rejected = decision.blocked || decision.finalState === "DESCARTADA";
+    const safeDecision = rejected && decisionValue === "registrado" ? "no_trade" : decisionValue;
     setSaving(true);
     try {
       const saved = await upsertEvaluation({
@@ -169,7 +171,9 @@ function NuevaEvaluacion() {
         hard_rules: decision.hardRules,
         emotional_stop: decision.emotional,
         status,
-        ...(decisionValue ? { decision: decisionValue } : {}),
+        // Una operación DESCARTADA (regla crítica, freno emocional o score insuficiente)
+        // nunca puede guardarse como registrada.
+        ...(decisionValue ? { decision: safeDecision } : {}),
       });
       setEvalId(saved.id);
       queryClient.invalidateQueries({ queryKey: ["evaluations"] });
@@ -197,6 +201,10 @@ function NuevaEvaluacion() {
     if (!trade.asset.trim()) {
       toast.error("Falta el activo. Vuelve al paso 00 Trade.");
       setStep(0);
+      return;
+    }
+    if (decisionValue === "registrado" && (decision.blocked || decision.finalState === "DESCARTADA")) {
+      toast.error("La operación está DESCARTADA por el sistema: no puede registrarse.");
       return;
     }
     const saved = await persist("completed", decisionValue);
