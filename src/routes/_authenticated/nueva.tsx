@@ -173,7 +173,7 @@ function NuevaEvaluacion() {
         status,
         // Una operación DESCARTADA (regla crítica, freno emocional o score insuficiente)
         // nunca puede guardarse como registrada.
-        ...(decisionValue ? { decision: safeDecision } : {}),
+        ...(safeDecision ? { decision: safeDecision } : {}),
       });
       setEvalId(saved.id);
       queryClient.invalidateQueries({ queryKey: ["evaluations"] });

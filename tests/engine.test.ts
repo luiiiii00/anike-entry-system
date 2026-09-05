@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { computeRisk } from "./scoring";
-import { calculatePostTrade } from "./posttrade";
-import type { Evaluation } from "./db";
-import { byAsset, computeStats, isClosed, longVsShort, rDistribution } from "./stats";
+import { computeRisk } from "@/lib/scoring";
+import { calculatePostTrade } from "@/lib/posttrade";
+import type { Evaluation } from "@/lib/db";
+import { byAsset, computeStats, isClosed, longVsShort, rDistribution } from "@/lib/stats";
 
 /* --------------------------------- Riesgo --------------------------------- */
 
