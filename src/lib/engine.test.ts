@@ -76,11 +76,8 @@ describe("calculatePostTrade", () => {
     expect(r.tradeResult).toBe("BREAK_EVEN");
   });
 
-  it("riesgo 0 (entrada = stop) no produce R", () => {
-    const r = calculatePostTrade({ ...base, exitPrice: 110, stopLoss: 100 });
-    expect(r.riskAmount).toBe(0);
-    expect(r.resultR).toBeNull();
-    expect(r.realizedRr).toBeNull();
+  it("rechaza un stop igual a la entrada (riesgo 0)", () => {
+    expect(() => calculatePostTrade({ ...base, exitPrice: 110, stopLoss: 100 })).toThrow();
   });
 
   it("sin stop no hay riesgo ni R", () => {
