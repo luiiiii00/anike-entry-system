@@ -114,6 +114,10 @@ export const SIZE_HINTS: Record<MarketType, { quantity: string; lot: string }> =
   },
 };
 
+/** Devuelve el número sólo si es finito; NaN e Infinity se convierten en null. */
+const fin = (v: number | null | undefined): number | null =>
+  v === null || v === undefined || !Number.isFinite(v) ? null : v;
+
 const num = (v: unknown): number | null => {
   if (v === null || v === undefined || v === "") return null;
   const n = Number(v);
@@ -208,21 +212,27 @@ export function calculatePostTrade(input: PostTradeInput): PostTradeResult {
   const priceChangePercent =
     dir === "LONG" ? ((exit - entry) / entry) * 100 : ((entry - exit) / entry) * 100;
 
-  const roiMargin = margin && margin > 0 ? (netPnl / margin) * 100 : null;
-  const pnlPercentOnCapital = capital && capital > 0 ? (netPnl / capital) * 100 : null;
+  const roiMargin = fin(margin && margin > 0 ? (netPnl / margin) * 100 : null);
+  const pnlPercentOnCapital = fin(capital && capital > 0 ? (netPnl / capital) * 100 : null);
 
-  const riskAmount = stopLoss !== null ? Math.abs(entry - stopLoss) * quantity : null;
-  const riskPercent =
-    riskAmount !== null && capital && capital > 0 ? (riskAmount / capital) * 100 : null;
+  // Riesgo por operación: distancia al stop × unidades. Si entrada = stop el riesgo
+  // es 0 y no se puede expresar el resultado en R (evita división por cero).
+  const rawRisk = stopLoss !== null ? Math.abs(entry - stopLoss) * quantity : null;
+  const riskAmount = rawRisk !== null && rawRisk > 0 ? fin(rawRisk) : rawRisk === null ? null : 0;
+  const riskPercent = fin(
+    riskAmount !== null && riskAmount > 0 && capital && capital > 0
+      ? (riskAmount / capital) * 100
+      : null,
+  );
 
-  const resultR = riskAmount && riskAmount > 0 ? netPnl / riskAmount : null;
+  const resultR = fin(riskAmount !== null && riskAmount > 0 ? netPnl / riskAmount : null);
   const realizedRr = resultR;
 
   let plannedRr: number | null = null;
   if (stopLoss !== null && takeProfit !== null) {
     const risk = dir === "LONG" ? entry - stopLoss : stopLoss - entry;
     const reward = dir === "LONG" ? takeProfit - entry : entry - takeProfit;
-    if (risk > 0) plannedRr = reward / risk;
+    if (risk > 0) plannedRr = fin(reward / risk);
   }
 
   const tradeResult = netPnl > 0 ? "WIN" : netPnl < 0 ? "LOSS" : "BREAK_EVEN";
@@ -245,7 +255,7 @@ export function calculatePostTrade(input: PostTradeInput): PostTradeResult {
     grossPnl,
     fees: fees + otherCosts,
     netPnl,
-    priceChangePercent,
+    priceChangePercent: fin(priceChangePercent) ?? 0,
     roiMargin,
     pnlPercentOnCapital,
     riskAmount,
