@@ -2,10 +2,21 @@ import type { Evaluation } from "./db";
 import { isEmotional } from "./scoring";
 
 export type Stats = {
+  /** Evaluaciones finalizadas (no borradores). No son operaciones ejecutadas. */
   total: number;
+  /**
+   * Evaluaciones cuya clasificación fue válida (≠ NO TRADE). Incluye CONDICIONAL,
+   * por lo que NO representa operaciones ejecutadas.
+   */
+  classificationValid: number;
+  /** Evaluaciones con estado final APROBADA (sin advertencias condicionales). */
   approved: number;
+  /** Evaluaciones con estado final CONDICIONAL. */
+  conditional: number;
   noTrade: number;
+  /** Operaciones realmente llevadas al mercado. */
   registered: number;
+  /** Operaciones registradas y cerradas con resultado. Base de las métricas financieras. */
   closed: number;
   wins: number;
   winRate: number | null;
@@ -27,6 +38,7 @@ export type Stats = {
   bestTrade: number | null;
   worstTrade: number | null;
 };
+
 
 /* ------------------------ Fuente única de verdad ------------------------ */
 
