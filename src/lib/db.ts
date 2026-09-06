@@ -109,23 +109,18 @@ export async function fetchEvaluation(id: string): Promise<Evaluation | null> {
   return (data ?? null) as unknown as Evaluation | null;
 }
 
-export async function upsertEvaluation(
-  payload: Partial<Evaluation> & { user_id: string },
+/**
+ * Reflexión post-trade: los ÚNICOS campos que el cliente puede escribir sobre una
+ * evaluación finalizada (el trigger en BD rechaza cualquier campo derivado).
+ */
+export async function saveTradeReflection(
+  id: string,
+  patch: { followed_plan?: string | null; review?: Record<string, string>; notes?: string | null },
 ): Promise<Evaluation> {
-  if (payload.id) {
-    const { id, ...rest } = payload;
-    const { data, error } = await supabase
-      .from("evaluations")
-      .update(rest as never)
-      .eq("id", id)
-      .select("*")
-      .single();
-    if (error) throw error;
-    return data as unknown as Evaluation;
-  }
   const { data, error } = await supabase
     .from("evaluations")
-    .insert(payload as never)
+    .update(patch as never)
+    .eq("id", id)
     .select("*")
     .single();
   if (error) throw error;
@@ -138,10 +133,10 @@ export async function deleteEvaluation(id: string) {
 }
 
 /**
- * Siguiente número de operación del usuario indicado (o del usuario en sesión).
- * La numeración es por usuario; RLS ya limita las filas visibles, pero se filtra
- * explícitamente para no depender de ello.
+ * Número de operación PROVISIONAL para mostrar en el asistente. El número
+ * definitivo lo asigna el contador transaccional de la base de datos al guardar.
  */
+
 export async function nextTradeNumber(userId?: string): Promise<number> {
   let uid = userId;
   if (!uid) {
