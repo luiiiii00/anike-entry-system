@@ -2,9 +2,11 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
-import { createJournalTrade, fetchEvaluations, type Evaluation } from "@/lib/db";
+import { fetchEvaluations, type Evaluation } from "@/lib/db";
+import { createJournalTradeFn } from "@/lib/evaluations.functions";
 import { fetchAnalyzedEvaluationIds } from "@/lib/ai";
 
 import { useAuth } from "@/hooks/useAuth";
@@ -41,8 +43,9 @@ function Journal() {
 
   const router = useRouter();
   const queryClient = useQueryClient();
+  const createJournalTradeServer = useServerFn(createJournalTradeFn);
   const register = useMutation({
-    mutationFn: () => createJournalTrade(user!.id),
+    mutationFn: () => createJournalTradeServer({}),
     onSuccess: (row) => {
       queryClient.invalidateQueries({ queryKey: ["evaluations"] });
       router.navigate({ to: "/trade/$id", params: { id: row.id } });
