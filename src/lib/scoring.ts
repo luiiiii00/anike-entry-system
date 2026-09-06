@@ -98,26 +98,26 @@ export function computeRisk(
   const contractSize = num(spec?.contractSize);
   const pointValue = num(spec?.pointValue);
   const needsSpec = market !== null && SPEC_REQUIRED.has(market);
-  const perUnit =
-    needsSpec
-      ? pointValue !== null && pointValue > 0
-        ? pointValue
-        : contractSize !== null && contractSize > 0
-          ? contractSize
-          : null
-      : 1;
+  const spec_value =
+    pointValue !== null && pointValue > 0
+      ? pointValue
+      : contractSize !== null && contractSize > 0
+        ? contractSize
+        : null;
+  // Sin especificación se usa 1 como referencia: el resultado queda ORIENTATIVO.
+  const perUnit = needsSpec ? (spec_value ?? 1) : 1;
 
   const missing: string[] = [];
   if (riskMoney === null) missing.push("capital y riesgo %");
   if (stopDistance === null || stopDistance <= 0) missing.push("entrada y stop loss válidos");
-  if (needsSpec && perUnit === null) missing.push("tamaño de contrato o valor por punto");
+  if (needsSpec && spec_value === null) missing.push("tamaño de contrato o valor por punto");
 
-  const denominator =
-    stopDistance !== null && stopDistance > 0 && perUnit !== null ? stopDistance * perUnit : null;
+  const denominator = stopDistance !== null && stopDistance > 0 ? stopDistance * perUnit : null;
   const rawSize =
     riskMoney !== null && denominator !== null && denominator > 0 ? riskMoney / denominator : null;
   const positionSize =
     rawSize !== null && Number.isFinite(rawSize) ? round(rawSize, needsSpec ? 2 : 4) : null;
+
 
   const sizingUnit = needsSpec ? (market === "FUTURES" ? "contratos" : "lotes") : "unidades";
   const sizingPrecision: SizingPrecision =
