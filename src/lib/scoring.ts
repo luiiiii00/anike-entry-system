@@ -15,15 +15,54 @@ export type RiskData = {
   slFibo?: number;
 };
 
+/** Exactitud del tamaño de posición: depende de la especificación del instrumento. */
+export type SizingPrecision = "exact" | "orientative" | "unavailable";
+
 export type RiskMetrics = {
   riskMoney: number | null;
   stopDistance: number | null;
   rr: number | null;
   positionSize: number | null;
   riskPctUsed: number | null;
+  /** "exact" sólo cuando existen todos los datos del instrumento. */
+  sizingPrecision: SizingPrecision;
+  /** Unidad del tamaño calculado ("unidades", "lotes", "contratos"). */
+  sizingUnit: string | null;
+  /** Datos que faltan para un cálculo exacto. */
+  sizingMissing: string[];
 };
 
-export function computeRisk(r: RiskData, direction?: string | null): RiskMetrics {
+/** Mercados cuyo tamaño de posición requiere especificación del instrumento. */
+const SPEC_REQUIRED = new Set(["FOREX", "FUTURES", "CFD", "INDICES"]);
+
+/** Normaliza las etiquetas del formulario (español) a claves de mercado. */
+export function normalizeMarket(market?: string | null): string | null {
+  if (!market) return null;
+  const m = market
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toUpperCase();
+  if (m.startsWith("CRYPTO")) return "CRYPTO";
+  if (m.startsWith("FOREX")) return "FOREX";
+  if (m.startsWith("FUTUR")) return "FUTURES";
+  if (m.startsWith("INDIC")) return "INDICES";
+  if (m.startsWith("CFD")) return "CFD";
+  if (m.startsWith("ACCION") || m.startsWith("STOCK")) return "STOCKS";
+  return m;
+}
+
+export function computeRisk(
+  r: RiskData,
+  direction?: string | null,
+  spec?: {
+    market?: string | null;
+    /** Tamaño de contrato / lote del instrumento. */
+    contractSize?: number | null;
+    /** Valor por punto o por tick del instrumento. */
+    pointValue?: number | null;
+  },
+): RiskMetrics {
   const capital = num(r.capital);
   const pct = num(r.riskPct);
   const entry = num(r.entry);
@@ -54,19 +93,52 @@ export function computeRisk(r: RiskData, direction?: string | null): RiskMetrics
       ? round(rawRewardDistance / rawStopDistance, 2)
       : null;
 
+  // ---- Tamaño de posición: exacto sólo con especificación del instrumento ----
+  const market = normalizeMarket(spec?.market);
+  const contractSize = num(spec?.contractSize);
+  const pointValue = num(spec?.pointValue);
+  const needsSpec = market !== null && SPEC_REQUIRED.has(market);
+  const spec_value =
+    pointValue !== null && pointValue > 0
+      ? pointValue
+      : contractSize !== null && contractSize > 0
+        ? contractSize
+        : null;
+  // Sin especificación se usa 1 como referencia: el resultado queda ORIENTATIVO.
+  const perUnit = needsSpec ? (spec_value ?? 1) : 1;
+
+  const missing: string[] = [];
+  if (riskMoney === null) missing.push("capital y riesgo %");
+  if (stopDistance === null || stopDistance <= 0) missing.push("entrada y stop loss válidos");
+  if (needsSpec && spec_value === null) missing.push("tamaño de contrato o valor por punto");
+
+  const denominator = stopDistance !== null && stopDistance > 0 ? stopDistance * perUnit : null;
+  const rawSize =
+    riskMoney !== null && denominator !== null && denominator > 0 ? riskMoney / denominator : null;
   const positionSize =
-    riskMoney !== null && stopDistance !== null && stopDistance > 0
-      ? round(riskMoney / stopDistance, 4)
-      : null;
+    rawSize !== null && Number.isFinite(rawSize) ? round(rawSize, needsSpec ? 2 : 4) : null;
+
+
+  const sizingUnit = needsSpec ? (market === "FUTURES" ? "contratos" : "lotes") : "unidades";
+  const sizingPrecision: SizingPrecision =
+    positionSize === null
+      ? "unavailable"
+      : needsSpec && spec_value === null
+        ? "orientative"
+        : "exact";
 
   return {
     riskMoney: riskMoney === null ? null : round(riskMoney, 2),
     stopDistance: stopDistance === null ? null : round(stopDistance, 6),
     rr: rr === null || !Number.isFinite(rr) ? null : rr,
-    positionSize: positionSize !== null && Number.isFinite(positionSize) ? positionSize : null,
+    positionSize,
     riskPctUsed: pct,
+    sizingPrecision,
+    sizingUnit: positionSize === null ? null : sizingUnit,
+    sizingMissing: missing,
   };
 }
+
 
 
 /**

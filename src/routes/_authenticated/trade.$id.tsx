@@ -9,7 +9,7 @@ import { AnikeAiPanel } from "@/components/AnikeAi";
 import { ScoreDial } from "@/components/ScoreDial";
 import { TrafficLight } from "@/components/TrafficLight";
 import { lightFor } from "@/components/TrafficLight";
-import { deleteEvaluation, fetchEvaluation, fetchSettings, upsertEvaluation } from "@/lib/db";
+import { deleteEvaluation, fetchEvaluation, fetchSettings, saveTradeReflection } from "@/lib/db";
 import { PostTradeCalculator } from "@/components/PostTradeCalculator";
 import { LEGACY_SECTIONS, SECTIONS } from "@/lib/checklist";
 import { useAuth } from "@/hooks/useAuth";
@@ -66,9 +66,7 @@ function TradeDetail() {
 
   const save = useMutation({
     mutationFn: () =>
-      upsertEvaluation({
-        id,
-        user_id: user!.id,
+      saveTradeReflection(id, {
         followed_plan: followed || null,
         review,
       }),

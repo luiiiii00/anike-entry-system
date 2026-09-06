@@ -2,10 +2,21 @@ import type { Evaluation } from "./db";
 import { isEmotional } from "./scoring";
 
 export type Stats = {
+  /** Evaluaciones finalizadas (no borradores). No son operaciones ejecutadas. */
   total: number;
+  /**
+   * Evaluaciones cuya clasificación fue válida (≠ NO TRADE). Incluye CONDICIONAL,
+   * por lo que NO representa operaciones ejecutadas.
+   */
+  classificationValid: number;
+  /** Evaluaciones con estado final APROBADA (sin advertencias condicionales). */
   approved: number;
+  /** Evaluaciones con estado final CONDICIONAL. */
+  conditional: number;
   noTrade: number;
+  /** Operaciones realmente llevadas al mercado. */
   registered: number;
+  /** Operaciones registradas y cerradas con resultado. Base de las métricas financieras. */
   closed: number;
   wins: number;
   winRate: number | null;
@@ -27,6 +38,7 @@ export type Stats = {
   bestTrade: number | null;
   worstTrade: number | null;
 };
+
 
 /* ------------------------ Fuente única de verdad ------------------------ */
 
@@ -92,9 +104,16 @@ export function computeStats(list: Evaluation[]): Stats {
     bestTrade: monies.length ? round(Math.max(...monies), 2) : null,
     worstTrade: monies.length ? round(Math.min(...monies), 2) : null,
     total: done.length,
-    // Aprobadas = evaluaciones cuya clasificación no fue NO TRADE (validez del setup,
-    // independiente de si finalmente se registró la operación).
-    approved: done.filter((e) => e.classification && e.classification !== "NO TRADE").length,
+    // Validez del setup (≠ NO TRADE): NO implica que la operación se ejecutara.
+    classificationValid: done.filter((e) => e.classification && e.classification !== "NO TRADE")
+      .length,
+    // APROBADA y CONDICIONAL se cuentan por separado: una condicional no es un
+    // setup limpio ni una operación ejecutada.
+    approved: done.filter(
+      (e) => e.final_state === "APROBADA" || (!e.final_state && e.classification === "SETUP A+"),
+    ).length,
+    conditional: done.filter((e) => e.final_state === "CONDICIONAL").length,
+
     noTrade: done.filter(isNoTrade).length,
     registered: registered.length,
     closed: closed.length,
