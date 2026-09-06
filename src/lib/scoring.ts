@@ -123,7 +123,7 @@ export function computeRisk(
   const sizingPrecision: SizingPrecision =
     positionSize === null
       ? "unavailable"
-      : needsSpec && pointValue === null && contractSize === null
+      : needsSpec && spec_value === null
         ? "orientative"
         : "exact";
 
