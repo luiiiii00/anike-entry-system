@@ -104,9 +104,16 @@ export function computeStats(list: Evaluation[]): Stats {
     bestTrade: monies.length ? round(Math.max(...monies), 2) : null,
     worstTrade: monies.length ? round(Math.min(...monies), 2) : null,
     total: done.length,
-    // Aprobadas = evaluaciones cuya clasificación no fue NO TRADE (validez del setup,
-    // independiente de si finalmente se registró la operación).
-    approved: done.filter((e) => e.classification && e.classification !== "NO TRADE").length,
+    // Validez del setup (≠ NO TRADE): NO implica que la operación se ejecutara.
+    classificationValid: done.filter((e) => e.classification && e.classification !== "NO TRADE")
+      .length,
+    // APROBADA y CONDICIONAL se cuentan por separado: una condicional no es un
+    // setup limpio ni una operación ejecutada.
+    approved: done.filter(
+      (e) => e.final_state === "APROBADA" || (!e.final_state && e.classification === "SETUP A+"),
+    ).length,
+    conditional: done.filter((e) => e.final_state === "CONDICIONAL").length,
+
     noTrade: done.filter(isNoTrade).length,
     registered: registered.length,
     closed: closed.length,
