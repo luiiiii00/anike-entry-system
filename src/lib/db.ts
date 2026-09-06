@@ -32,6 +32,8 @@ export type Evaluation = {
   hard_rules: string[];
   emotional_stop: boolean;
   status: "draft" | "completed" | string;
+  final_state?: string | null;
+
   decision: string | null;
   result_r: number | null;
   result_money: number | null;
