@@ -17,7 +17,9 @@ import {
   type RiskData,
 } from "@/lib/scoring";
 
-import { fetchEvaluation, fetchSettings, nextTradeNumber, upsertEvaluation } from "@/lib/db";
+import { fetchEvaluation, fetchSettings, nextTradeNumber } from "@/lib/db";
+import { saveEvaluationFn } from "@/lib/evaluations.functions";
+import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
@@ -147,35 +149,29 @@ function NuevaEvaluacion() {
 
   async function persist(status: "draft" | "completed", decisionValue?: string) {
     if (!user) return null;
-    const rejected = decision.blocked || decision.finalState === "DESCARTADA";
-    const safeDecision = rejected && decisionValue === "registrado" ? "no_trade" : decisionValue;
     setSaving(true);
     try {
-      const saved = await upsertEvaluation({
-        ...(evalId ? { id: evalId } : {}),
-        user_id: user.id,
-        trade_no: trade.trade_no,
-        trade_date: trade.trade_date,
-        trade_time: trade.trade_time || null,
-        asset: trade.asset || null,
-        market: trade.market,
-        session: trade.session,
-        direction: trade.direction,
-        setup: trade.setup,
-        idea: trade.idea || null,
-        answers,
-        risk,
-        score: decision.score,
-        breakdown: decision.breakdown,
-        classification: decision.classification,
-        hard_rules: decision.hardRules,
-        emotional_stop: decision.emotional,
-        status,
-        // Una operación DESCARTADA (regla crítica, freno emocional o score insuficiente)
-        // nunca puede guardarse como registrada.
-        ...(safeDecision ? { decision: safeDecision } : {}),
+      // El servidor recalcula score, clasificación, estado final y decisión efectiva:
+      // el navegador sólo envía los datos fuente.
+      const saved = await saveEvaluationServer({
+        data: {
+          ...(evalId ? { id: evalId } : {}),
+          tradeDate: trade.trade_date,
+          tradeTime: trade.trade_time || null,
+          asset: trade.asset || null,
+          market: trade.market,
+          session: trade.session,
+          direction: (trade.direction as "LONG" | "SHORT" | null) ?? null,
+          setup: trade.setup,
+          idea: trade.idea || null,
+          answers,
+          risk: risk as Record<string, number>,
+          status,
+          ...(decisionValue ? { decision: decisionValue as "registrado" | "no_trade" } : {}),
+        },
       });
       setEvalId(saved.id);
+      setTrade((t) => ({ ...t, trade_no: saved.trade_no }));
       queryClient.invalidateQueries({ queryKey: ["evaluations"] });
       return saved;
     } catch (error) {
@@ -281,6 +277,7 @@ function NuevaEvaluacion() {
               maxRiskPct={Number(settings?.max_risk_pct ?? 1)}
               minRR={Number(settings?.min_rr ?? 2)}
               direction={trade.direction}
+              market={trade.market}
 
             />
             {section.groups.map((g, i) => (
@@ -375,7 +372,12 @@ function TradeStep({
   return (
     <div className="space-y-4">
       <div className="panel grid gap-4 p-4 sm:grid-cols-2">
-        <TextField label="Trade #" value={String(trade.trade_no ?? "")} onChange={(v) => set("trade_no", v ? Number(v) : null)} type="number" />
+        <div>
+          <p className="label-mono">Trade # (provisional)</p>
+          <p className="mt-2 font-mono text-sm tabular-nums text-muted-foreground">
+            {trade.trade_no ?? "—"} · lo asigna el sistema al guardar
+          </p>
+        </div>
         <TextField label="Activo" value={trade.asset} onChange={(v) => set("asset", v)} placeholder="BTCUSDT" />
         <TextField label="Fecha" value={trade.trade_date} onChange={(v) => set("trade_date", v)} type="date" />
         <TextField label="Hora" value={trade.trade_time} onChange={(v) => set("trade_time", v)} type="time" />
@@ -449,6 +451,7 @@ export function RiskPanel({
   maxRiskPct,
   minRR,
   direction,
+  market,
 }: {
   risk: RiskData;
   setRisk: (fn: (r: RiskData) => RiskData) => void;
@@ -456,8 +459,9 @@ export function RiskPanel({
   maxRiskPct: number;
   minRR: number;
   direction?: string | undefined;
+  market?: string | undefined;
 }) {
-  const m = computeRisk(risk, direction);
+  const m = computeRisk(risk, direction, { market });
   const set = (k: keyof RiskData, v: string) =>
     setRisk((r) => ({ ...r, [k]: v === "" ? undefined : Number(v) }));
 
@@ -525,9 +529,21 @@ export function RiskPanel({
         <Metric label={`Riesgo (${currency})`} value={m.riskMoney} />
         <Metric label="Distancia al stop" value={m.stopDistance} digits={5} />
         <Metric label="R:R" value={m.rr} tone={underRR ? "stop" : m.rr ? "ok" : "none"} />
-        <Metric label="Tamaño de posición" value={m.positionSize} digits={4} />
+        <Metric
+          label={`Tamaño de posición${m.sizingUnit ? ` (${m.sizingUnit})` : ""}`}
+          value={m.positionSize}
+          digits={4}
+        />
 
       </div>
+
+      <p className="mt-2 text-[11px] text-muted-foreground">
+        {m.sizingPrecision === "exact"
+          ? "Tamaño de posición exacto con los datos introducidos."
+          : m.sizingPrecision === "orientative"
+            ? `Tamaño ORIENTATIVO: falta ${m.sizingMissing.join(", ")} del instrumento para un cálculo exacto.`
+            : `No se puede calcular el tamaño: falta ${m.sizingMissing.join(", ") || "datos"}.`}
+      </p>
 
       {(overRisk || underRR) && (
         <div className="mt-3 space-y-1.5 text-xs">
