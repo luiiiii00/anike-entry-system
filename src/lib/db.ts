@@ -69,23 +69,12 @@ export type Evaluation = {
   calculated_at?: string | null;
 };
 
-/** Crea una operación en el Journal sin evaluación previa (registro directo). */
-export async function createJournalTrade(userId: string): Promise<Evaluation> {
-  const trade_no = await nextTradeNumber(userId);
-  const { data, error } = await supabase
-    .from("evaluations")
-    .insert({
-      user_id: userId,
-      trade_no,
-      status: "completed",
-      decision: "registrado",
-      classification: "REGISTRO DIRECTO",
-    } as never)
-    .select("*")
-    .single();
-  if (error) throw error;
-  return data as unknown as Evaluation;
-}
+/*
+ * El registro directo en el Journal y el guardado de evaluaciones se realizan
+ * en servidor (`src/lib/evaluations.functions.ts`): el cliente no puede escribir
+ * campos derivados ni elegir el número de operación.
+ */
+
 
 export async function fetchSettings(userId: string): Promise<Settings> {
   const { data, error } = await supabase.from("settings").select("*").eq("user_id", userId).maybeSingle();
