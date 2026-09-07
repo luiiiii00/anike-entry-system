@@ -136,10 +136,14 @@ function NuevaEvaluacion() {
         setup: trade.setup,
         preferredSetups: settings?.preferred_setups ?? [],
         direction: trade.direction,
+        market: trade.market ?? null,
       }),
-    [answers, risk, settings, trade.setup, trade.direction],
+    [answers, risk, settings, trade.setup, trade.direction, trade.market],
   );
-  const metrics = useMemo(() => computeRisk(risk, trade.direction), [risk, trade.direction]);
+  const metrics = useMemo(
+    () => computeRisk(risk, trade.direction, { market: trade.market ?? null }),
+    [risk, trade.direction, trade.market],
+  );
 
   const currentStep = WIZARD_STEPS[step]!;
   const section = SECTIONS.find((s) => s.id === currentStep.key);
