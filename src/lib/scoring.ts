@@ -93,37 +93,45 @@ export function computeRisk(
       ? round(rawRewardDistance / rawStopDistance, 2)
       : null;
 
-  // ---- Tamaño de posición: exacto sólo con especificación del instrumento ----
+  // ---- Tamaño de posición ---------------------------------------------------
+  // EXACT       → hay datos fuente válidos y, en mercados con contrato, la
+  //               especificación real del instrumento.
+  // ORIENTATIVE → falta la especificación del instrumento (o el mercado no se
+  //               declaró): el número es una referencia, NO un lotaje ejecutable.
+  // UNAVAILABLE → no puede calcularse sin inventar datos.
   const market = normalizeMarket(spec?.market);
   const contractSize = num(spec?.contractSize);
   const pointValue = num(spec?.pointValue);
   const needsSpec = market !== null && SPEC_REQUIRED.has(market);
-  const spec_value =
+  const specValue =
     pointValue !== null && pointValue > 0
       ? pointValue
       : contractSize !== null && contractSize > 0
         ? contractSize
         : null;
-  // Sin especificación se usa 1 como referencia: el resultado queda ORIENTATIVO.
-  const perUnit = needsSpec ? (spec_value ?? 1) : 1;
 
   const missing: string[] = [];
   if (riskMoney === null) missing.push("capital y riesgo %");
   if (stopDistance === null || stopDistance <= 0) missing.push("entrada y stop loss válidos");
-  if (needsSpec && spec_value === null) missing.push("tamaño de contrato o valor por punto");
+  if (market === null) missing.push("mercado del instrumento");
+  else if (needsSpec && specValue === null) missing.push("tamaño de contrato o valor por punto/tick");
 
+  // Sin especificación se usa 1 como referencia; el resultado NUNCA se etiqueta
+  // como exacto en ese caso.
+  const perUnit = needsSpec && specValue !== null ? specValue : 1;
   const denominator = stopDistance !== null && stopDistance > 0 ? stopDistance * perUnit : null;
   const rawSize =
     riskMoney !== null && denominator !== null && denominator > 0 ? riskMoney / denominator : null;
   const positionSize =
-    rawSize !== null && Number.isFinite(rawSize) ? round(rawSize, needsSpec ? 2 : 4) : null;
-
+    rawSize !== null && Number.isFinite(rawSize) && rawSize > 0
+      ? round(rawSize, needsSpec ? 2 : 4)
+      : null;
 
   const sizingUnit = needsSpec ? (market === "FUTURES" ? "contratos" : "lotes") : "unidades";
   const sizingPrecision: SizingPrecision =
     positionSize === null
       ? "unavailable"
-      : needsSpec && spec_value === null
+      : market === null || (needsSpec && specValue === null)
         ? "orientative"
         : "exact";
 
@@ -138,6 +146,7 @@ export function computeRisk(
     sizingMissing: missing,
   };
 }
+
 
 
 
