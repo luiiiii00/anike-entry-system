@@ -171,6 +171,7 @@ type EvalRow = {
   breakdown: Record<string, { earned?: number; weight?: number }> | null;
   review: Record<string, string> | null;
   notes: string | null;
+  market?: string | null;
   market_type?: string | null;
   currency?: string | null;
   entry_price?: number | null;
@@ -279,7 +280,7 @@ function finalStateBlock(e: EvalRow): string[] {
   const answers = (e.answers ?? {}) as Record<string, string>;
   const warnings = checkConditional({
     a: answers,
-    risk: computeRisk((e.risk ?? {}) as RiskData, e.direction, { market: e.market ?? null }),
+    risk: computeRisk((e.risk ?? {}) as RiskData, e.direction, { market: e.market ?? e.market_type ?? null }),
     maxRiskPct: Number.POSITIVE_INFINITY,
     setup: e.setup,
     preferredSetups: [],
