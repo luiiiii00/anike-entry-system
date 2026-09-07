@@ -403,6 +403,8 @@ export type Decision = {
   finalState: FinalState;
   emotional: boolean;
   blocked: boolean;
+  /** Métricas de riesgo recalculadas (incluye exactitud del lotaje). */
+  metrics: RiskMetrics;
 };
 
 export function evaluate(input: {
@@ -458,10 +460,11 @@ export function evaluate(input: {
       finalState,
       emotional,
       blocked,
+      metrics,
     };
   }
 
-  return { score, breakdown, ...base, hardRules, warnings, finalState, emotional, blocked };
+  return { score, breakdown, ...base, hardRules, warnings, finalState, emotional, blocked, metrics };
 }
 
 export const FINAL_STATE_UI: Record<FinalState, { dot: string; label: string; light: Light }> = {
