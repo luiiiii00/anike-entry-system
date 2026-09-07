@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import type { Answers, Breakdown, RiskData } from "./scoring";
 
 export type Settings = {
@@ -65,7 +66,7 @@ export type Evaluation = {
   planned_rr?: number | null;
   realized_rr?: number | null;
   trade_result?: string | null;
-  post_trade_inputs?: Record<string, unknown> | null;
+  post_trade_inputs?: Json | null;
   calculated_at?: string | null;
 };
 
