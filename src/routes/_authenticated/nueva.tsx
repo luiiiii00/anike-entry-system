@@ -57,6 +57,7 @@ function NuevaEvaluacion() {
   const { id } = Route.useSearch();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const saveEvaluationServer = useServerFn(saveEvaluationFn);
   const { user } = useAuth();
 
   const settingsQuery = useQuery({
