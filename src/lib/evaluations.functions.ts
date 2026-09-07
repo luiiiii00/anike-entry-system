@@ -119,6 +119,7 @@ export const saveEvaluationFn = createServerFn({ method: "POST" })
       setup: data.setup ?? null,
       preferredSetups: settings?.preferred_setups ?? [],
       direction: data.direction ?? null,
+      market: data.market ?? null,
     });
     const rejected = decision.blocked || decision.finalState === "DESCARTADA";
 

@@ -105,10 +105,17 @@ export function computeStats(list: Evaluation[]): Stats {
     worstTrade: monies.length ? round(Math.min(...monies), 2) : null,
     total: done.length,
     // Validez del setup (≠ NO TRADE): NO implica que la operación se ejecutara.
-    classificationValid: done.filter((e) => e.classification && e.classification !== "NO TRADE")
-      .length,
+    // Sólo evaluaciones ANIKE reales: el REGISTRO DIRECTO no pasó por la checklist.
+    classificationValid: done.filter(
+      (e) =>
+        e.classification &&
+        e.classification !== "NO TRADE" &&
+        e.classification !== "REGISTRO DIRECTO",
+    ).length,
     // APROBADA y CONDICIONAL se cuentan por separado: una condicional no es un
     // setup limpio ni una operación ejecutada.
+    // Estado final del sistema, NO ejecución: una evaluación APROBADA sólo cuenta
+    // como operación cuando decision === "registrado" (ver `registered`).
     approved: done.filter(
       (e) => e.final_state === "APROBADA" || (!e.final_state && e.classification === "SETUP A+"),
     ).length,
