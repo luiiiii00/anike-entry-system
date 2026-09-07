@@ -412,9 +412,18 @@ export function evaluate(input: {
   setup?: string | null;
   preferredSetups?: string[];
   direction?: string | null;
+  /** Mercado y especificación del instrumento: determinan la exactitud del lotaje. */
+  market?: string | null;
+  contractSize?: number | null;
+  pointValue?: number | null;
 }): Decision {
   const { score, breakdown } = computeScore(input.answers);
-  const metrics = computeRisk(input.risk, input.direction);
+  const metrics = computeRisk(input.risk, input.direction, {
+    market: input.market ?? null,
+    contractSize: input.contractSize ?? null,
+    pointValue: input.pointValue ?? null,
+  });
+
   const ctx: HardRuleCtx = {
     a: input.answers,
     risk: metrics,
