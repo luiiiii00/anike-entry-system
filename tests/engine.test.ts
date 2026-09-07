@@ -358,13 +358,18 @@ describe("calculatePostTrade — integridad de resultados", () => {
     ).toThrow();
   });
 
-  it("no produce NaN ni Infinity con ceros y valores no finitos", () => {
-    const r = calculatePostTrade({
-      ...base,
-      capital: 0,
-      quantity: 0,
-      exitPrice: 110,
-    });
+  it("rechaza una cantidad 0 o no finita en lugar de calcular con ella", () => {
+    expect(() => calculatePostTrade({ ...base, quantity: 0, exitPrice: 110 })).toThrow();
+    expect(() =>
+      calculatePostTrade({ ...base, quantity: Number.NaN, exitPrice: 110 }),
+    ).toThrow();
+    expect(() =>
+      calculatePostTrade({ ...base, entryPrice: Number.POSITIVE_INFINITY, exitPrice: 110 }),
+    ).toThrow();
+  });
+
+  it("no produce NaN ni Infinity sin capital ni margen", () => {
+    const r = calculatePostTrade({ ...base, capital: 0, exitPrice: 110 });
     for (const v of [r.netPnl, r.grossPnl, r.roiMargin, r.resultR, r.riskPercent]) {
       expect(v === null || Number.isFinite(v)).toBe(true);
     }
