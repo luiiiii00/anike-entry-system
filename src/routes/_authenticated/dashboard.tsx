@@ -47,8 +47,9 @@ function Dashboard() {
       }
     >
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <Stat label="Trades realizados" value={stats.total} />
-        <Stat label="Trades aprobados" value={stats.approved} tone="ok" />
+        <Stat label="Evaluaciones" value={stats.total} />
+        <Stat label="Setups aprobados" value={stats.approved} tone="ok" />
+        <Stat label="Operaciones registradas" value={stats.registered} />
         <Stat label="NO TRADE" value={stats.noTrade} tone="stop" />
         <Stat label="Win rate" value={stats.winRate === null ? "—" : `${stats.winRate}%`} />
         <Stat label="Promedio de R" value={stats.avgR === null ? "—" : stats.avgR.toFixed(2)} />
