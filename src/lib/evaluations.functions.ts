@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { evaluate, type Answers, type RiskData } from "@/lib/scoring";
 import type { Evaluation } from "@/lib/db";
+import type { Json } from "@/integrations/supabase/types";
 
 /**
  * Fuente única de verdad del motor: el cliente envía ÚNICAMENTE datos fuente
@@ -115,9 +116,9 @@ export const saveEvaluationFn = createServerFn({ method: "POST" })
       answers,
       risk,
       maxRiskPct: Number(settings?.max_risk_pct ?? 1),
-      setup: data.setup,
+      setup: data.setup ?? null,
       preferredSetups: settings?.preferred_setups ?? [],
-      direction: data.direction,
+      direction: data.direction ?? null,
     });
     const rejected = decision.blocked || decision.finalState === "DESCARTADA";
 
@@ -163,7 +164,7 @@ export const saveEvaluationFn = createServerFn({ method: "POST" })
       .from("evaluations")
       .update({
         score: decision.score,
-        breakdown: decision.breakdown as unknown as Record<string, unknown>,
+        breakdown: decision.breakdown as unknown as Json,
         classification: decision.classification,
         hard_rules: decision.hardRules,
         emotional_stop: decision.emotional,

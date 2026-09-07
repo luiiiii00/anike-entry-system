@@ -57,6 +57,7 @@ function NuevaEvaluacion() {
   const { id } = Route.useSearch();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const saveEvaluationServer = useServerFn(saveEvaluationFn);
   const { user } = useAuth();
 
   const settingsQuery = useQuery({
@@ -461,7 +462,7 @@ export function RiskPanel({
   direction?: string | undefined;
   market?: string | undefined;
 }) {
-  const m = computeRisk(risk, direction, { market });
+  const m = computeRisk(risk, direction, { market: market ?? null });
   const set = (k: keyof RiskData, v: string) =>
     setRisk((r) => ({ ...r, [k]: v === "" ? undefined : Number(v) }));
 
