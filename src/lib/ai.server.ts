@@ -74,7 +74,10 @@ const SCHEMA = {
       description:
         "TU LECTURA: 2-4 frases interpretando el score y la calidad del proceso, cerrando con una línea que empiece con '🚨 EL PUNTO CLAVE:'.",
     },
-    what_worked: { type: "string", description: "Máximo 3 viñetas con lo que estuvo bien y por qué." },
+    what_worked: {
+      type: "string",
+      description: "Máximo 3 viñetas con lo que estuvo bien y por qué.",
+    },
     what_failed: {
       type: "string",
       description:
@@ -130,9 +133,9 @@ export async function runAnikeAi(userPrompt: string): Promise<AiResult> {
     throw new AiUnavailableError();
   }
 
-  const json = (await res.json().catch(() => null)) as
-    | { choices?: { message?: { content?: string } }[] }
-    | null;
+  const json = (await res.json().catch(() => null)) as {
+    choices?: { message?: { content?: string } }[];
+  } | null;
   const content = json?.choices?.[0]?.message?.content;
   if (!content) throw new AiUnavailableError();
 
@@ -211,9 +214,7 @@ const SECTION_LABELS: Record<string, string> = {
 function labelOf(qid: string, a: EvalRow["answers"]): string | null {
   const v = a?.[qid];
   if (v === null || v === undefined || v === "") return null;
-  const q = SECTIONS.flatMap((s) => s.groups.flatMap((g) => g.questions)).find(
-    (x) => x.id === qid,
-  );
+  const q = SECTIONS.flatMap((s) => s.groups.flatMap((g) => g.questions)).find((x) => x.id === qid);
   return q?.options.find((o) => o.v === String(v))?.label ?? String(v);
 }
 
@@ -280,7 +281,9 @@ function finalStateBlock(e: EvalRow): string[] {
   const answers = (e.answers ?? {}) as Record<string, string>;
   const warnings = checkConditional({
     a: answers,
-    risk: computeRisk((e.risk ?? {}) as RiskData, e.direction, { market: e.market ?? e.market_type ?? null }),
+    risk: computeRisk((e.risk ?? {}) as RiskData, e.direction, {
+      market: e.market ?? e.market_type ?? null,
+    }),
     maxRiskPct: Number.POSITIVE_INFINITY,
     setup: e.setup,
     preferredSetups: [],
@@ -376,11 +379,11 @@ export function buildEvaluationPrompt(
     line(
       "Motivo de NO TRADE",
       e.classification === "NO TRADE" || e.decision === "no_trade"
-        ? (e.hard_rules && e.hard_rules.length > 0
-            ? `reglas duras: ${e.hard_rules.join(" | ")}`
-            : e.emotional_stop
-              ? "freno emocional activado"
-              : `score insuficiente (${e.score ?? "—"}/100)`)
+        ? e.hard_rules && e.hard_rules.length > 0
+          ? `reglas duras: ${e.hard_rules.join(" | ")}`
+          : e.emotional_stop
+            ? "freno emocional activado"
+            : `score insuficiente (${e.score ?? "—"}/100)`
         : "no aplica",
     ),
     "",
@@ -393,7 +396,7 @@ export function buildEvaluationPrompt(
     "RESPUESTAS DEL TRADER EN EL CHECKLIST (no las repitas, agrega valor sobre ellas):",
     answerLines(e.answers),
     "",
-    "LECTURA TÉCNICA DECLARADA (horaria = contexto/estructura, 5M = confirmación de entrada; \"no aplica\" o \"no registrado\" no es un error):",
+    'LECTURA TÉCNICA DECLARADA (horaria = contexto/estructura, 5M = confirmación de entrada; "no aplica" o "no registrado" no es un error):',
     line("Patrón de cambio (horaria)", labelOf("h1_pattern_change", e.answers)),
     line("Patrón de continuidad (horaria)", labelOf("h1_pattern_cont", e.answers)),
     line("Nivel de Fibonacci (horaria)", labelOf("h1_fibo", e.answers)),
@@ -415,16 +418,22 @@ export function buildEvaluationPrompt(
       line("Notas post-trade del trader", e.notes),
       "",
       "DATOS CALCULADOS POR LA CALCULADORA POST-TRADE:",
-      line("Mercado", e.market_type),
+      line("Mercado", e.market_type ?? e.market),
       line("Precio de entrada", e.entry_price),
       line("Precio de salida", e.exit_price),
       line("Stop Loss", e.stop_loss),
       line("Take Profit", e.take_profit),
-      line("Apalancamiento", e.leverage === null || e.leverage === undefined ? null : `${e.leverage}x`),
+      line(
+        "Apalancamiento",
+        e.leverage === null || e.leverage === undefined ? null : `${e.leverage}x`,
+      ),
       line("Margen utilizado", e.margin),
       line("P&L bruto", e.gross_pnl),
       line("Comisiones y costos", e.fees),
-      line("P&L neto", e.net_pnl === null || e.net_pnl === undefined ? null : `${e.net_pnl} ${e.currency ?? ""}`),
+      line(
+        "P&L neto",
+        e.net_pnl === null || e.net_pnl === undefined ? null : `${e.net_pnl} ${e.currency ?? ""}`,
+      ),
       line("Movimiento del precio %", e.price_change_percent),
       line("ROI sobre margen %", e.roi_margin),
       line("Riesgo monetario", e.risk_amount),

@@ -12,7 +12,11 @@ async function adminDb() {
 }
 
 async function dailyLimit(db: Awaited<ReturnType<typeof adminDb>>) {
-  const { data } = await db.from("ai_settings").select("ai_daily_limit").eq("id", true).maybeSingle();
+  const { data } = await db
+    .from("ai_settings")
+    .select("ai_daily_limit")
+    .eq("id", true)
+    .maybeSingle();
   return Number(data?.ai_daily_limit ?? 5);
 }
 
@@ -55,11 +59,8 @@ export const analyzeEvaluationFn = createServerFn({ method: "POST" })
     z.object({ evaluationId: idSchema, reviewType: reviewTypeSchema.optional() }).parse(data),
   )
   .handler(async ({ data, context }) => {
-    const {
-      runAnikeAi,
-      buildEvaluationPrompt,
-      AiUnavailableError,
-    } = await import("@/lib/ai.server");
+    const { runAnikeAi, buildEvaluationPrompt, AiUnavailableError } =
+      await import("@/lib/ai.server");
     const db = await adminDb();
 
     const limit = await dailyLimit(db);
@@ -108,6 +109,9 @@ export const analyzeEvaluationFn = createServerFn({ method: "POST" })
         breakdown: row.breakdown as Record<string, { earned?: number; weight?: number }> | null,
         review: row.review as Record<string, string> | null,
         notes: row.notes,
+        // `market` es el mercado de la evaluación (lo usa computeRisk/evaluate);
+        // `market_type` es el del cálculo post-trade. Se envían ambos.
+        market: row.market,
         market_type: row.market_type,
         currency: row.currency,
         entry_price: row.entry_price,
@@ -197,7 +201,6 @@ export const analyzeWeekFn = createServerFn({ method: "POST" })
     return saved;
   });
 
-
 type HistoryRow = {
   score: number | null;
   result_r: number | null;
@@ -221,7 +224,8 @@ function buildHistory(rows: HistoryRow[]) {
   const scores = rows.filter((r) => r.score !== null).map((r) => Number(r.score));
 
   const ruleCount = new Map<string, number>();
-  for (const r of rows) for (const k of r.hard_rules ?? []) ruleCount.set(k, (ruleCount.get(k) ?? 0) + 1);
+  for (const r of rows)
+    for (const k of r.hard_rules ?? []) ruleCount.set(k, (ruleCount.get(k) ?? 0) + 1);
   const topRules = [...ruleCount.entries()]
     .filter(([, n]) => n > 1)
     .sort((a, b) => b[1] - a[1])
@@ -238,7 +242,8 @@ function buildHistory(rows: HistoryRow[]) {
   return {
     sample: rows.length,
     avgScore: avg(scores),
-    winRate: closed.length === 0 ? null : Number(((winners.length / closed.length) * 100).toFixed(1)),
+    winRate:
+      closed.length === 0 ? null : Number(((winners.length / closed.length) * 100).toFixed(1)),
     avgR: avg(closed.map((r) => Number(r.result_r))),
     avgScoreWinners: avg(winners.filter((r) => r.score !== null).map((r) => Number(r.score))),
     avgScoreLosers: avg(losers.filter((r) => r.score !== null).map((r) => Number(r.score))),
