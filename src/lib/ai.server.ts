@@ -415,7 +415,7 @@ export function buildEvaluationPrompt(
       line("Notas post-trade del trader", e.notes),
       "",
       "DATOS CALCULADOS POR LA CALCULADORA POST-TRADE:",
-      line("Mercado", e.market_type),
+      line("Mercado", e.market_type ?? e.market),
       line("Precio de entrada", e.entry_price),
       line("Precio de salida", e.exit_price),
       line("Stop Loss", e.stop_loss),

@@ -108,6 +108,9 @@ export const analyzeEvaluationFn = createServerFn({ method: "POST" })
         breakdown: row.breakdown as Record<string, { earned?: number; weight?: number }> | null,
         review: row.review as Record<string, string> | null,
         notes: row.notes,
+        // `market` es el mercado de la evaluación (lo usa computeRisk/evaluate);
+        // `market_type` es el del cálculo post-trade. Se envían ambos.
+        market: row.market,
         market_type: row.market_type,
         currency: row.currency,
         entry_price: row.entry_price,
