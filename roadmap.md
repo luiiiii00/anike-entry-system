@@ -20,8 +20,10 @@
    - Cliente: no se puede guardar `decision="registrado"` con estado DESCARTADA (se degrada a no_trade + aviso).
    - Servidor: `savePostTradeFn` rechaza cerrar operaciones NO TRADE / con reglas críticas o freno emocional.
 
-5. **Numeración** — hecho
-   - `nextTradeNumber(userId)` filtra por usuario. Limitación: sigue existiendo carrera si se crean dos evaluaciones simultáneas.
+5. **Numeración** — hecho (atómica)
+   - El número definitivo lo asigna el trigger `assign_trade_no` mediante `private.next_trade_no()` (INSERT ... ON CONFLICT DO UPDATE ... RETURNING sobre `private.trade_counters`, bloqueo de fila por usuario) + índice único parcial `(user_id, trade_no)`.
+   - `nextTradeNumber(userId)` es sólo previsualización en el asistente.
+   - Atomicidad demostrada con 25 inserciones concurrentes reales: `tests/trade_no_concurrency.sh` + `tests/trade_no_concurrency.sql`.
 
 6. **Pruebas** — hecho
    - `tests/engine.test.ts` (bun test): 19 casos — NO TRADE con datos residuales, score null, abierta sin resultado, resultado 0, pérdida, ganancia, LONG, SHORT, R/R inválido, riesgo 0, datos incompletos, borradores.
