@@ -60,9 +60,3 @@ DROP TRIGGER IF EXISTS evaluations_assign_trade_no ON public.evaluations;
 CREATE TRIGGER evaluations_assign_trade_no
   BEFORE INSERT ON public.evaluations
   FOR EACH ROW EXECUTE FUNCTION public.assign_trade_no();
-
--- Histórico previo: la numeración existente se conserva y no se reutiliza.
-INSERT INTO public.evaluations (user_id, trade_no)
-OVERRIDING SYSTEM VALUE
-SELECT '11111111-1111-1111-1111-111111111111'::uuid, NULL
-WHERE false;
