@@ -103,12 +103,18 @@ function Weekly() {
   return (
     <AppShell title="Weekly Review" subtitle={`Semana desde ${weekStart}`}>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Item label="Operaciones" value={stats.total} />
+        <Item label="Evaluaciones finalizadas" value={stats.total} />
         <Item label="Win rate" value={stats.winRate === null ? "—" : `${stats.winRate}%`} />
         <Item label="Promedio R" value={stats.avgR === null ? "—" : stats.avgR.toFixed(2)} />
         <Item label="Score promedio" value={stats.avgScore ?? "—"} />
-        <Item label="Mejor setup" value={stats.bestSetup ?? "—"} />
-        <Item label="Peor setup" value={stats.worstSetup ?? "—"} />
+        <Item
+          label="Mejor setup"
+          value={stats.bestSetup ? `${stats.bestSetup} (${stats.bestSetupSample})` : "Muestra insuficiente"}
+        />
+        <Item
+          label="Peor setup"
+          value={stats.worstSetup ? `${stats.worstSetup} (${stats.worstSetupSample})` : "Muestra insuficiente"}
+        />
         <Item label="Impulsivas" value={stats.impulsive} />
         <Item label="Fuera del plan" value={stats.offPlan} />
       </div>
