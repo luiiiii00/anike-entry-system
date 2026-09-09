@@ -9,8 +9,19 @@ export type Stats = {
    * por lo que NO representa operaciones ejecutadas.
    */
   classificationValid: number;
-  /** Evaluaciones con estado final APROBADA (sin advertencias condicionales). */
+  /**
+   * Evaluaciones con ESTADO FINAL APROBADA (motor actual). Métrica de proceso:
+   * no implica ejecución. No mezclar con `approvedLegacy`.
+   */
   approved: number;
+  /**
+   * HISTÓRICO: evaluaciones anteriores al estado final, identificadas por la
+   * clasificación "SETUP A+". Semántica distinta de `approved`: se expone aparte
+   * para conservar los registros antiguos sin contaminar el KPI actual.
+   */
+  approvedLegacy: number;
+  /** Suma informativa de ambos mundos (actual + histórico). Nunca es un KPI de ejecución. */
+  approvedAllTime: number;
   /** Evaluaciones con estado final CONDICIONAL. */
   conditional: number;
   noTrade: number;
@@ -26,8 +37,14 @@ export type Stats = {
   totalMoney: number;
   impulsive: number;
   offPlan: number;
+  /** Sólo con muestra suficiente (≥ SETUP_MIN_SAMPLE operaciones cerradas). */
   bestSetup: string | null;
   worstSetup: string | null;
+  /** Operaciones cerradas del setup elegido (null si no hay muestra suficiente). */
+  bestSetupSample: number | null;
+  worstSetupSample: number | null;
+  /** false → no hay setups con muestra suficiente para concluir nada. */
+  setupSampleSufficient: boolean;
   losses: number;
   breakEven: number;
   netPnl: number;
