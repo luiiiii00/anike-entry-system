@@ -7,6 +7,8 @@ import { AppShell } from "@/components/AppShell";
 import { AnikeAiPanel } from "@/components/AnikeAi";
 
 import { ScoreDial } from "@/components/ScoreDial";
+import { SizingStatus } from "@/components/SizingStatus";
+import { computeRisk } from "@/lib/scoring";
 import { TrafficLight } from "@/components/TrafficLight";
 import { lightFor } from "@/components/TrafficLight";
 import { deleteEvaluation, fetchEvaluation, fetchSettings, saveTradeReflection } from "@/lib/db";
@@ -110,6 +112,11 @@ function TradeDetail() {
   }
 
   const risk = data.risk ?? {};
+  // Recalculado en la vista sólo para mostrar exactitud del lotaje (no se persiste).
+  const riskMetrics = computeRisk(risk, data.direction, {
+    market: data.market_type ?? data.market ?? null,
+    contractSize: data.contract_size ?? null,
+  });
 
   return (
     <AppShell
@@ -162,7 +169,15 @@ function TradeDetail() {
         <Info label="Impulso — máximo" value={risk.swingHigh} />
         <Info label="Impulso — mínimo" value={risk.swingLow} />
         <Info label="SL Fibonacci 0,75" value={risk.slFibo} />
+        <Info
+          label={`Tamaño de posición${riskMetrics.sizingUnit ? ` (${riskMetrics.sizingUnit})` : ""}`}
+          value={riskMetrics.positionSize}
+        />
       </div>
+
+      {/* Nunca puede confundirse un lotaje orientativo con uno ejecutable. */}
+      <SizingStatus metrics={riskMetrics} className="mt-2 px-1" />
+
 
       {data.idea && (
         <div className="panel mt-4 p-4">

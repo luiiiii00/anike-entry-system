@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { QuestionList } from "@/components/QuestionGroup";
 import { ScoreDial } from "@/components/ScoreDial";
+import { SizingStatus } from "@/components/SizingStatus";
 import { TrafficLight } from "@/components/TrafficLight";
 import { FIBO_SL_RATIO, MARKETS, SECTIONS, SESSIONS, SETUPS, WIZARD_STEPS } from "@/lib/checklist";
 import {
@@ -535,20 +536,18 @@ export function RiskPanel({
         <Metric label="Distancia al stop" value={m.stopDistance} digits={5} />
         <Metric label="R:R" value={m.rr} tone={underRR ? "stop" : m.rr ? "ok" : "none"} />
         <Metric
-          label={`Tamaño de posición${m.sizingUnit ? ` (${m.sizingUnit})` : ""}`}
+          label={`Tamaño de posición${m.sizingUnit ? ` (${m.sizingUnit})` : ""}${
+            m.sizingPrecision === "orientative" ? " · ORIENTATIVO" : ""
+          }`}
           value={m.positionSize}
           digits={4}
+          tone={m.sizingPrecision === "orientative" ? "warn" : "none"}
         />
 
       </div>
 
-      <p className="mt-2 text-[11px] text-muted-foreground">
-        {m.sizingPrecision === "exact"
-          ? "Tamaño de posición exacto con los datos introducidos."
-          : m.sizingPrecision === "orientative"
-            ? `Tamaño ORIENTATIVO: falta ${m.sizingMissing.join(", ")} del instrumento para un cálculo exacto.`
-            : `No se puede calcular el tamaño: falta ${m.sizingMissing.join(", ") || "datos"}.`}
-      </p>
+      <SizingStatus metrics={m} className="mt-2" />
+
 
       {(overRisk || underRR) && (
         <div className="mt-3 space-y-1.5 text-xs">
@@ -586,7 +585,7 @@ function Metric({
 }: {
   label: string;
   value: number | null;
-  tone?: "ok" | "stop" | "none";
+  tone?: "ok" | "stop" | "warn" | "none";
   digits?: number;
 }) {
   return (
@@ -596,6 +595,7 @@ function Metric({
         className={cn(
           "mt-1 font-mono text-base tabular-nums",
           tone === "ok" && "text-ok",
+          tone === "warn" && "text-warn",
           tone === "stop" && "text-stop",
         )}
       >
@@ -736,10 +736,22 @@ function ResultStep({
           value={metrics.riskMoney === null ? "—" : metrics.riskMoney.toFixed(2)}
         />
         <Row label="R:R" value={metrics.rr === null ? "—" : metrics.rr.toFixed(2)} />
+        <Row
+          label={`Tamaño de posición${metrics.sizingUnit ? ` (${metrics.sizingUnit})` : ""}`}
+          value={
+            metrics.positionSize === null
+              ? "—"
+              : `${metrics.positionSize}${metrics.sizingPrecision === "orientative" ? " · ORIENTATIVO" : ""}`
+          }
+        />
 
         <Row label="Confirmación" value={confirmation ?? "No registrado"} />
         <Row label="Disciplina" value={decision.emotional ? "REVISAR" : "OK"} />
       </div>
+
+      {/* La exactitud del lotaje queda visible justo antes de decidir el registro. */}
+      <SizingStatus metrics={metrics} className="px-1" />
+
 
       {decision.classification === "NO TRADE" && (
         <div className="panel border-primary/30 bg-primary/5 p-5">

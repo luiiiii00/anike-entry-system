@@ -1,6 +1,13 @@
 import type { Evaluation } from "./db";
 import { isEmotional } from "./scoring";
 
+/**
+ * Mínimo de operaciones CERRADAS que necesita un setup para poder presentarse
+ * como "mejor" o "peor". Por debajo se informa "muestra insuficiente".
+ */
+export const SETUP_MIN_SAMPLE = 3;
+
+
 export type Stats = {
   /** Evaluaciones finalizadas (no borradores). No son operaciones ejecutadas. */
   total: number;
@@ -9,8 +16,19 @@ export type Stats = {
    * por lo que NO representa operaciones ejecutadas.
    */
   classificationValid: number;
-  /** Evaluaciones con estado final APROBADA (sin advertencias condicionales). */
+  /**
+   * Evaluaciones con ESTADO FINAL APROBADA (motor actual). Métrica de proceso:
+   * no implica ejecución. No mezclar con `approvedLegacy`.
+   */
   approved: number;
+  /**
+   * HISTÓRICO: evaluaciones anteriores al estado final, identificadas por la
+   * clasificación "SETUP A+". Semántica distinta de `approved`: se expone aparte
+   * para conservar los registros antiguos sin contaminar el KPI actual.
+   */
+  approvedLegacy: number;
+  /** Suma informativa de ambos mundos (actual + histórico). Nunca es un KPI de ejecución. */
+  approvedAllTime: number;
   /** Evaluaciones con estado final CONDICIONAL. */
   conditional: number;
   noTrade: number;
@@ -26,8 +44,14 @@ export type Stats = {
   totalMoney: number;
   impulsive: number;
   offPlan: number;
+  /** Sólo con muestra suficiente (≥ SETUP_MIN_SAMPLE operaciones cerradas). */
   bestSetup: string | null;
   worstSetup: string | null;
+  /** Operaciones cerradas del setup elegido (null si no hay muestra suficiente). */
+  bestSetupSample: number | null;
+  worstSetupSample: number | null;
+  /** false → no hay setups con muestra suficiente para concluir nada. */
+  setupSampleSufficient: boolean;
   losses: number;
   breakEven: number;
   netPnl: number;
@@ -87,6 +111,11 @@ export function computeStats(list: Evaluation[]): Stats {
   const setupAvgs = [...bySetup.entries()]
     .map(([setup, values]) => ({ setup, avg: avg(values)!, n: values.length }))
     .sort((a, b) => b.avg - a.avg);
+  // Con una sola operación cerrada no existe "mejor" ni "peor" setup: sería una
+  // conclusión engañosa. Los datos siguen ahí, sólo no se etiquetan.
+  const ranked = setupAvgs.filter((s) => s.n >= SETUP_MIN_SAMPLE);
+  const best = ranked[0] ?? null;
+  const worst = ranked.length > 1 ? ranked[ranked.length - 1]! : null;
 
   // Dinero y ROI sólo de operaciones cerradas con valor real registrado.
   const pnls = closed.map((e) => finite(e.net_pnl)).filter((n): n is number => n !== null);
@@ -116,7 +145,10 @@ export function computeStats(list: Evaluation[]): Stats {
     // setup limpio ni una operación ejecutada.
     // Estado final del sistema, NO ejecución: una evaluación APROBADA sólo cuenta
     // como operación cuando decision === "registrado" (ver `registered`).
-    approved: done.filter(
+    approved: done.filter((e) => e.final_state === "APROBADA").length,
+    // Histórico previo al estado final: semántica distinta, contador aparte.
+    approvedLegacy: done.filter((e) => !e.final_state && e.classification === "SETUP A+").length,
+    approvedAllTime: done.filter(
       (e) => e.final_state === "APROBADA" || (!e.final_state && e.classification === "SETUP A+"),
     ).length,
     conditional: done.filter((e) => e.final_state === "CONDICIONAL").length,
@@ -132,8 +164,11 @@ export function computeStats(list: Evaluation[]): Stats {
     totalMoney: round(sum(monies), 2),
     impulsive: done.filter((e) => e.emotional_stop || isEmotional(e.answers ?? {})).length,
     offPlan: done.filter((e) => (e.hard_rules ?? []).length > 0).length,
-    bestSetup: setupAvgs[0]?.setup ?? null,
-    worstSetup: setupAvgs.length > 1 ? setupAvgs[setupAvgs.length - 1]!.setup : null,
+    bestSetup: best?.setup ?? null,
+    worstSetup: worst?.setup ?? null,
+    bestSetupSample: best?.n ?? null,
+    worstSetupSample: worst?.n ?? null,
+    setupSampleSufficient: ranked.length > 0,
   };
 }
 
