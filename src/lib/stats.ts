@@ -138,7 +138,10 @@ export function computeStats(list: Evaluation[]): Stats {
     // setup limpio ni una operación ejecutada.
     // Estado final del sistema, NO ejecución: una evaluación APROBADA sólo cuenta
     // como operación cuando decision === "registrado" (ver `registered`).
-    approved: done.filter(
+    approved: done.filter((e) => e.final_state === "APROBADA").length,
+    // Histórico previo al estado final: semántica distinta, contador aparte.
+    approvedLegacy: done.filter((e) => !e.final_state && e.classification === "SETUP A+").length,
+    approvedAllTime: done.filter(
       (e) => e.final_state === "APROBADA" || (!e.final_state && e.classification === "SETUP A+"),
     ).length,
     conditional: done.filter((e) => e.final_state === "CONDICIONAL").length,
@@ -154,8 +157,11 @@ export function computeStats(list: Evaluation[]): Stats {
     totalMoney: round(sum(monies), 2),
     impulsive: done.filter((e) => e.emotional_stop || isEmotional(e.answers ?? {})).length,
     offPlan: done.filter((e) => (e.hard_rules ?? []).length > 0).length,
-    bestSetup: setupAvgs[0]?.setup ?? null,
-    worstSetup: setupAvgs.length > 1 ? setupAvgs[setupAvgs.length - 1]!.setup : null,
+    bestSetup: best?.setup ?? null,
+    worstSetup: worst?.setup ?? null,
+    bestSetupSample: best?.n ?? null,
+    worstSetupSample: worst?.n ?? null,
+    setupSampleSufficient: ranked.length > 0,
   };
 }
 
