@@ -535,20 +535,18 @@ export function RiskPanel({
         <Metric label="Distancia al stop" value={m.stopDistance} digits={5} />
         <Metric label="R:R" value={m.rr} tone={underRR ? "stop" : m.rr ? "ok" : "none"} />
         <Metric
-          label={`Tamaño de posición${m.sizingUnit ? ` (${m.sizingUnit})` : ""}`}
+          label={`Tamaño de posición${m.sizingUnit ? ` (${m.sizingUnit})` : ""}${
+            m.sizingPrecision === "orientative" ? " · ORIENTATIVO" : ""
+          }`}
           value={m.positionSize}
           digits={4}
+          tone={m.sizingPrecision === "orientative" ? "warn" : "none"}
         />
 
       </div>
 
-      <p className="mt-2 text-[11px] text-muted-foreground">
-        {m.sizingPrecision === "exact"
-          ? "Tamaño de posición exacto con los datos introducidos."
-          : m.sizingPrecision === "orientative"
-            ? `Tamaño ORIENTATIVO: falta ${m.sizingMissing.join(", ")} del instrumento para un cálculo exacto.`
-            : `No se puede calcular el tamaño: falta ${m.sizingMissing.join(", ") || "datos"}.`}
-      </p>
+      <SizingStatus metrics={m} className="mt-2" />
+
 
       {(overRisk || underRR) && (
         <div className="mt-3 space-y-1.5 text-xs">
