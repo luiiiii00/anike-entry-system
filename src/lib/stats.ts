@@ -104,6 +104,11 @@ export function computeStats(list: Evaluation[]): Stats {
   const setupAvgs = [...bySetup.entries()]
     .map(([setup, values]) => ({ setup, avg: avg(values)!, n: values.length }))
     .sort((a, b) => b.avg - a.avg);
+  // Con una sola operación cerrada no existe "mejor" ni "peor" setup: sería una
+  // conclusión engañosa. Los datos siguen ahí, sólo no se etiquetan.
+  const ranked = setupAvgs.filter((s) => s.n >= SETUP_MIN_SAMPLE);
+  const best = ranked[0] ?? null;
+  const worst = ranked.length > 1 ? ranked[ranked.length - 1]! : null;
 
   // Dinero y ROI sólo de operaciones cerradas con valor real registrado.
   const pnls = closed.map((e) => finite(e.net_pnl)).filter((n): n is number => n !== null);
