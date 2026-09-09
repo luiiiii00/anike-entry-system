@@ -584,7 +584,7 @@ function Metric({
 }: {
   label: string;
   value: number | null;
-  tone?: "ok" | "stop" | "none";
+  tone?: "ok" | "stop" | "warn" | "none";
   digits?: number;
 }) {
   return (
@@ -594,6 +594,7 @@ function Metric({
         className={cn(
           "mt-1 font-mono text-base tabular-nums",
           tone === "ok" && "text-ok",
+          tone === "warn" && "text-warn",
           tone === "stop" && "text-stop",
         )}
       >
