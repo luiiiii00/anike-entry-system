@@ -735,10 +735,22 @@ function ResultStep({
           value={metrics.riskMoney === null ? "—" : metrics.riskMoney.toFixed(2)}
         />
         <Row label="R:R" value={metrics.rr === null ? "—" : metrics.rr.toFixed(2)} />
+        <Row
+          label={`Tamaño de posición${metrics.sizingUnit ? ` (${metrics.sizingUnit})` : ""}`}
+          value={
+            metrics.positionSize === null
+              ? "—"
+              : `${metrics.positionSize}${metrics.sizingPrecision === "orientative" ? " · ORIENTATIVO" : ""}`
+          }
+        />
 
         <Row label="Confirmación" value={confirmation ?? "No registrado"} />
         <Row label="Disciplina" value={decision.emotional ? "REVISAR" : "OK"} />
       </div>
+
+      {/* La exactitud del lotaje queda visible justo antes de decidir el registro. */}
+      <SizingStatus metrics={metrics} className="px-1" />
+
 
       {decision.classification === "NO TRADE" && (
         <div className="panel border-primary/30 bg-primary/5 p-5">
