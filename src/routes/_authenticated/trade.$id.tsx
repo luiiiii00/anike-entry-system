@@ -162,7 +162,15 @@ function TradeDetail() {
         <Info label="Impulso — máximo" value={risk.swingHigh} />
         <Info label="Impulso — mínimo" value={risk.swingLow} />
         <Info label="SL Fibonacci 0,75" value={risk.slFibo} />
+        <Info
+          label={`Tamaño de posición${riskMetrics.sizingUnit ? ` (${riskMetrics.sizingUnit})` : ""}`}
+          value={riskMetrics.positionSize}
+        />
       </div>
+
+      {/* Nunca puede confundirse un lotaje orientativo con uno ejecutable. */}
+      <SizingStatus metrics={riskMetrics} className="mt-2 px-1" />
+
 
       {data.idea && (
         <div className="panel mt-4 p-4">
