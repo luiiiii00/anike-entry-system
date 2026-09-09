@@ -7,6 +7,8 @@ import { AppShell } from "@/components/AppShell";
 import { AnikeAiPanel } from "@/components/AnikeAi";
 
 import { ScoreDial } from "@/components/ScoreDial";
+import { SizingStatus } from "@/components/SizingStatus";
+import { computeRisk } from "@/lib/scoring";
 import { TrafficLight } from "@/components/TrafficLight";
 import { lightFor } from "@/components/TrafficLight";
 import { deleteEvaluation, fetchEvaluation, fetchSettings, saveTradeReflection } from "@/lib/db";
