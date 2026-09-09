@@ -147,6 +147,40 @@ export function computeRisk(
   };
 }
 
+/**
+ * Texto único para presentar la exactitud del tamaño de posición. Toda vista que
+ * muestre un lotaje DEBE usar esto: un valor ORIENTATIVO nunca puede parecer un
+ * lotaje ejecutable.
+ */
+export function sizingStatus(m: Pick<RiskMetrics, "sizingPrecision" | "sizingMissing">): {
+  label: string;
+  tone: "ok" | "warn" | "none";
+  note: string;
+} {
+  const missing = m.sizingMissing.filter(Boolean).join(", ");
+  if (m.sizingPrecision === "exact") {
+    return {
+      label: "EXACTO",
+      tone: "ok",
+      note: "Tamaño de posición exacto con los datos introducidos.",
+    };
+  }
+  if (m.sizingPrecision === "orientative") {
+    return {
+      label: "ORIENTATIVO — NO EJECUTABLE",
+      tone: "warn",
+      note: `Referencia únicamente: NO es un lotaje ejecutable. En Futuros, CFD e Índices el cálculo exacto requiere el valor por tick / punto y el tamaño de contrato real del instrumento${
+        missing ? ` (falta: ${missing})` : ""
+      }. Verifica el tamaño en tu bróker antes de operar.`,
+    };
+  }
+  return {
+    label: "NO DISPONIBLE",
+    tone: "none",
+    note: `No se puede calcular el tamaño sin inventar datos${missing ? `: falta ${missing}` : ""}.`,
+  };
+}
+
 
 
 
