@@ -1,6 +1,13 @@
 import type { Evaluation } from "./db";
 import { isEmotional } from "./scoring";
 
+/**
+ * Mínimo de operaciones CERRADAS que necesita un setup para poder presentarse
+ * como "mejor" o "peor". Por debajo se informa "muestra insuficiente".
+ */
+export const SETUP_MIN_SAMPLE = 3;
+
+
 export type Stats = {
   /** Evaluaciones finalizadas (no borradores). No son operaciones ejecutadas. */
   total: number;
