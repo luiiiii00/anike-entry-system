@@ -110,6 +110,11 @@ function TradeDetail() {
   }
 
   const risk = data.risk ?? {};
+  // Recalculado en la vista sólo para mostrar exactitud del lotaje (no se persiste).
+  const riskMetrics = computeRisk(risk, data.direction, {
+    market: data.market_type ?? data.market ?? null,
+    contractSize: data.contract_size ?? null,
+  });
 
   return (
     <AppShell
