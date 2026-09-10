@@ -296,7 +296,7 @@ function TradeDetail() {
   );
 }
 
-function Info({ label, value }: { label: string; value: number | undefined }) {
+function Info({ label, value }: { label: string; value: number | null | undefined }) {
   const empty = value === null || value === undefined || !Number.isFinite(Number(value));
   return (
     <div>
