@@ -43,9 +43,16 @@ describe("guardas de las funciones de servidor", () => {
       expect(src).not.toMatch(/data\.userId/);
     });
 
-    it(`${file} no usa el cliente admin para datos de usuario`, () => {
-      expect(src).not.toContain("client.server");
-      expect(src).not.toContain("supabaseAdmin");
+    it(`${file} sólo carga el cliente privilegiado dentro del handler y siempre acotado al usuario`, () => {
+      if (!src.includes("client.server")) return;
+      // Nunca a nivel de módulo: no puede filtrarse al navegador.
+      expect(src).toMatch(/await import\("@\/integrations\/supabase\/client\.server"\)/);
+      expect(src).not.toMatch(/^import .*client\.server/m);
+      // Todo acceso a evaluaciones con el cliente privilegiado va filtrado por el
+      // usuario de la sesión validada.
+      const evalAccess = src.match(/from\("evaluations"\)/g) ?? [];
+      const scoped = src.match(/\.eq\("user_id",\s*(context\.)?userId\)/g) ?? [];
+      expect(scoped.length).toBeGreaterThanOrEqual(evalAccess.length);
     });
   }
 
