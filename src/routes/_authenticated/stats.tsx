@@ -45,7 +45,13 @@ export const Route = createFileRoute("/_authenticated/stats")({
   component: StatsPage,
 });
 
-const COLORS = ["var(--ok)", "var(--warn)", "var(--accent)", "var(--stop)", "var(--muted-foreground)"];
+const COLORS = [
+  "var(--ok)",
+  "var(--warn)",
+  "var(--accent)",
+  "var(--stop)",
+  "var(--muted-foreground)",
+];
 
 function StatsPage() {
   const { user } = useAuth();
@@ -65,7 +71,10 @@ function StatsPage() {
   const assets = byAsset(list).slice(0, 8);
 
   return (
-    <AppShell title="Estadísticas" subtitle="Calculadas únicamente con tus operaciones registradas.">
+    <AppShell
+      title="Estadísticas"
+      subtitle="Calculadas únicamente con tus operaciones registradas."
+    >
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Cell2 label="Evaluaciones finalizadas" value={stats.total} />
         <Cell2 label="Setups aprobados (evaluación)" value={stats.approved} />
@@ -83,11 +92,20 @@ function StatsPage() {
         <Cell2 label="Break even" value={stats.breakEven} />
         <Cell2 label="P&L acumulado" value={stats.netPnl.toFixed(2)} />
         <Cell2 label="ROI promedio" value={stats.avgRoi === null ? "—" : `${stats.avgRoi}%`} />
-        <Cell2 label="Resultado promedio" value={stats.avgMoney === null ? "—" : stats.avgMoney.toFixed(2)} />
+        <Cell2
+          label="Resultado promedio"
+          value={stats.avgMoney === null ? "—" : stats.avgMoney.toFixed(2)}
+        />
         <Cell2 label="Mejor R" value={stats.bestR === null ? "—" : stats.bestR.toFixed(2)} />
         <Cell2 label="Peor R" value={stats.worstR === null ? "—" : stats.worstR.toFixed(2)} />
-        <Cell2 label="Mejor operación" value={stats.bestTrade === null ? "—" : stats.bestTrade.toFixed(2)} />
-        <Cell2 label="Peor operación" value={stats.worstTrade === null ? "—" : stats.worstTrade.toFixed(2)} />
+        <Cell2
+          label="Mejor operación"
+          value={stats.bestTrade === null ? "—" : stats.bestTrade.toFixed(2)}
+        />
+        <Cell2
+          label="Peor operación"
+          value={stats.worstTrade === null ? "—" : stats.worstTrade.toFixed(2)}
+        />
       </div>
 
       <section className="mt-6 space-y-4">
@@ -130,7 +148,12 @@ function StatsPage() {
               <ResponsiveContainer width="100%" height={220}>
                 <ScatterChart>
                   <CartesianGrid stroke="var(--border)" />
-                  <XAxis dataKey="score" name="Score" stroke="var(--muted-foreground)" fontSize={11} />
+                  <XAxis
+                    dataKey="score"
+                    name="Score"
+                    stroke="var(--muted-foreground)"
+                    fontSize={11}
+                  />
                   <YAxis dataKey="r" name="R" stroke="var(--muted-foreground)" fontSize={11} />
                   <Tooltip contentStyle={TOOLTIP} />
                   <Scatter data={svr} fill="var(--accent)" />

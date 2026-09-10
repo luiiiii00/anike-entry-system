@@ -102,7 +102,9 @@ function TradeDetail() {
     return (
       <AppShell title="Detalle del trade">
         <div className="panel p-6">
-          <p className="text-sm text-muted-foreground">Esta evaluación no existe o fue eliminada.</p>
+          <p className="text-sm text-muted-foreground">
+            Esta evaluación no existe o fue eliminada.
+          </p>
           <Link to="/journal" className="mt-4 inline-flex text-sm text-primary">
             Volver al journal
           </Link>
@@ -137,15 +139,15 @@ function TradeDetail() {
           <TrafficLight
             light={lightFor(data.classification)}
             classification={data.classification ?? "NO TRADE"}
-            message={data.decision === "registrado" ? "Operación ejecutada." : "Operación descartada."}
+            message={
+              data.decision === "registrado" ? "Operación ejecutada." : "Operación descartada."
+            }
           />
           <p className="text-sm text-muted-foreground">
             Decisión registrada: {data.decision === "registrado" ? "TRADE REGISTRADO" : "NO TRADE"}
           </p>
           {data.emotional_stop && (
-            <p className="text-sm text-warn">
-              Se activó el freno emocional en esta evaluación.
-            </p>
+            <p className="text-sm text-warn">Se activó el freno emocional en esta evaluación.</p>
           )}
         </div>
       </div>
@@ -178,7 +180,6 @@ function TradeDetail() {
       {/* Nunca puede confundirse un lotaje orientativo con uno ejecutable. */}
       <SizingStatus metrics={riskMetrics} className="mt-2 px-1" />
 
-
       {data.idea && (
         <div className="panel mt-4 p-4">
           <p className="label-mono">Idea de la operación</p>
@@ -197,7 +198,6 @@ function TradeDetail() {
         evaluationId={id}
         noTrade={data.classification === "NO TRADE" || data.decision === "no_trade"}
       />
-
 
       <section className="mt-6">
         <p className="label-mono">Respuestas del checklist</p>

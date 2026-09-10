@@ -76,9 +76,12 @@ export type Evaluation = {
  * campos derivados ni elegir el número de operación.
  */
 
-
 export async function fetchSettings(userId: string): Promise<Settings> {
-  const { data, error } = await supabase.from("settings").select("*").eq("user_id", userId).maybeSingle();
+  const { data, error } = await supabase
+    .from("settings")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
   if (error) throw error;
   if (data) return data as unknown as Settings;
   const { data: created, error: insertError } = await supabase

@@ -31,7 +31,10 @@ describe("computeRisk", () => {
   });
 
   it("no divide por cero cuando entrada = stop", () => {
-    const m = computeRisk({ entry: 100, stop: 100, target: 110, capital: 1000, riskPct: 1 }, "LONG");
+    const m = computeRisk(
+      { entry: 100, stop: 100, target: 110, capital: 1000, riskPct: 1 },
+      "LONG",
+    );
     expect(m.rr).toBeNull();
     expect(m.positionSize).toBeNull();
   });
@@ -261,7 +264,12 @@ describe("computeRisk — precisión del lotaje", () => {
   it("nunca devuelve NaN ni Infinity con entradas basura", () => {
     for (const bad of [NaN, Infinity, -Infinity, 0, null]) {
       const m = computeRisk(
-        { capital: bad as number, riskPct: bad as number, entry: bad as number, stop: bad as number },
+        {
+          capital: bad as number,
+          riskPct: bad as number,
+          entry: bad as number,
+          stop: bad as number,
+        },
         "LONG",
         { market: "CRYPTO", contractSize: bad as number },
       );
@@ -361,9 +369,7 @@ describe("calculatePostTrade — integridad de resultados", () => {
 
   it("rechaza una cantidad 0 o no finita en lugar de calcular con ella", () => {
     expect(() => calculatePostTrade({ ...base, quantity: 0, exitPrice: 110 })).toThrow();
-    expect(() =>
-      calculatePostTrade({ ...base, quantity: Number.NaN, exitPrice: 110 }),
-    ).toThrow();
+    expect(() => calculatePostTrade({ ...base, quantity: Number.NaN, exitPrice: 110 })).toThrow();
     expect(() =>
       calculatePostTrade({ ...base, entryPrice: Number.POSITIVE_INFINITY, exitPrice: 110 }),
     ).toThrow();

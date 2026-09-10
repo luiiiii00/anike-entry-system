@@ -1,6 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, BookOpen, CalendarRange, PlusCircle, Settings, BarChart3 } from "lucide-react";
+import {
+  ArrowUpRight,
+  BookOpen,
+  CalendarRange,
+  PlusCircle,
+  Settings,
+  BarChart3,
+} from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { TrafficLight, lightFor } from "@/components/TrafficLight";
 import { fetchEvaluations, type Evaluation } from "@/lib/db";
@@ -48,7 +55,11 @@ function Dashboard() {
     >
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <Stat label="Evaluaciones finalizadas" value={stats.total} />
-        <Stat label="Setups aprobados (evaluación, no ejecución)" value={stats.approved} tone="ok" />
+        <Stat
+          label="Setups aprobados (evaluación, no ejecución)"
+          value={stats.approved}
+          tone="ok"
+        />
         <Stat label="Condicionales (no ejecutadas)" value={stats.conditional} />
         <Stat label="Operaciones registradas" value={stats.registered} />
         <Stat label="Operaciones cerradas" value={stats.closed} />
@@ -118,11 +129,22 @@ function Dashboard() {
       )}
 
       <section className="mt-6 grid gap-3 sm:grid-cols-2">
-        <Tile to="/nueva" icon={PlusCircle} title="+ NUEVA EVALUACIÓN" text="Checklist de 11 pasos" primary />
+        <Tile
+          to="/nueva"
+          icon={PlusCircle}
+          title="+ NUEVA EVALUACIÓN"
+          text="Checklist de 11 pasos"
+          primary
+        />
         <Tile to="/journal" icon={BookOpen} title="Journal" text="Historial y post-trade review" />
         <Tile to="/stats" icon={BarChart3} title="Estadísticas" text="Métricas e insights reales" />
         <Tile to="/weekly" icon={CalendarRange} title="Weekly Review" text="Cierre de la semana" />
-        <Tile to="/perfil" icon={Settings} title="Configuración" text="Riesgo, R:R y preferencias" />
+        <Tile
+          to="/perfil"
+          icon={Settings}
+          title="Configuración"
+          text="Riesgo, R:R y preferencias"
+        />
       </section>
     </AppShell>
   );
@@ -138,9 +160,7 @@ function DraftRow({ draft }: { draft: Evaluation }) {
     >
       <div>
         <p className="text-sm font-medium">{draft.asset || "Sin activo"}</p>
-        <p className="text-xs text-muted-foreground">
-          {draft.trade_date} · borrador guardado
-        </p>
+        <p className="text-xs text-muted-foreground">{draft.trade_date} · borrador guardado</p>
       </div>
       <span className="text-sm text-primary">Continuar</span>
     </Link>

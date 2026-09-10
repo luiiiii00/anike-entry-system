@@ -7,7 +7,6 @@ import { isEmotional } from "./scoring";
  */
 export const SETUP_MIN_SAMPLE = 3;
 
-
 export type Stats = {
   /** Evaluaciones finalizadas (no borradores). No son operaciones ejecutadas. */
   total: number;
@@ -62,7 +61,6 @@ export type Stats = {
   bestTrade: number | null;
   worstTrade: number | null;
 };
-
 
 /* ------------------------ Fuente única de verdad ------------------------ */
 
@@ -237,7 +235,9 @@ export function buildInsights(list: Evaluation[], stats: Stats): string[] {
     return insights;
   }
 
-  const aPlus = closed.filter((e) => e.classification === "SETUP A+" || e.classification === "SETUP A");
+  const aPlus = closed.filter(
+    (e) => e.classification === "SETUP A+" || e.classification === "SETUP A",
+  );
   const b = closed.filter((e) => e.classification === "SETUP B");
   if (aPlus.length >= 2 && b.length >= 2) {
     const avgA = mean(aPlus.map((e) => finite(e.result_r)!));
@@ -261,7 +261,9 @@ export function buildInsights(list: Evaluation[], stats: Stats): string[] {
     (e) => new Date(e.created_at).getTime() > weekAgo && (e.hard_rules ?? []).length > 0,
   ).length;
   if (recentOffPlan > 0) {
-    insights.push(`Has registrado ${recentOffPlan} evaluación(es) con reglas críticas incumplidas esta semana.`);
+    insights.push(
+      `Has registrado ${recentOffPlan} evaluación(es) con reglas críticas incumplidas esta semana.`,
+    );
   }
 
   if (stats.impulsive > 0) {
