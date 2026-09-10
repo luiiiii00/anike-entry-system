@@ -51,7 +51,11 @@ describe("guardas de las funciones de servidor", () => {
       // Todo acceso a evaluaciones con el cliente privilegiado va filtrado por el
       // usuario de la sesión validada.
       const evalAccess = src.match(/from\("evaluations"\)/g) ?? [];
-      const scoped = src.match(/\.eq\("user_id",\s*(context\.)?userId\)/g) ?? [];
+      const scoped = [
+        ...(src.match(/\.eq\("user_id",\s*(context\.)?userId\)/g) ?? []),
+        // Un insert queda acotado al fijar el propietario desde la sesión.
+        ...(src.match(/user_id:\s*(context\.)?userId/g) ?? []),
+      ];
       expect(scoped.length).toBeGreaterThanOrEqual(evalAccess.length);
     });
   }
