@@ -67,8 +67,11 @@ function StatsPage() {
   return (
     <AppShell title="Estadísticas" subtitle="Calculadas únicamente con tus operaciones registradas.">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Cell2 label="Operaciones" value={stats.total} />
-        <Cell2 label="Cerradas" value={stats.closed} />
+        <Cell2 label="Evaluaciones finalizadas" value={stats.total} />
+        <Cell2 label="Setups aprobados (evaluación)" value={stats.approved} />
+        <Cell2 label="Condicionales (no ejecutadas)" value={stats.conditional} />
+        <Cell2 label="Operaciones registradas" value={stats.registered} />
+        <Cell2 label="Operaciones cerradas" value={stats.closed} />
         <Cell2 label="Win rate" value={stats.winRate === null ? "—" : `${stats.winRate}%`} />
         <Cell2 label="Promedio R" value={stats.avgR === null ? "—" : stats.avgR.toFixed(2)} />
         <Cell2 label="R acumulado" value={stats.totalR.toFixed(2)} />
