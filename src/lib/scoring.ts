@@ -79,7 +79,11 @@ export function computeRisk(
   const hasDir = direction === "LONG" || direction === "SHORT";
 
   const rawStopDistance =
-    entry !== null && stop !== null ? (hasDir ? signed(entry, stop) : Math.abs(entry - stop)) : null;
+    entry !== null && stop !== null
+      ? hasDir
+        ? signed(entry, stop)
+        : Math.abs(entry - stop)
+      : null;
   const rawRewardDistance =
     entry !== null && target !== null
       ? hasDir
@@ -114,7 +118,8 @@ export function computeRisk(
   if (riskMoney === null) missing.push("capital y riesgo %");
   if (stopDistance === null || stopDistance <= 0) missing.push("entrada y stop loss válidos");
   if (market === null) missing.push("mercado del instrumento");
-  else if (needsSpec && specValue === null) missing.push("tamaño de contrato o valor por punto/tick");
+  else if (needsSpec && specValue === null)
+    missing.push("tamaño de contrato o valor por punto/tick");
 
   // Sin especificación se usa 1 como referencia; el resultado NUNCA se etiqueta
   // como exacto en ese caso.
@@ -181,9 +186,6 @@ export function sizingStatus(m: Pick<RiskMetrics, "sizingPrecision" | "sizingMis
   };
 }
 
-
-
-
 /**
  * Niveles de retroceso de Fibonacci a partir del impulso declarado.
  * `sl` corresponde al nivel 0,75: es un valor PREDETERMINADO/SUGERIDO, nunca una orden.
@@ -215,7 +217,10 @@ function round(n: number, d: number) {
   return Math.round(n * f) / f;
 }
 
-export type Breakdown = Record<SectionId, { earned: number; weight: number; answered: number; total: number }>;
+export type Breakdown = Record<
+  SectionId,
+  { earned: number; weight: number; answered: number; total: number }
+>;
 
 export function computeScore(answers: Answers): { score: number; breakdown: Breakdown } {
   const breakdown = {} as Breakdown;
@@ -263,15 +268,18 @@ export type Classification = "SETUP A+" | "SETUP A" | "SETUP B" | "NO TRADE";
 export type Light = "ok" | "warn" | "stop";
 export type FinalState = "APROBADA" | "CONDICIONAL" | "DESCARTADA";
 
-export function classify(score: number): { classification: Classification; light: Light; message: string } {
+export function classify(score: number): {
+  classification: Classification;
+  light: Light;
+  message: string;
+} {
   if (score >= 85)
     return {
       classification: "SETUP A+",
       light: "ok",
       message: "Entrada válida si cumple las reglas de riesgo.",
     };
-  if (score >= 75)
-    return { classification: "SETUP A", light: "ok", message: "Entrada permitida." };
+  if (score >= 75) return { classification: "SETUP A", light: "ok", message: "Entrada permitida." };
   if (score >= 65)
     return { classification: "SETUP B", light: "warn", message: "Esperar confirmación adicional." };
   return { classification: "NO TRADE", light: "stop", message: "No ejecutar." };
@@ -306,7 +314,9 @@ export const HARD_RULES: { id: string; label: string; test: (ctx: HardRuleCtx) =
     id: "no_invalidation",
     label: "El Stop Loss no es correcto: no existe un punto claro de invalidación.",
     test: ({ a }) =>
-      a["r_invalidation"] === "no" || a["r_stop_logic"] === "por_poner" || a["r_sl_fibo_ok"] === "no",
+      a["r_invalidation"] === "no" ||
+      a["r_stop_logic"] === "por_poner" ||
+      a["r_sl_fibo_ok"] === "no",
   },
   {
     id: "rr_below_2",
@@ -332,7 +342,9 @@ export const HARD_RULES: { id: string; label: string; test: (ctx: HardRuleCtx) =
     label: "El riesgo supera el límite establecido.",
     test: ({ a, risk, maxRiskPct }) =>
       a["r_limit"] === "no" ||
-      (risk.riskPctUsed !== null && risk.riskPctUsed !== undefined && risk.riskPctUsed > maxRiskPct),
+      (risk.riskPctUsed !== null &&
+        risk.riskPctUsed !== undefined &&
+        risk.riskPctUsed > maxRiskPct),
   },
   {
     id: "discipline",
@@ -354,7 +366,11 @@ export const HARD_RULES: { id: string; label: string; test: (ctx: HardRuleCtx) =
 ];
 
 /** Elementos que dejan la operación CONDICIONAL sin descartarla. */
-export const CONDITIONAL_CHECKS: { id: string; label: string; test: (ctx: HardRuleCtx) => boolean }[] = [
+export const CONDITIONAL_CHECKS: {
+  id: string;
+  label: string;
+  test: (ctx: HardRuleCtx) => boolean;
+}[] = [
   {
     id: "context_partial",
     label: "El contexto acompaña solo parcialmente la operación.",
@@ -388,7 +404,8 @@ export const CONDITIONAL_CHECKS: { id: string; label: string; test: (ctx: HardRu
   },
   {
     id: "sl_review",
-    label: "El nivel 0,75 es el SL predeterminado, pero la estructura requiere revisión antes de ejecutar.",
+    label:
+      "El nivel 0,75 es el SL predeterminado, pero la estructura requiere revisión antes de ejecutar.",
     test: ({ a }) => a["r_sl_fibo_ok"] === "revision",
   },
   {
@@ -498,7 +515,17 @@ export function evaluate(input: {
     };
   }
 
-  return { score, breakdown, ...base, hardRules, warnings, finalState, emotional, blocked, metrics };
+  return {
+    score,
+    breakdown,
+    ...base,
+    hardRules,
+    warnings,
+    finalState,
+    emotional,
+    blocked,
+    metrics,
+  };
 }
 
 export const FINAL_STATE_UI: Record<FinalState, { dot: string; label: string; light: Light }> = {

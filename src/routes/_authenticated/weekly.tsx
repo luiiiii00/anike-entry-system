@@ -85,12 +85,14 @@ function Weekly() {
       .map(([rule, n]) => `${rule} (${n}x)`);
   }, [weekList]);
 
-
   const save = useMutation({
     mutationFn: async () => {
       const { error } = await supabase
         .from("weekly_reviews")
-        .upsert({ user_id: user!.id, week_start: weekStart, notes }, { onConflict: "user_id,week_start" });
+        .upsert(
+          { user_id: user!.id, week_start: weekStart, notes },
+          { onConflict: "user_id,week_start" },
+        );
       if (error) throw error;
     },
     onSuccess: () => {
@@ -109,11 +111,19 @@ function Weekly() {
         <Item label="Score promedio" value={stats.avgScore ?? "—"} />
         <Item
           label="Mejor setup"
-          value={stats.bestSetup ? `${stats.bestSetup} (${stats.bestSetupSample})` : "Muestra insuficiente"}
+          value={
+            stats.bestSetup
+              ? `${stats.bestSetup} (${stats.bestSetupSample})`
+              : "Muestra insuficiente"
+          }
         />
         <Item
           label="Peor setup"
-          value={stats.worstSetup ? `${stats.worstSetup} (${stats.worstSetupSample})` : "Muestra insuficiente"}
+          value={
+            stats.worstSetup
+              ? `${stats.worstSetup} (${stats.worstSetupSample})`
+              : "Muestra insuficiente"
+          }
         />
         <Item label="Impulsivas" value={stats.impulsive} />
         <Item label="Fuera del plan" value={stats.offPlan} />
@@ -134,7 +144,6 @@ function Weekly() {
           recurringRules: topRules,
         })}
       />
-
 
       <section className="mt-6">
         <p className="label-mono">Lo que tus operaciones están mostrando</p>

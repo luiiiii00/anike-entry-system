@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/nueva")({
   validateSearch: (search: Record<string, unknown>) => ({
-    id: typeof search['id'] === "string" ? (search['id'] as string) : undefined,
+    id: typeof search["id"] === "string" ? (search["id"] as string) : undefined,
   }),
   head: () => ({
     meta: [
@@ -96,7 +96,11 @@ function NuevaEvaluacion() {
     setTrade((t) => (t.trade_no === null ? t : t));
     setRisk((r) =>
       r.capital === undefined
-        ? { ...r, capital: Number(settings.account_capital), riskPct: Number(settings.max_risk_pct) }
+        ? {
+            ...r,
+            capital: Number(settings.account_capital),
+            riskPct: Number(settings.max_risk_pct),
+          }
         : r,
     );
   }, [settings]);
@@ -205,7 +209,10 @@ function NuevaEvaluacion() {
       setStep(0);
       return;
     }
-    if (decisionValue === "registrado" && (decision.blocked || decision.finalState === "DESCARTADA")) {
+    if (
+      decisionValue === "registrado" &&
+      (decision.blocked || decision.finalState === "DESCARTADA")
+    ) {
       toast.error("La operación está DESCARTADA por el sistema: no puede registrarse.");
       return;
     }
@@ -256,9 +263,7 @@ function NuevaEvaluacion() {
       </div>
 
       <div className="mt-5 animate-fade">
-        {currentStep.key === "trade" && (
-          <TradeStep trade={trade} setTrade={setTrade} />
-        )}
+        {currentStep.key === "trade" && <TradeStep trade={trade} setTrade={setTrade} />}
 
         {section && section.id !== "riesgo" && section.id !== "disciplina" && (
           <div className="space-y-6">
@@ -284,7 +289,6 @@ function NuevaEvaluacion() {
               minRR={Number(settings?.min_rr ?? 2)}
               direction={trade.direction}
               market={trade.market}
-
             />
             {section.groups.map((g, i) => (
               <QuestionList
@@ -307,7 +311,12 @@ function NuevaEvaluacion() {
               </p>
             </div>
             {section.groups.map((g, i) => (
-              <QuestionList key={i} questions={g.questions} answers={answers} onChange={setAnswer} />
+              <QuestionList
+                key={i}
+                questions={g.questions}
+                answers={answers}
+                onChange={setAnswer}
+              />
             ))}
             {decision.emotional && (
               <div className="panel animate-rise border-stop/50 bg-stop-soft/40 p-5">
@@ -384,11 +393,36 @@ function TradeStep({
             {trade.trade_no ?? "—"} · lo asigna el sistema al guardar
           </p>
         </div>
-        <TextField label="Activo" value={trade.asset} onChange={(v) => set("asset", v)} placeholder="BTCUSDT" />
-        <TextField label="Fecha" value={trade.trade_date} onChange={(v) => set("trade_date", v)} type="date" />
-        <TextField label="Hora" value={trade.trade_time} onChange={(v) => set("trade_time", v)} type="time" />
-        <SelectField label="Mercado" value={trade.market} options={MARKETS} onChange={(v) => set("market", v)} />
-        <SelectField label="Sesión" value={trade.session} options={SESSIONS} onChange={(v) => set("session", v)} />
+        <TextField
+          label="Activo"
+          value={trade.asset}
+          onChange={(v) => set("asset", v)}
+          placeholder="BTCUSDT"
+        />
+        <TextField
+          label="Fecha"
+          value={trade.trade_date}
+          onChange={(v) => set("trade_date", v)}
+          type="date"
+        />
+        <TextField
+          label="Hora"
+          value={trade.trade_time}
+          onChange={(v) => set("trade_time", v)}
+          type="time"
+        />
+        <SelectField
+          label="Mercado"
+          value={trade.market}
+          options={MARKETS}
+          onChange={(v) => set("market", v)}
+        />
+        <SelectField
+          label="Sesión"
+          value={trade.session}
+          options={SESSIONS}
+          onChange={(v) => set("session", v)}
+        />
       </div>
 
       <div className="panel p-4">
@@ -474,18 +508,42 @@ export function RiskPanel({
   const overRisk = m.riskPctUsed !== null && m.riskPctUsed > maxRiskPct;
   const underRR = m.rr !== null && m.rr < minRR;
 
-
   const fibo = fiboProjection(risk, direction);
 
   return (
     <div className="panel p-4">
       <p className="label-mono">Calculadora de riesgo</p>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        <TextField label={`Capital de cuenta (${currency})`} value={str(risk.capital)} onChange={(v) => set("capital", v)} type="number" />
-        <TextField label="Riesgo máximo por operación %" value={str(risk.riskPct)} onChange={(v) => set("riskPct", v)} type="number" />
-        <TextField label="Entrada" value={str(risk.entry)} onChange={(v) => set("entry", v)} type="number" />
-        <TextField label="Stop" value={str(risk.stop)} onChange={(v) => set("stop", v)} type="number" />
-        <TextField label="Objetivo" value={str(risk.target)} onChange={(v) => set("target", v)} type="number" />
+        <TextField
+          label={`Capital de cuenta (${currency})`}
+          value={str(risk.capital)}
+          onChange={(v) => set("capital", v)}
+          type="number"
+        />
+        <TextField
+          label="Riesgo máximo por operación %"
+          value={str(risk.riskPct)}
+          onChange={(v) => set("riskPct", v)}
+          type="number"
+        />
+        <TextField
+          label="Entrada"
+          value={str(risk.entry)}
+          onChange={(v) => set("entry", v)}
+          type="number"
+        />
+        <TextField
+          label="Stop"
+          value={str(risk.stop)}
+          onChange={(v) => set("stop", v)}
+          type="number"
+        />
+        <TextField
+          label="Objetivo"
+          value={str(risk.target)}
+          onChange={(v) => set("target", v)}
+          type="number"
+        />
       </div>
 
       <div className="mt-5 rounded-xl border border-border bg-surface-2 p-3">
@@ -495,8 +553,18 @@ export function RiskPanel({
           nunca se envía ninguna orden.
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <TextField label="Máximo del impulso" value={str(risk.swingHigh)} onChange={(v) => set("swingHigh", v)} type="number" />
-          <TextField label="Mínimo del impulso" value={str(risk.swingLow)} onChange={(v) => set("swingLow", v)} type="number" />
+          <TextField
+            label="Máximo del impulso"
+            value={str(risk.swingHigh)}
+            onChange={(v) => set("swingHigh", v)}
+            type="number"
+          />
+          <TextField
+            label="Mínimo del impulso"
+            value={str(risk.swingLow)}
+            onChange={(v) => set("swingLow", v)}
+            type="number"
+          />
         </div>
         {fibo.levels.length > 0 && (
           <>
@@ -521,7 +589,9 @@ export function RiskPanel({
             {fibo.sl !== null && (
               <button
                 type="button"
-                onClick={() => setRisk((r) => (fibo.sl === null ? r : { ...r, slFibo: fibo.sl, stop: fibo.sl }))}
+                onClick={() =>
+                  setRisk((r) => (fibo.sl === null ? r : { ...r, slFibo: fibo.sl, stop: fibo.sl }))
+                }
                 className="mt-3 min-h-11 w-full rounded-xl border border-border bg-surface text-sm"
               >
                 Usar 0,75 ({fibo.sl}) como Stop Loss
@@ -543,11 +613,9 @@ export function RiskPanel({
           digits={4}
           tone={m.sizingPrecision === "orientative" ? "warn" : "none"}
         />
-
       </div>
 
       <SizingStatus metrics={m} className="mt-2" />
-
 
       {(overRisk || underRR) && (
         <div className="mt-3 space-y-1.5 text-xs">
@@ -558,8 +626,8 @@ export function RiskPanel({
           )}
           {underRR && (
             <p className="text-warn">
-              El R:R ({m.rr}) está por debajo de tu mínimo configurado ({minRR}). Por debajo de 1:2 la
-              operación queda descartada.
+              El R:R ({m.rr}) está por debajo de tu mínimo configurado ({minRR}). Por debajo de 1:2
+              la operación queda descartada.
             </p>
           )}
         </div>
@@ -571,7 +639,6 @@ export function RiskPanel({
     </div>
   );
 }
-
 
 function str(v: number | undefined) {
   return v === undefined || v === null ? "" : String(v);
@@ -606,7 +673,6 @@ function Metric({
     </div>
   );
 }
-
 
 function ResultStep({
   decision,
@@ -671,7 +737,8 @@ function ResultStep({
         )}
       >
         <p className="font-display text-xl font-semibold">
-          {FINAL_STATE_UI[decision.finalState].dot} OPERACIÓN {FINAL_STATE_UI[decision.finalState].label}
+          {FINAL_STATE_UI[decision.finalState].dot} OPERACIÓN{" "}
+          {FINAL_STATE_UI[decision.finalState].label}
         </p>
         <p className="mt-2 text-sm text-foreground/90">
           {decision.finalState === "APROBADA"
@@ -690,7 +757,6 @@ function ResultStep({
           </ul>
         )}
       </div>
-
 
       {decision.hardRules.length > 0 && (
         <div className="panel animate-rise border-stop/50 bg-stop-soft/35 p-5">
@@ -730,7 +796,10 @@ function ResultStep({
           value={`${FINAL_STATE_UI[decision.finalState].dot} ${FINAL_STATE_UI[decision.finalState].label}`}
         />
 
-        <Row label="Riesgo" value={metrics.riskPctUsed === null ? "—" : `${metrics.riskPctUsed.toFixed(2)}%`} />
+        <Row
+          label="Riesgo"
+          value={metrics.riskPctUsed === null ? "—" : `${metrics.riskPctUsed.toFixed(2)}%`}
+        />
         <Row
           label={`Riesgo (${currency})`}
           value={metrics.riskMoney === null ? "—" : metrics.riskMoney.toFixed(2)}
@@ -751,7 +820,6 @@ function ResultStep({
 
       {/* La exactitud del lotaje queda visible justo antes de decidir el registro. */}
       <SizingStatus metrics={metrics} className="px-1" />
-
 
       {decision.classification === "NO TRADE" && (
         <div className="panel border-primary/30 bg-primary/5 p-5">
@@ -774,7 +842,6 @@ function ResultStep({
       )}
 
       <div className="panel p-5">
-
         <p className="font-display text-base font-semibold">¿Ejecutar esta operación?</p>
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           <button
@@ -798,7 +865,6 @@ function ResultStep({
             reglas críticas, score insuficiente o señales impulsivas.
           </p>
         )}
-
       </div>
     </div>
   );

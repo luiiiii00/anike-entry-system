@@ -76,9 +76,12 @@ export type Evaluation = {
  * campos derivados ni elegir el número de operación.
  */
 
-
 export async function fetchSettings(userId: string): Promise<Settings> {
-  const { data, error } = await supabase.from("settings").select("*").eq("user_id", userId).maybeSingle();
+  const { data, error } = await supabase
+    .from("settings")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
   if (error) throw error;
   if (data) return data as unknown as Settings;
   const { data: created, error: insertError } = await supabase
@@ -135,7 +138,16 @@ export async function deleteEvaluation(id: string) {
 
 /**
  * Número de operación PROVISIONAL para mostrar en el asistente. El número
- * definitivo lo asigna el contador transaccional de la base de datos al guardar.
+ * definitivo lo asigna el contador transaccional de la base de datos al guardar
+ * (private.next_trade_no + trigger assign_trade_no, con UNIQUE(user_id, trade_no)).
+ *
+ * HUECOS ESPERADOS: el contador consume el número antes de confirmar el INSERT.
+ * Si la transacción falla o se revierte, ese número queda consumido y la
+ * secuencia muestra un hueco (p. ej. 1, 3, 4). Es un comportamiento aceptado:
+ * garantiza unicidad y atomicidad bajo concurrencia. NO se debe "rellenar" el
+ * hueco reutilizando números, porque eso reintroduce duplicados.
+ * Pruebas: tests/trade_no_concurrency.sh (concurrencia) y
+ * tests/trade_no_gap.sql (hueco tras insert abortado, sin duplicados).
  */
 
 export async function nextTradeNumber(userId?: string): Promise<number> {

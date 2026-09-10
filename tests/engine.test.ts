@@ -1,10 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { computeRisk, computeScore, evaluate } from "@/lib/scoring";
+import { computeRisk, computeScore, evaluate, sizingStatus } from "@/lib/scoring";
 import { calculatePostTrade } from "@/lib/posttrade";
 import type { Evaluation } from "@/lib/db";
 import {
   byAsset,
   computeStats,
+  equityCurve,
   isClosed,
   isRegistered,
   longVsShort,
@@ -30,7 +31,10 @@ describe("computeRisk", () => {
   });
 
   it("no divide por cero cuando entrada = stop", () => {
-    const m = computeRisk({ entry: 100, stop: 100, target: 110, capital: 1000, riskPct: 1 }, "LONG");
+    const m = computeRisk(
+      { entry: 100, stop: 100, target: 110, capital: 1000, riskPct: 1 },
+      "LONG",
+    );
     expect(m.rr).toBeNull();
     expect(m.positionSize).toBeNull();
   });
@@ -260,7 +264,12 @@ describe("computeRisk — precisión del lotaje", () => {
   it("nunca devuelve NaN ni Infinity con entradas basura", () => {
     for (const bad of [NaN, Infinity, -Infinity, 0, null]) {
       const m = computeRisk(
-        { capital: bad as number, riskPct: bad as number, entry: bad as number, stop: bad as number },
+        {
+          capital: bad as number,
+          riskPct: bad as number,
+          entry: bad as number,
+          stop: bad as number,
+        },
         "LONG",
         { market: "CRYPTO", contractSize: bad as number },
       );
@@ -360,9 +369,7 @@ describe("calculatePostTrade — integridad de resultados", () => {
 
   it("rechaza una cantidad 0 o no finita en lugar de calcular con ella", () => {
     expect(() => calculatePostTrade({ ...base, quantity: 0, exitPrice: 110 })).toThrow();
-    expect(() =>
-      calculatePostTrade({ ...base, quantity: Number.NaN, exitPrice: 110 }),
-    ).toThrow();
+    expect(() => calculatePostTrade({ ...base, quantity: Number.NaN, exitPrice: 110 })).toThrow();
     expect(() =>
       calculatePostTrade({ ...base, entryPrice: Number.POSITIVE_INFINITY, exitPrice: 110 }),
     ).toThrow();
@@ -418,5 +425,142 @@ describe("estados de operación", () => {
     const rows = [ev({ result_r: 1 }), ev({ result_r: 1 }), ev({ result_r: 1 })];
     const nos = rows.map((r) => r.trade_no);
     expect(new Set(nos).size).toBe(nos.length);
+  });
+});
+
+/* ------------------- HARDENING: KPI de aprobación ------------------- */
+
+describe("aprobación actual vs histórica", () => {
+  it("approved sólo cuenta final_state APROBADA; el histórico va aparte", () => {
+    const s = computeStats([
+      ev({ final_state: "APROBADA", decision: null }),
+      ev({ final_state: null, classification: "SETUP A+", decision: null }),
+    ]);
+    expect(s.approved).toBe(1);
+    expect(s.approvedLegacy).toBe(1);
+    expect(s.approvedAllTime).toBe(2);
+    // Ningún KPI de aprobación implica ejecución.
+    expect(s.registered).toBe(0);
+    expect(s.closed).toBe(0);
+    expect(s.totalR).toBe(0);
+    expect(s.netPnl).toBe(0);
+  });
+
+  it("una APROBADA con final_state no se duplica en el contador histórico", () => {
+    const s = computeStats([ev({ final_state: "APROBADA", classification: "SETUP A+" })]);
+    expect(s.approved).toBe(1);
+    expect(s.approvedLegacy).toBe(0);
+    expect(s.approvedAllTime).toBe(1);
+  });
+
+  it("las finanzas sólo usan registradas y cerradas con R válido", () => {
+    const s = computeStats([
+      ev({ final_state: "APROBADA", decision: "no_trade", result_r: 5, net_pnl: 500 }),
+      ev({ final_state: "APROBADA", decision: "registrado", result_r: null, net_pnl: 400 }),
+      ev({ final_state: "APROBADA", decision: "registrado", result_r: 2, net_pnl: 100 }),
+    ]);
+    expect(s.closed).toBe(1);
+    expect(s.totalR).toBe(2);
+    expect(s.netPnl).toBe(100);
+  });
+});
+
+/* ------------------- HARDENING: muestra mínima de setup ------------------- */
+
+describe("muestra mínima para mejor/peor setup", () => {
+  const closedWith = (setup: string, r: number) =>
+    ev({ setup, decision: "registrado", result_r: r });
+
+  it("no concluye nada con menos de 3 operaciones cerradas por setup", () => {
+    const s = computeStats([closedWith("Reversión", 3), closedWith("Continuación", -1)]);
+    expect(s.bestSetup).toBeNull();
+    expect(s.worstSetup).toBeNull();
+    expect(s.setupSampleSufficient).toBe(false);
+    // Los datos financieros siguen intactos.
+    expect(s.closed).toBe(2);
+    expect(s.totalR).toBe(2);
+  });
+
+  it("con 3 cerradas por setup sí etiqueta mejor y peor con su muestra", () => {
+    const s = computeStats([
+      closedWith("Reversión", 2),
+      closedWith("Reversión", 2),
+      closedWith("Reversión", 2),
+      closedWith("Continuación", -1),
+      closedWith("Continuación", -1),
+      closedWith("Continuación", -1),
+    ]);
+    expect(s.bestSetup).toBe("Reversión");
+    expect(s.worstSetup).toBe("Continuación");
+    expect(s.bestSetupSample).toBe(3);
+    expect(s.worstSetupSample).toBe(3);
+    expect(s.setupSampleSufficient).toBe(true);
+  });
+});
+
+/* ------------------- HARDENING: lotaje ORIENTATIVO ------------------- */
+
+describe("estado del lotaje visible al usuario", () => {
+  it("Futuros sin especificación real devuelve ORIENTATIVO no ejecutable", () => {
+    const m = computeRisk(
+      { entry: 100, stop: 98, target: 106, riskPct: 1, capital: 10000 },
+      "LONG",
+      { market: "FUTURES" },
+    );
+    expect(m.sizingPrecision).toBe("orientative");
+    const s = sizingStatus(m);
+    expect(s.label).toContain("NO EJECUTABLE");
+    expect(s.tone).toBe("warn");
+    expect(s.note.toLowerCase()).toContain("tick");
+  });
+
+  it("Crypto con datos suficientes se marca EXACTO", () => {
+    const m = computeRisk(
+      { entry: 100, stop: 98, target: 106, riskPct: 1, capital: 10000 },
+      "LONG",
+      { market: "CRYPTO" },
+    );
+    expect(m.sizingPrecision).toBe("exact");
+    expect(sizingStatus(m).label).toBe("EXACTO");
+    expect(Number.isFinite(m.positionSize ?? NaN)).toBe(true);
+  });
+
+  it("sin datos suficientes el lotaje es NO DISPONIBLE y nunca 0 silencioso", () => {
+    const m = computeRisk({ entry: 100, stop: 100, riskPct: 1, capital: 10000 }, "LONG", {
+      market: "CRYPTO",
+    });
+    expect(m.sizingPrecision).toBe("unavailable");
+    expect(m.positionSize).toBeNull();
+    expect(sizingStatus(m).label).toBe("NO DISPONIBLE");
+  });
+});
+
+/* ------------------- HARDENING: gaps de numeración ------------------- */
+
+describe("numeración con huecos permitidos", () => {
+  // El contador transaccional (private.next_trade_no) consume el número ANTES de
+  // confirmar el insert. Si el insert falla o se hace rollback, ese número queda
+  // consumido: aparece un hueco. Es esperado y no rompe unicidad ni concurrencia.
+  it("un hueco tras un insert fallido no genera duplicados", () => {
+    const rows = [
+      ev({ trade_no: 1, decision: "registrado", result_r: 1 }),
+      // el nº 2 se consumió en una transacción que falló
+      ev({ trade_no: 3, decision: "registrado", result_r: 1 }),
+    ];
+    const nos = rows.map((r) => r.trade_no);
+    expect(new Set(nos).size).toBe(nos.length);
+    expect(nos).not.toContain(2);
+    const s = computeStats(rows);
+    expect(s.closed).toBe(2);
+    expect(s.totalR).toBe(2);
+  });
+
+  it("la curva de equity tolera huecos sin perder operaciones", () => {
+    const curve = equityCurve([
+      ev({ trade_no: 1, decision: "registrado", result_r: 1, created_at: "2026-01-01T00:00:00Z" }),
+      ev({ trade_no: 4, decision: "registrado", result_r: 1, created_at: "2026-01-02T00:00:00Z" }),
+    ]);
+    expect(curve.map((p) => p.name)).toEqual(["#1", "#4"]);
+    expect(curve.at(-1)?.r).toBe(2);
   });
 });

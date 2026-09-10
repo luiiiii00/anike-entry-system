@@ -41,3 +41,6 @@ if [ "$rows" != "$CLIENTS" ] || [ "$distinct" != "$CLIENTS" ] || [ "$minno" != "
   exit 1
 fi
 echo "OK: $CLIENTS inserciones concurrentes -> $distinct números únicos y consecutivos (1..$maxno)"
+
+# Huecos permitidos tras un insert abortado: no debe haber duplicados ni reutilización.
+"$PGBIN/psql" -U postgres -v ON_ERROR_STOP=1 -q -f "$(dirname "$0")/trade_no_gap.sql"
