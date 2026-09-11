@@ -52,6 +52,8 @@ type Form = {
   otherCosts: string;
   currency: Currency;
   decimals: string;
+  ema50: string;
+  maxFavorablePrice: string;
 };
 
 const n = (v: string) => (v.trim() === "" ? null : Number(v.replace(",", ".")));
