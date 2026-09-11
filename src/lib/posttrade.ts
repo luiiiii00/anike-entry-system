@@ -44,6 +44,10 @@ export type PostTradeInput = {
   otherCosts?: number | null | undefined;
   currency?: Currency | undefined;
   decimals?: number | null | undefined;
+  /** POST-TRADE ANALYTICS (no afecta al motor de entrada): EMA 50 registrada. */
+  ema50?: number | null | undefined;
+  /** Precio máximo favorable alcanzado durante la operación (MFE), opcional. */
+  maxFavorablePrice?: number | null | undefined;
 };
 
 export type PostTradeResult = {
