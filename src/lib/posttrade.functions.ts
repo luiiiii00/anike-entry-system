@@ -29,6 +29,9 @@ const inputSchema = z.object({
   otherCosts: numish,
   currency: z.enum(["USD", "PYG", "USDT", "EUR"]).optional(),
   decimals: numish,
+  // Analítica post-trade: se guarda como dato registrado, nunca afecta la aprobación.
+  ema50: numish,
+  maxFavorablePrice: numish,
   notes: z.string().max(2000).nullable().optional(),
 });
 
