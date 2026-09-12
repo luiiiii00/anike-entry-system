@@ -405,13 +405,19 @@ export function analyzeDeviations(planned: PlannedRef, real: RealRef): Deviation
 
 export type Ema50Analysis = {
   ema50: number | null;
+  /** EMA 50 en el cierre, si se registró. */
+  ema50AtClose: number | null;
   entryDistance: number | null;
   initialTarget: number | null;
   closePrice: number | null;
+  /** Diferencia entre el TP planificado y la EMA 50 (absoluta). */
+  targetVsEma: number | null;
   /** true / false sólo con datos; null = no disponible. */
   reachedBeforeClose: boolean | null;
   capturedMove: number | null;
   potentialMove: number | null;
+  /** Recorrido que faltaba hasta la EMA 50 en el momento del cierre. */
+  remainingMove: number | null;
   capturedPercentOfPotential: number | null;
 };
 
