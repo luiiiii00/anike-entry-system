@@ -455,18 +455,99 @@ export function analyzeEma50(real: RealRef, planned: PlannedRef = {}): Ema50Anal
     }
   }
 
+  const emaClose = finite(real.ema50Close);
+  const remaining =
+    potential !== null && captured !== null && potential - captured > 0 ? potential - captured : null;
+
   return {
     ema50: ema,
+    ema50AtClose: emaClose,
     entryDistance,
     initialTarget: target,
     closePrice: exit,
+    targetVsEma: ema !== null && target !== null ? Math.abs(target - ema) : null,
     reachedBeforeClose: reached,
     capturedMove: captured,
     potentialMove: potential,
+    remainingMove: remaining,
     capturedPercentOfPotential:
       captured !== null && potential !== null && potential > 0 ? (captured / potential) * 100 : null,
   };
 }
+
+/* ------------------------- MÓDULO 5b: MFE / MAE --------------------------- */
+
+export type ExcursionAnalysis = {
+  /** Máxima excursión favorable en precio (siempre >= 0 o null). */
+  mfeMove: number | null;
+  /** Máxima excursión adversa en precio (siempre >= 0 o null). */
+  maeMove: number | null;
+  mfeMoney: number | null;
+  maeMoney: number | null;
+  mfeR: number | null;
+  maeR: number | null;
+  /** Resultado realizado / MFE monetario, en % (sólo si MFE > 0). */
+  captureEfficiency: number | null;
+  /** Causas técnicas de indisponibilidad (uso interno / soporte). */
+  missing: string[];
+};
+
+/**
+ * MFE / MAE a partir de los precios extremos intratrade registrados.
+ * Si no se registraron, se devuelve null y la causa: nunca se reconstruyen.
+ */
+export function analyzeExcursions(real: RealRef, result: ResultAnalysis): ExcursionAnalysis {
+  const missing: string[] = [];
+  const dir = dirOf(real.direction);
+  const entry = finite(real.entry);
+  const qty = finite(real.quantity);
+  const mfePrice = finite(real.maxFavorablePrice);
+  const maePrice = finite(real.maxAdversePrice);
+
+  if (dir === null) missing.push("direction");
+  if (entry === null) missing.push("entry");
+  if (mfePrice === null) missing.push("maxFavorablePrice");
+  if (maePrice === null) missing.push("maxAdversePrice");
+  if (qty === null || qty <= 0) missing.push("quantity");
+
+  const signed = (price: number | null, favorable: boolean) => {
+    if (price === null || entry === null || dir === null) return null;
+    const move =
+      favorable === (dir === "LONG") ? price - entry : entry - price;
+    // Geometría inválida (p. ej. "máximo favorable" peor que la entrada): no se asume 0.
+    return move >= 0 ? move : null;
+  };
+
+  const mfeMove = signed(mfePrice, true);
+  const maeMove = signed(maePrice, false);
+  if (mfePrice !== null && mfeMove === null) missing.push("mfe_geometry");
+  if (maePrice !== null && maeMove === null) missing.push("mae_geometry");
+
+  const money = (move: number | null) =>
+    move !== null && qty !== null && qty > 0 ? move * qty : null;
+  const mfeMoney = money(mfeMove);
+  const maeMoney = money(maeMove);
+
+  const risk = result.plannedRiskMoney;
+  const inR = (m: number | null) => (m !== null && risk !== null && risk > 0 ? m / risk : null);
+  if (risk === null || risk <= 0) missing.push("plannedRiskMoney");
+
+  const net = result.netPnl;
+  const captureEfficiency =
+    net !== null && mfeMoney !== null && mfeMoney > 0 ? (net / mfeMoney) * 100 : null;
+
+  return {
+    mfeMove,
+    maeMove,
+    mfeMoney,
+    maeMoney,
+    mfeR: inR(mfeMoney),
+    maeR: inR(maeMoney),
+    captureEfficiency,
+    missing,
+  };
+}
+
 
 /* --------------------------- MÓDULO 6: SCORECARD -------------------------- */
 
