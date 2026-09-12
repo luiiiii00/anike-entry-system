@@ -64,8 +64,12 @@ export type RealRef = {
   notionalValue?: number | null | undefined;
   /** EMA 50 en el momento de la operación (opcional, post-trade). */
   ema50?: number | null | undefined;
+  /** EMA 50 en el momento del cierre (opcional, post-trade). */
+  ema50Close?: number | null | undefined;
   /** Precio máximo favorable alcanzado (MFE), si se registró. */
   maxFavorablePrice?: number | null | undefined;
+  /** Precio máximo adverso alcanzado (MAE), si se registró. */
+  maxAdversePrice?: number | null | undefined;
   /** Reflexión / disciplina ya registradas en el journal. */
   followedPlan?: string | null | undefined;
   emotionalStop?: boolean | null | undefined;
