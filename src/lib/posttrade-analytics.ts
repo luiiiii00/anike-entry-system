@@ -719,6 +719,7 @@ export function buildScorecard(
 export function buildDiagnosis(
   result: ResultAnalysis,
   deviations: Deviation[],
+  excursions?: ExcursionAnalysis,
 ): { text: string; verdict: Verdict } {
   const kinds = new Set(deviations.map((d) => d.kind));
 
@@ -732,6 +733,13 @@ export function buildDiagnosis(
     return {
       text: "La principal desviación fue de gestión de riesgo: el riesgo real superó el riesgo planificado.",
       verdict: "bad",
+    };
+  }
+  const capture = excursions?.captureEfficiency ?? null;
+  if (result.status === "GANANCIA" && capture !== null && capture < 50) {
+    return {
+      text: "Operación rentable, pero se capturó una parte reducida del recorrido favorable. La principal oportunidad de mejora está en la gestión de salida.",
+      verdict: "warn",
     };
   }
   if (result.status === "GANANCIA" && kinds.has("close_early")) {
