@@ -551,8 +551,12 @@ export function analyzeExcursions(real: RealRef, result: ResultAnalysis): Excurs
 
 /* --------------------------- MÓDULO 6: SCORECARD -------------------------- */
 
-export type ScorecardItem = { area: string; verdict: Verdict; label: string };
+export type ScorecardItem = { area: string; verdict: Verdict; label: string; detail: string };
 
+/**
+ * Scorecard POST-TRADE. Es una métrica de proceso sobre lo ya ocurrido y
+ * NO tiene ninguna relación con el score de aprobación previo a la entrada.
+ */
 export function buildScorecard(
   result: ResultAnalysis,
   deviations: Deviation[],
@@ -578,40 +582,136 @@ export function buildScorecard(
           : result.status === "PÉRDIDA"
             ? "Resultado negativo"
             : "Break-even",
+    detail: "Resultado neto de la operación en dinero y en R sobre el riesgo planificado.",
   };
 
   const technical: ScorecardItem = kinds.has("entry_match")
-    ? { area: "RESULTADO TÉCNICO", verdict: "ok", label: "Entrada correcta" }
+    ? {
+        area: "RESULTADO TÉCNICO",
+        verdict: "ok",
+        label: "Entrada correcta",
+        detail: "El precio de entrada real coincide con el nivel planificado.",
+      }
     : kinds.has("entry_early") || kinds.has("entry_late")
-      ? { area: "RESULTADO TÉCNICO", verdict: "warn", label: "Desviación de entrada" }
-      : { area: "RESULTADO TÉCNICO", verdict: "unknown", label: "Datos insuficientes" };
+      ? {
+          area: "RESULTADO TÉCNICO",
+          verdict: "warn",
+          label: "Desviación de entrada",
+          detail: "La entrada real se ejecutó a un precio distinto del planificado.",
+        }
+      : {
+          area: "RESULTADO TÉCNICO",
+          verdict: "unknown",
+          label: "Datos insuficientes",
+          detail: "Falta el precio de entrada planificado o el real para comparar.",
+        };
 
   const management: ScorecardItem = kinds.has("risk_exceeded")
-    ? { area: "GESTIÓN", verdict: "bad", label: "Riesgo excedido" }
+    ? {
+        area: "GESTIÓN DE RIESGO",
+        verdict: "bad",
+        label: "Riesgo excedido",
+        detail: "El riesgo asumido superó el riesgo planificado para la operación.",
+      }
     : kinds.has("risk_respected")
-      ? { area: "GESTIÓN", verdict: "ok", label: "Riesgo respetado" }
-      : { area: "GESTIÓN", verdict: "unknown", label: "Datos insuficientes" };
+      ? {
+          area: "GESTIÓN DE RIESGO",
+          verdict: "ok",
+          label: "Riesgo respetado",
+          detail: "El riesgo asumido se mantuvo dentro del límite planificado.",
+        }
+      : {
+          area: "GESTIÓN DE RIESGO",
+          verdict: "unknown",
+          label: "Datos insuficientes",
+          detail: "Falta el riesgo planificado o el riesgo realmente asumido.",
+        };
 
   const exitItem: ScorecardItem = kinds.has("close_at_plan")
-    ? { area: "SALIDA", verdict: "ok", label: "Plan respetado" }
+    ? {
+        area: "GESTIÓN DE SALIDA",
+        verdict: "ok",
+        label: "Plan respetado",
+        detail: "La salida se produjo en el nivel previsto por el plan.",
+      }
     : kinds.has("close_early")
-      ? { area: "SALIDA", verdict: "warn", label: "Salida anticipada" }
+      ? {
+          area: "GESTIÓN DE SALIDA",
+          verdict: "warn",
+          label: "Salida anticipada",
+          detail: "Se cerró antes del nivel previsto: parte del recorrido quedó sin capturar.",
+        }
       : kinds.has("close_late")
-        ? { area: "SALIDA", verdict: "warn", label: "Salida posterior al plan" }
-        : { area: "SALIDA", verdict: "unknown", label: "Datos insuficientes" };
+        ? {
+            area: "GESTIÓN DE SALIDA",
+            verdict: "warn",
+            label: "Salida posterior al plan",
+            detail: "El cierre ocurrió más allá del nivel previsto por el plan.",
+          }
+        : {
+            area: "GESTIÓN DE SALIDA",
+            verdict: "unknown",
+            label: "Datos insuficientes",
+            detail: "Falta el nivel de salida planificado o el precio de cierre.",
+          };
 
   const followed = (real.followedPlan ?? "").toLowerCase();
   const hardRules = (real.hardRules ?? []).length > 0;
   const discipline: ScorecardItem =
     hardRules || real.emotionalStop === true
-      ? { area: "DISCIPLINA", verdict: "bad", label: "Desviación de protocolo" }
+      ? {
+          area: "DISCIPLINA",
+          verdict: "bad",
+          label: "Desviación de protocolo",
+          detail: "Se registraron reglas duras activadas o freno emocional en la evaluación.",
+        }
       : followed.startsWith("sí")
-        ? { area: "DISCIPLINA", verdict: "ok", label: "Cumplió protocolo" }
+        ? {
+            area: "DISCIPLINA",
+            verdict: "ok",
+            label: "Cumplió protocolo",
+            detail: "El operador declaró haber seguido el plan definido antes de entrar.",
+          }
         : followed === ""
-          ? { area: "DISCIPLINA", verdict: "unknown", label: "Datos insuficientes" }
-          : { area: "DISCIPLINA", verdict: "warn", label: "Desviación de protocolo" };
+          ? {
+              area: "DISCIPLINA",
+              verdict: "unknown",
+              label: "Datos insuficientes",
+              detail: "Aún no se registró la reflexión sobre el cumplimiento del plan.",
+            }
+          : {
+              area: "DISCIPLINA",
+              verdict: "warn",
+              label: "Desviación de protocolo",
+              detail: "El operador declaró no haber seguido el plan por completo.",
+            };
 
-  return [financial, technical, management, exitItem, discipline];
+  const deviationCount = deviations.filter(
+    (d) => d.verdict === "warn" || d.verdict === "bad",
+  ).length;
+  const planVsReal: ScorecardItem =
+    deviations.length === 0
+      ? {
+          area: "PLAN vs REAL",
+          verdict: "unknown",
+          label: "Datos insuficientes",
+          detail: "No hay datos del plan suficientes para comparar con la ejecución real.",
+        }
+      : deviationCount === 0
+        ? {
+            area: "PLAN vs REAL",
+            verdict: "ok",
+            label: "Ejecución alineada",
+            detail: "No se detectaron desviaciones entre el plan registrado y la ejecución.",
+          }
+        : {
+            area: "PLAN vs REAL",
+            verdict: deviationCount > 1 ? "bad" : "warn",
+            label: `${deviationCount} desviación${deviationCount > 1 ? "es" : ""}`,
+            detail: "Diferencias objetivas entre lo planificado y lo realmente ejecutado.",
+          };
+
+  return [financial, technical, management, exitItem, discipline, planVsReal];
 }
 
 /* -------------------------- MÓDULO 7: DIAGNÓSTICO ------------------------- */
