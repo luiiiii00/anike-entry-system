@@ -776,6 +776,7 @@ export type PostTradeAnalytics = {
   leverage: LeverageAnalysis;
   deviations: Deviation[];
   ema50: Ema50Analysis;
+  excursions: ExcursionAnalysis;
   scorecard: ScorecardItem[];
   diagnosis: { text: string; verdict: Verdict };
 };
@@ -783,6 +784,7 @@ export type PostTradeAnalytics = {
 export function analyzePostTradeAll(planned: PlannedRef, real: RealRef): PostTradeAnalytics {
   const result = analyzeResult(real, planned);
   const deviations = analyzeDeviations(planned, real);
+  const excursions = analyzeExcursions(real, result);
   return {
     result,
     leverage: analyzeLeverage({
@@ -793,7 +795,39 @@ export function analyzePostTradeAll(planned: PlannedRef, real: RealRef): PostTra
     }),
     deviations,
     ema50: analyzeEma50(real, planned),
+    excursions,
     scorecard: buildScorecard(result, deviations, real),
-    diagnosis: buildDiagnosis(result, deviations),
+    diagnosis: buildDiagnosis(result, deviations, excursions),
+  };
+}
+
+/**
+ * Datos estructurados y sólo de lectura para que ANIKE IA pueda responder
+ * qué funcionó, qué falló, qué se aprendió y qué hacer distinto.
+ * No contiene score, gates, HARD rules ni clasificación de entrada: el motor
+ * de aprobación queda fuera de este payload por diseño.
+ */
+export function buildAiPostTradeContext(a: PostTradeAnalytics) {
+  return {
+    result: {
+      status: a.result.status,
+      netPnl: a.result.netPnl,
+      resultR: a.result.resultR,
+      percentOnCapital: a.result.percentOnCapital,
+      costs: a.result.costs,
+    },
+    deviations: a.deviations.map((d) => ({ kind: d.kind, label: d.label, verdict: d.verdict })),
+    excursions: {
+      mfeR: a.excursions.mfeR,
+      maeR: a.excursions.maeR,
+      captureEfficiency: a.excursions.captureEfficiency,
+    },
+    ema50: {
+      registered: a.ema50.ema50 !== null,
+      reachedBeforeClose: a.ema50.reachedBeforeClose,
+      capturedPercentOfPotential: a.ema50.capturedPercentOfPotential,
+    },
+    scorecard: a.scorecard.map((s) => ({ area: s.area, verdict: s.verdict, label: s.label })),
+    diagnosis: a.diagnosis.text,
   };
 }
