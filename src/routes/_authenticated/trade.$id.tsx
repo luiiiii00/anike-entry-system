@@ -193,6 +193,14 @@ function TradeDetail() {
         currency={settings?.currency ?? "USD"}
       />
 
+      {/* POST-TRADE ANALYTICS: sólo lectura sobre lo ya registrado en servidor. */}
+      <PostTradeAnalytics
+        evaluation={data}
+        capital={Number(settings?.account_capital ?? 1000)}
+        currency={settings?.currency ?? "USD"}
+      />
+
+
       <AnikeAiPanel
         variant="evaluation"
         evaluationId={id}
