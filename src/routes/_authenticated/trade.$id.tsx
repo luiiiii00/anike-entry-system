@@ -13,6 +13,7 @@ import { TrafficLight } from "@/components/TrafficLight";
 import { lightFor } from "@/components/TrafficLight";
 import { deleteEvaluation, fetchEvaluation, fetchSettings, saveTradeReflection } from "@/lib/db";
 import { PostTradeCalculator } from "@/components/PostTradeCalculator";
+import { PostTradeAnalytics } from "@/components/PostTradeAnalytics";
 import { LEGACY_SECTIONS, SECTIONS } from "@/lib/checklist";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
