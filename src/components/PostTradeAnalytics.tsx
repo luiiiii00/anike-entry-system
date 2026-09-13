@@ -69,7 +69,10 @@ function realFrom(e: Evaluation, capital: number): RealRef {
     margin: finite(e.margin),
     notionalValue: finite(e.notional_value),
     ema50: finite(saved["ema50"]),
+    ema50Close: finite(saved["ema50Close"]),
     maxFavorablePrice: finite(saved["maxFavorablePrice"]),
+    maxAdversePrice: finite(saved["maxAdversePrice"]),
+
     followedPlan: e.followed_plan,
     emotionalStop: e.emotional_stop,
     hardRules: e.hard_rules,
