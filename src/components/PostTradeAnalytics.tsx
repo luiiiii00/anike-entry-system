@@ -277,11 +277,41 @@ export function PostTradeAnalytics({
                       : `${a.ema50.capturedPercentOfPotential.toFixed(1)}%`
                   }
                 />
+                <Cell label="EMA 50 en el cierre" value={fmtNumber(a.ema50.ema50AtClose, 6)} />
+                <Cell label="TP vs EMA 50" value={fmtNumber(a.ema50.targetVsEma, 6)} />
+                <Cell label="Recorrido restante hasta EMA 50" value={fmtNumber(a.ema50.remainingMove, 6)} />
               </div>
+            )}
+          </Expandable>
+
+          {/* MÓDULO 5b — MFE / MAE */}
+          <Expandable title="MFE / MAE y eficiencia de captura" hint="Recorrido favorable y adverso registrados.">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Cell label="MFE (precio)" value={fmtNumber(a.excursions.mfeMove, 6)} />
+              <Cell label="MAE (precio)" value={fmtNumber(a.excursions.maeMove, 6)} />
+              <Cell label="MFE" value={fmtMoney(a.excursions.mfeMoney, cur)} />
+              <Cell label="MAE" value={fmtMoney(a.excursions.maeMoney, cur)} />
+              <Cell label="MFE en R" value={fmtR(a.excursions.mfeR)} />
+              <Cell label="MAE en R" value={fmtR(a.excursions.maeR)} />
+              <Cell
+                label="Eficiencia de captura"
+                value={
+                  a.excursions.captureEfficiency === null
+                    ? NA
+                    : `${a.excursions.captureEfficiency.toFixed(1)}%`
+                }
+              />
+            </div>
+            {a.excursions.mfeMove === null && a.excursions.maeMove === null && (
+              <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+                {NA}: registra el precio máximo favorable y adverso al cerrar la operación. No se
+                estiman con datos que no existen.
+              </p>
             )}
           </Expandable>
         </>
       )}
+
 
       {/* MÓDULO 2 — Riesgo y lotaje (auxiliar, no se persiste) */}
       <RiskSizingCard defaultCapital={capital} currency={cur} planned={planned} market={evaluation.market_type ?? evaluation.market ?? ""} direction={real.direction ?? "LONG"} />
