@@ -31,7 +31,9 @@ const inputSchema = z.object({
   decimals: numish,
   // Analítica post-trade: se guarda como dato registrado, nunca afecta la aprobación.
   ema50: numish,
+  ema50Close: numish,
   maxFavorablePrice: numish,
+  maxAdversePrice: numish,
   notes: z.string().max(2000).nullable().optional(),
 });
 
