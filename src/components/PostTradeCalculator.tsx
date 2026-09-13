@@ -256,10 +256,7 @@ export function PostTradeCalculator({
         )}
       </div>
 
-            <Field label="Decimales de presentación" value={form.decimals} onChange={(v) => set("decimals", v)} type="number" hint={`Por defecto: ${defaultDecimals(form.marketType)}`} />
-          </>
-        )}
-      </div>
+
 
       {/* Datos opcionales de analítica post-trade. Nunca afectan la aprobación de entrada. */}
       <div className="panel p-4">
