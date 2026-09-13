@@ -13,6 +13,7 @@ import { TrafficLight } from "@/components/TrafficLight";
 import { lightFor } from "@/components/TrafficLight";
 import { deleteEvaluation, fetchEvaluation, fetchSettings, saveTradeReflection } from "@/lib/db";
 import { PostTradeCalculator } from "@/components/PostTradeCalculator";
+import { PostTradeAnalytics } from "@/components/PostTradeAnalytics";
 import { LEGACY_SECTIONS, SECTIONS } from "@/lib/checklist";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -192,6 +193,14 @@ function TradeDetail() {
         capital={Number(settings?.account_capital ?? 1000)}
         currency={settings?.currency ?? "USD"}
       />
+
+      {/* POST-TRADE ANALYTICS: sólo lectura sobre lo ya registrado en servidor. */}
+      <PostTradeAnalytics
+        evaluation={data}
+        capital={Number(settings?.account_capital ?? 1000)}
+        currency={settings?.currency ?? "USD"}
+      />
+
 
       <AnikeAiPanel
         variant="evaluation"

@@ -69,7 +69,10 @@ function realFrom(e: Evaluation, capital: number): RealRef {
     margin: finite(e.margin),
     notionalValue: finite(e.notional_value),
     ema50: finite(saved["ema50"]),
+    ema50Close: finite(saved["ema50Close"]),
     maxFavorablePrice: finite(saved["maxFavorablePrice"]),
+    maxAdversePrice: finite(saved["maxAdversePrice"]),
+
     followedPlan: e.followed_plan,
     emotionalStop: e.emotional_stop,
     hardRules: e.hard_rules,
@@ -160,9 +163,11 @@ export function PostTradeAnalytics({
                 <div key={s.area} className={cn("rounded-xl border bg-surface-2 p-3", borderClass(s.verdict))}>
                   <p className="label-mono">{s.area}</p>
                   <p className={cn("mt-1 text-sm font-medium", toneClass(s.verdict))}>{s.label}</p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{s.detail}</p>
                 </div>
               ))}
             </div>
+
 
             {/* MÓDULO 7 — Diagnóstico */}
             <div className={cn("mt-4 rounded-xl border bg-surface p-3", borderClass(a.diagnosis.verdict))}>
@@ -272,11 +277,41 @@ export function PostTradeAnalytics({
                       : `${a.ema50.capturedPercentOfPotential.toFixed(1)}%`
                   }
                 />
+                <Cell label="EMA 50 en el cierre" value={fmtNumber(a.ema50.ema50AtClose, 6)} />
+                <Cell label="TP vs EMA 50" value={fmtNumber(a.ema50.targetVsEma, 6)} />
+                <Cell label="Recorrido restante hasta EMA 50" value={fmtNumber(a.ema50.remainingMove, 6)} />
               </div>
+            )}
+          </Expandable>
+
+          {/* MÓDULO 5b — MFE / MAE */}
+          <Expandable title="MFE / MAE y eficiencia de captura" hint="Recorrido favorable y adverso registrados.">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Cell label="MFE (precio)" value={fmtNumber(a.excursions.mfeMove, 6)} />
+              <Cell label="MAE (precio)" value={fmtNumber(a.excursions.maeMove, 6)} />
+              <Cell label="MFE" value={fmtMoney(a.excursions.mfeMoney, cur)} />
+              <Cell label="MAE" value={fmtMoney(a.excursions.maeMoney, cur)} />
+              <Cell label="MFE en R" value={fmtR(a.excursions.mfeR)} />
+              <Cell label="MAE en R" value={fmtR(a.excursions.maeR)} />
+              <Cell
+                label="Eficiencia de captura"
+                value={
+                  a.excursions.captureEfficiency === null
+                    ? NA
+                    : `${a.excursions.captureEfficiency.toFixed(1)}%`
+                }
+              />
+            </div>
+            {a.excursions.mfeMove === null && a.excursions.maeMove === null && (
+              <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+                {NA}: registra el precio máximo favorable y adverso al cerrar la operación. No se
+                estiman con datos que no existen.
+              </p>
             )}
           </Expandable>
         </>
       )}
+
 
       {/* MÓDULO 2 — Riesgo y lotaje (auxiliar, no se persiste) */}
       <RiskSizingCard defaultCapital={capital} currency={cur} planned={planned} market={evaluation.market_type ?? evaluation.market ?? ""} direction={real.direction ?? "LONG"} />
