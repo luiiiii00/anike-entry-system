@@ -93,6 +93,10 @@ function initialForm(e: Evaluation, capital: number, currency: string): Form {
     otherCosts: str(saved.otherCosts),
     currency: (saved.currency as Currency) ?? ((CURRENCIES as readonly string[]).includes(currency) ? (currency as Currency) : "USD"),
     decimals: str(saved.decimals),
+    ema50: str(saved.ema50),
+    ema50Close: str(saved.ema50Close),
+    maxFavorablePrice: str(saved.maxFavorablePrice),
+    maxAdversePrice: str(saved.maxAdversePrice),
   };
 }
 
@@ -121,6 +125,10 @@ function toInput(f: Form): PostTradeInput {
     otherCosts: n(f.otherCosts),
     currency: f.currency,
     decimals: n(f.decimals),
+    ema50: n(f.ema50),
+    ema50Close: n(f.ema50Close),
+    maxFavorablePrice: n(f.maxFavorablePrice),
+    maxAdversePrice: n(f.maxAdversePrice),
   };
 }
 
