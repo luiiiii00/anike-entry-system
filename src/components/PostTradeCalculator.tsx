@@ -256,6 +256,37 @@ export function PostTradeCalculator({
         )}
       </div>
 
+            <Field label="Decimales de presentación" value={form.decimals} onChange={(v) => set("decimals", v)} type="number" hint={`Por defecto: ${defaultDecimals(form.marketType)}`} />
+          </>
+        )}
+      </div>
+
+      {/* Datos opcionales de analítica post-trade. Nunca afectan la aprobación de entrada. */}
+      <div className="panel p-4">
+        <p className="label-mono">DATOS PARA LA ANALÍTICA (OPCIONAL)</p>
+        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+          Si no los registras, la analítica mostrará “No disponible”. Nunca se estiman.
+        </p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Field label="EMA 50 en la entrada" value={form.ema50} onChange={(v) => set("ema50", v)} type="number" />
+          <Field label="EMA 50 en el cierre" value={form.ema50Close} onChange={(v) => set("ema50Close", v)} type="number" />
+          <Field
+            label="Precio máximo favorable (MFE)"
+            value={form.maxFavorablePrice}
+            onChange={(v) => set("maxFavorablePrice", v)}
+            type="number"
+            hint="Mejor precio alcanzado a tu favor durante la operación."
+          />
+          <Field
+            label="Precio máximo adverso (MAE)"
+            value={form.maxAdversePrice}
+            onChange={(v) => set("maxAdversePrice", v)}
+            type="number"
+            hint="Peor precio alcanzado en contra durante la operación."
+          />
+        </div>
+      </div>
+
       <div className="panel p-4">
         <p className="label-mono">¿Incluir comisiones?</p>
         <div className="mt-2 flex flex-wrap gap-2">
