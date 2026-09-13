@@ -163,9 +163,11 @@ export function PostTradeAnalytics({
                 <div key={s.area} className={cn("rounded-xl border bg-surface-2 p-3", borderClass(s.verdict))}>
                   <p className="label-mono">{s.area}</p>
                   <p className={cn("mt-1 text-sm font-medium", toneClass(s.verdict))}>{s.label}</p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{s.detail}</p>
                 </div>
               ))}
             </div>
+
 
             {/* MÓDULO 7 — Diagnóstico */}
             <div className={cn("mt-4 rounded-xl border bg-surface p-3", borderClass(a.diagnosis.verdict))}>
