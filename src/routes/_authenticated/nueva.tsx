@@ -93,7 +93,7 @@ function NuevaEvaluacion() {
     market: MARKETS[0]!,
     session: SESSIONS[1]!,
     direction: "LONG",
-    setup: SETUPS[0]!,
+    setup: "",
     idea: "",
   });
   const [answers, setAnswers] = useState<Answers>({});
