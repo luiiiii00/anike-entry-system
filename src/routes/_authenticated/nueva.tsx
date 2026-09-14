@@ -8,7 +8,17 @@ import { QuestionList } from "@/components/QuestionGroup";
 import { ScoreDial } from "@/components/ScoreDial";
 import { SizingStatus } from "@/components/SizingStatus";
 import { TrafficLight } from "@/components/TrafficLight";
-import { FIBO_SL_RATIO, MARKETS, SECTIONS, SESSIONS, SETUPS, WIZARD_STEPS } from "@/lib/checklist";
+import {
+  FIBO_SL_RATIO,
+  MARKETS,
+  OFFICIAL_SETUPS,
+  SECTIONS,
+  SESSIONS,
+  setupFocusQuestions,
+  setupLabel,
+  WIZARD_STEPS,
+} from "@/lib/checklist";
+
 import {
   evaluate,
   computeRisk,
