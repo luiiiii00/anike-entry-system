@@ -218,12 +218,14 @@ const postTradeFnSource = readFileSync("src/lib/posttrade.functions.ts", "utf8")
 describe("aislamiento del motor de entrada", () => {
   it("20. la analítica no puede alterar el score de entrada", () => {
     const answers = { c1_1: "si", c1_2: "si" } as Record<string, string>;
-    const before = evaluate(answers, {}, undefined);
+    const before = evaluate({ answers, risk: {} });
     const a = analyzePostTradeAll(planned, real({ maxFavorablePrice: 120 }));
-    const after = evaluate(answers, {}, undefined);
+    const after = evaluate({ answers, risk: {} });
     expect(after.score).toBe(before.score);
     expect(after.classification).toBe(before.classification);
+    // "scorecard" es análisis post-trade, no el score de entrada: no debe existir la clave exacta "score".
     expect(Object.keys(a)).not.toContain("score");
+    expect(JSON.stringify(a)).not.toMatch(/"score"\s*:/);
   });
 
   it("21. el módulo post-trade no importa ni escribe gates/HARD/clasificación", () => {
@@ -253,7 +255,7 @@ describe("aislamiento del motor de entrada", () => {
   it("25. el contexto para la IA no expone score, gates ni clasificación", () => {
     const ctx = buildAiPostTradeContext(analyzePostTradeAll(planned, real()));
     const json = JSON.stringify(ctx);
-    expect(json).not.toContain("score");
+    expect(json).not.toMatch(/"score"\s*:/);
     expect(json).not.toContain("classification");
     expect(json).not.toContain("hard");
     expect(ctx.diagnosis.length).toBeGreaterThan(0);
