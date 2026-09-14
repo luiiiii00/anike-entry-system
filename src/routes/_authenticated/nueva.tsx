@@ -182,7 +182,8 @@ function NuevaEvaluacion() {
           market: trade.market,
           session: trade.session,
           direction: (trade.direction as "LONG" | "SHORT" | null) ?? null,
-          setup: trade.setup,
+          setup: trade.setup || null,
+
           idea: trade.idea || null,
           answers,
           risk: risk as Record<string, number>,
