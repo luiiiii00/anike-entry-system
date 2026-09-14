@@ -218,9 +218,9 @@ const postTradeFnSource = readFileSync("src/lib/posttrade.functions.ts", "utf8")
 describe("aislamiento del motor de entrada", () => {
   it("20. la analítica no puede alterar el score de entrada", () => {
     const answers = { c1_1: "si", c1_2: "si" } as Record<string, string>;
-    const before = evaluate(answers, {}, undefined);
+    const before = evaluate({ answers, risk: {} });
     const a = analyzePostTradeAll(planned, real({ maxFavorablePrice: 120 }));
-    const after = evaluate(answers, {}, undefined);
+    const after = evaluate({ answers, risk: {} });
     expect(after.score).toBe(before.score);
     expect(after.classification).toBe(before.classification);
     // "scorecard" es análisis post-trade, no el score de entrada: no debe existir la clave exacta "score".
