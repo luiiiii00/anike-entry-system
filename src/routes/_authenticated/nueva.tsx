@@ -135,7 +135,7 @@ function NuevaEvaluacion() {
       market: d.market ?? MARKETS[0]!,
       session: d.session ?? SESSIONS[1]!,
       direction: d.direction ?? "LONG",
-      setup: d.setup ?? SETUPS[0]!,
+      setup: d.setup ?? "",
       idea: d.idea ?? "",
     });
     setAnswers(d.answers ?? {});
