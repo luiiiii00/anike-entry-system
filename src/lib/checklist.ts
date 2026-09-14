@@ -758,8 +758,110 @@ export const LEGACY_SECTIONS: { id: string; title: string; questions: Question[]
 ];
 
 /**
- * Setups oficiales, alineados con la checklist definitiva:
- * estructura/ejecución, patrones de cambio y patrones de continuidad.
+ * REGISTRO MAESTRO de los 5 SETUPS OFICIALES de ANIKE EJEPIKA.
+ * `id` es la identificación estable que se persiste en `evaluations.setup`
+ * (campo existente reutilizado: no se crea columna nueva).
+ * `focus` sólo señala qué criterios del CORE son los más relevantes del setup:
+ * NO altera pesos, gates, HARD ni la fórmula del score.
+ */
+export type OfficialSetupId =
+  | "REVERSION"
+  | "CONTINUACION"
+  | "RUPTURA_RETESTEO"
+  | "ZONA_FIBONACCI"
+  | "IMPULSO_PULLBACK";
+
+export type OfficialSetup = {
+  id: OfficialSetupId;
+  code: string;
+  name: string;
+  label: string;
+  description: string;
+  /** IDs de preguntas del CORE que este setup debe revisar con prioridad. */
+  focus: string[];
+};
+
+export const OFFICIAL_SETUPS: OfficialSetup[] = [
+  {
+    id: "REVERSION",
+    code: "S01",
+    name: "REVERSIÓN",
+    label: "S01 — REVERSIÓN",
+    description: "El precio agota su movimiento en zona y gira contra la última dirección.",
+    focus: [
+      "h1_pattern_change",
+      "h1_pattern_change_state",
+      "h1_rsi_div",
+      "h1_rsi_div_fibo",
+      "z_type",
+      "z_reacted",
+      "cf_price_action",
+    ],
+  },
+  {
+    id: "CONTINUACION",
+    code: "S02",
+    name: "CONTINUACIÓN",
+    label: "S02 — CONTINUACIÓN",
+    description: "La tendencia principal sigue vigente y el precio retoma su dirección.",
+    focus: [
+      "ctx_direction",
+      "ctx_swings",
+      "h1_structure",
+      "h1_pattern_cont",
+      "h1_pattern_cont_state",
+      "h1_macd",
+      "rc_room",
+    ],
+  },
+  {
+    id: "RUPTURA_RETESTEO",
+    code: "S03",
+    name: "RUPTURA + RETESTEO",
+    label: "S03 — RUPTURA + RETESTEO",
+    description: "La diagonal o el nivel se rompe y el precio vuelve a validarlo antes de continuar.",
+    focus: ["cf5_diag_break", "cf5_close", "cf5_retest", "cf5_retest_ok", "cf5_volume", "z_relevance"],
+  },
+  {
+    id: "ZONA_FIBONACCI",
+    code: "S04",
+    name: "ZONA + FIBONACCI",
+    label: "S04 — ZONA + FIBONACCI",
+    description: "Confluencia entre una zona relevante y un retroceso Fibonacci oficial.",
+    focus: ["h1_fibo", "h1_fibo_react", "h1_fibo_weak", "z_type", "z_relevance", "r_sl_fibo_ok"],
+  },
+  {
+    id: "IMPULSO_PULLBACK",
+    code: "S05",
+    name: "IMPULSO + PULLBACK",
+    label: "S05 — IMPULSO + PULLBACK",
+    description: "Tras un impulso con fuerza, el precio corrige y ofrece entrada a favor.",
+    focus: ["ctx_swings", "h1_structure", "h1_fibo", "cf5_rsi", "cf5_rsi_extended", "rc_target", "rc_rr2"],
+  },
+];
+
+export const OFFICIAL_SETUP_IDS = OFFICIAL_SETUPS.map((s) => s.id);
+
+/** Etiqueta legible de un setup guardado. Compatible con evaluaciones históricas. */
+export function setupLabel(value: string | null | undefined): string {
+  if (!value) return "Setup histórico / no especificado";
+  const found = OFFICIAL_SETUPS.find((s) => s.id === value);
+  return found ? found.label : value;
+}
+
+export function findOfficialSetup(value: string | null | undefined): OfficialSetup | null {
+  if (!value) return null;
+  return OFFICIAL_SETUPS.find((s) => s.id === value) ?? null;
+}
+
+/** Preguntas prioritarias del setup seleccionado (subconjunto del CORE existente). */
+export function setupFocusQuestions(value: string | null | undefined): string[] {
+  return findOfficialSetup(value)?.focus ?? [];
+}
+
+/**
+ * Patrones individuales (no son setups): siguen siendo criterios de la evaluación.
+ * Se conserva sólo para leer datos históricos y para las preferencias antiguas.
  */
 export const SETUP_GROUPS: { title: string; items: string[] }[] = [
   {
@@ -810,7 +912,8 @@ export const SETUP_GROUPS: { title: string; items: string[] }[] = [
   },
 ];
 
-export const SETUPS = SETUP_GROUPS.flatMap((g) => g.items);
+export const SETUPS = OFFICIAL_SETUP_IDS;
+
 
 export const MARKETS = ["Crypto", "Forex", "Índices", "Acciones", "Futuros", "Otro"];
 export const SESSIONS = ["Asia", "Londres", "Nueva York", "Overlap", "Fuera de sesión"];
