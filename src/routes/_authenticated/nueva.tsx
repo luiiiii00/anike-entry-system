@@ -8,7 +8,17 @@ import { QuestionList } from "@/components/QuestionGroup";
 import { ScoreDial } from "@/components/ScoreDial";
 import { SizingStatus } from "@/components/SizingStatus";
 import { TrafficLight } from "@/components/TrafficLight";
-import { FIBO_SL_RATIO, MARKETS, SECTIONS, SESSIONS, SETUPS, WIZARD_STEPS } from "@/lib/checklist";
+import {
+  FIBO_SL_RATIO,
+  MARKETS,
+  OFFICIAL_SETUPS,
+  SECTIONS,
+  SESSIONS,
+  setupFocusQuestions,
+  setupLabel,
+  WIZARD_STEPS,
+} from "@/lib/checklist";
+
 import {
   evaluate,
   computeRisk,
@@ -83,7 +93,7 @@ function NuevaEvaluacion() {
     market: MARKETS[0]!,
     session: SESSIONS[1]!,
     direction: "LONG",
-    setup: SETUPS[0]!,
+    setup: "",
     idea: "",
   });
   const [answers, setAnswers] = useState<Answers>({});
@@ -125,7 +135,7 @@ function NuevaEvaluacion() {
       market: d.market ?? MARKETS[0]!,
       session: d.session ?? SESSIONS[1]!,
       direction: d.direction ?? "LONG",
-      setup: d.setup ?? SETUPS[0]!,
+      setup: d.setup ?? "",
       idea: d.idea ?? "",
     });
     setAnswers(d.answers ?? {});
@@ -172,7 +182,8 @@ function NuevaEvaluacion() {
           market: trade.market,
           session: trade.session,
           direction: (trade.direction as "LONG" | "SHORT" | null) ?? null,
-          setup: trade.setup,
+          setup: trade.setup || null,
+
           idea: trade.idea || null,
           answers,
           risk: risk as Record<string, number>,
