@@ -695,7 +695,9 @@ export const SECTION_BY_ID = Object.fromEntries(SECTIONS.map((s) => [s.id, s])) 
 >;
 
 export const WIZARD_STEPS = [
+  { key: "setup", step: "S", title: "Setup" },
   { key: "trade", step: "00", title: "Comercio" },
+
   ...SECTIONS.filter((s) => s.id !== "comercio" && s.id !== "resultados").map((s) => ({
     key: s.id,
     step: s.step,
