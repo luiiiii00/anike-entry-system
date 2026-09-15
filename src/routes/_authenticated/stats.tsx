@@ -28,7 +28,9 @@ import {
   scoreVsResult,
   setupDistribution,
 } from "@/lib/stats";
+import { setupLabel } from "@/lib/checklist";
 import { useAuth } from "@/hooks/useAuth";
+
 
 export const Route = createFileRoute("/_authenticated/stats")({
   head: () => ({
@@ -63,7 +65,7 @@ function StatsPage() {
   const list = data ?? [];
   const stats = computeStats(list);
   const curve = equityCurve(list);
-  const dist = setupDistribution(list);
+  const dist = setupDistribution(list).map((d) => ({ ...d, name: setupLabel(d.name) }));
   const svr = scoreVsResult(list);
   const ls = longVsShort(list);
   const insights = buildInsights(list, stats);

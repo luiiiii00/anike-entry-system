@@ -249,7 +249,9 @@ export function buildInsights(list: Evaluation[], stats: Stats): string[] {
     );
   }
 
-  const rev = closed.filter((e) => e.setup === "Reversión");
+  // Setup oficial S01 (id estable) + etiqueta histórica anterior.
+  const rev = closed.filter((e) => e.setup === "REVERSION" || e.setup === "Reversión");
+
   if (rev.length >= 3) {
     insights.push(
       `Tus operaciones de reversión promedian ${mean(rev.map((e) => finite(e.result_r)!)).toFixed(2)}R en ${rev.length} registros.`,

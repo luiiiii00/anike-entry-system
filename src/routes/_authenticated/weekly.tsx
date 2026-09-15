@@ -7,6 +7,7 @@ import { AnikeAiPanel } from "@/components/AnikeAi";
 
 import { fetchEvaluations } from "@/lib/db";
 import { buildInsights, computeStats } from "@/lib/stats";
+import { setupLabel } from "@/lib/checklist";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -113,7 +114,7 @@ function Weekly() {
           label="Mejor setup"
           value={
             stats.bestSetup
-              ? `${stats.bestSetup} (${stats.bestSetupSample})`
+              ? `${setupLabel(stats.bestSetup)} (${stats.bestSetupSample})`
               : "Muestra insuficiente"
           }
         />
@@ -121,10 +122,11 @@ function Weekly() {
           label="Peor setup"
           value={
             stats.worstSetup
-              ? `${stats.worstSetup} (${stats.worstSetupSample})`
+              ? `${setupLabel(stats.worstSetup)} (${stats.worstSetupSample})`
               : "Muestra insuficiente"
           }
         />
+
         <Item label="Impulsivas" value={stats.impulsive} />
         <Item label="Fuera del plan" value={stats.offPlan} />
       </div>

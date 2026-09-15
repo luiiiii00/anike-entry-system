@@ -14,7 +14,7 @@ import { lightFor } from "@/components/TrafficLight";
 import { deleteEvaluation, fetchEvaluation, fetchSettings, saveTradeReflection } from "@/lib/db";
 import { PostTradeCalculator } from "@/components/PostTradeCalculator";
 import { PostTradeAnalytics } from "@/components/PostTradeAnalytics";
-import { LEGACY_SECTIONS, SECTIONS } from "@/lib/checklist";
+import { LEGACY_SECTIONS, SECTIONS, setupLabel } from "@/lib/checklist";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
@@ -124,7 +124,7 @@ function TradeDetail() {
   return (
     <AppShell
       title={data.asset ?? "Trade"}
-      subtitle={`${data.trade_date} · ${data.direction ?? "—"} · ${data.setup ?? "—"}`}
+      subtitle={`${data.trade_date} · ${data.direction ?? "—"} · ${setupLabel(data.setup)}`}
       action={
         <Link
           to="/journal"

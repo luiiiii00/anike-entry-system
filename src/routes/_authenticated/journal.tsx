@@ -10,7 +10,7 @@ import { createJournalTradeFn } from "@/lib/evaluations.functions";
 import { fetchAnalyzedEvaluationIds } from "@/lib/ai";
 
 import { useAuth } from "@/hooks/useAuth";
-import { SETUP_GROUPS } from "@/lib/checklist";
+import { OFFICIAL_SETUPS, setupLabel } from "@/lib/checklist";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/journal")({
@@ -111,13 +111,12 @@ function Journal() {
             className="mt-1.5 min-h-11 w-full rounded-xl border border-input bg-background px-3 text-base"
           >
             <option value="Todos">Todos</option>
-            {SETUP_GROUPS.map((g) => (
-              <optgroup key={g.title} label={g.title}>
-                {g.items.map((s) => (
-                  <option key={s}>{s}</option>
-                ))}
-              </optgroup>
+            {OFFICIAL_SETUPS.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
             ))}
+
           </select>
         </label>
 
@@ -194,7 +193,7 @@ function Journal() {
                     <td className={cn("px-3 py-3", e.direction === "SHORT" ? "text-stop" : "text-ok")}>
                       {e.direction ?? "—"}
                     </td>
-                    <td className="px-3 py-3">{e.setup ?? "—"}</td>
+                    <td className="px-3 py-3">{setupLabel(e.setup)}</td>
                     <td className="px-3 py-3 font-mono tabular-nums">{e.score ?? "—"}</td>
                     <td className="px-3 py-3 font-mono">
                       {e.risk?.riskPct ? `${e.risk.riskPct}%` : "—"}
@@ -286,7 +285,7 @@ function MobileCard({ e, analyzed }: { e: Evaluation; analyzed: boolean }) {
         <div>
           <p className="font-display text-base font-semibold">{e.asset ?? "—"}</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {e.trade_date} · {e.direction ?? "—"} · {e.setup ?? "—"}
+            {e.trade_date} · {e.direction ?? "—"} · {setupLabel(e.setup)}
           </p>
         </div>
         <div className="text-right">

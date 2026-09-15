@@ -215,11 +215,17 @@ function NuevaEvaluacion() {
   }
 
   async function finish(decisionValue: "registrado" | "no_trade") {
-    if (!trade.asset.trim()) {
-      toast.error("Falta el activo. Vuelve al paso 00 Trade.");
+    if (!trade.setup) {
+      toast.error("Selecciona tu setup antes de finalizar.");
       setStep(0);
       return;
     }
+    if (!trade.asset.trim()) {
+      toast.error("Falta el activo. Vuelve al paso 00 Trade.");
+      setStep(1);
+      return;
+    }
+
     if (
       decisionValue === "registrado" &&
       (decision.blocked || decision.finalState === "DESCARTADA")
@@ -259,9 +265,17 @@ function NuevaEvaluacion() {
           {WIZARD_STEPS.map((s, i) => (
             <button
               key={s.key}
-              onClick={() => setStep(i)}
+              onClick={() => {
+                if (i > 0 && !trade.setup) {
+                  toast.error("Selecciona tu setup para comenzar la evaluación.");
+                  setStep(0);
+                  return;
+                }
+                setStep(i);
+              }}
+              disabled={i > 0 && !trade.setup}
               className={cn(
-                "shrink-0 rounded-lg px-2.5 py-1 font-mono text-[11px] tracking-widest transition-colors",
+                "shrink-0 rounded-lg px-2.5 py-1 font-mono text-[11px] tracking-widest transition-colors disabled:opacity-40",
                 i === step
                   ? "bg-primary/20 text-primary"
                   : "text-muted-foreground hover:text-foreground",
@@ -273,8 +287,30 @@ function NuevaEvaluacion() {
         </div>
       </div>
 
+      {trade.setup && step > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2">
+          <span className="label-mono text-primary">SETUP SELECCIONADO</span>
+          <span className="text-sm font-semibold">{setupLabel(trade.setup)}</span>
+          <button
+            onClick={() => setStep(0)}
+            className="ml-auto text-xs text-muted-foreground underline"
+          >
+            Cambiar
+          </button>
+        </div>
+      )}
+
       <div className="mt-5 animate-fade">
+        {currentStep.key === "setup" && (
+          <SetupStep
+            selected={trade.setup}
+            onSelect={(id) => setTrade((t) => ({ ...t, setup: id }))}
+          />
+        )}
+
         {currentStep.key === "trade" && <TradeStep trade={trade} setTrade={setTrade} />}
+
+
 
         {section && section.id !== "riesgo" && section.id !== "disciplina" && (
           <div className="space-y-6">
@@ -374,16 +410,85 @@ function NuevaEvaluacion() {
           <Save className="h-4 w-4" /> Guardar borrador
         </button>
         <button
-          onClick={() => setStep((s) => Math.min(WIZARD_STEPS.length - 1, s + 1))}
-          disabled={step === WIZARD_STEPS.length - 1}
+          onClick={() => {
+            if (!trade.setup) {
+              toast.error("Selecciona tu setup para comenzar la evaluación.");
+              setStep(0);
+              return;
+            }
+            setStep((s) => Math.min(WIZARD_STEPS.length - 1, s + 1));
+          }}
+          disabled={step === WIZARD_STEPS.length - 1 || !trade.setup}
           className="inline-flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-40 sm:flex-none"
         >
           Siguiente <ChevronRight className="h-4 w-4" />
         </button>
+
       </div>
     </AppShell>
   );
 }
+
+/**
+ * Paso S — SELECCIONA TU SETUP.
+ * Únicos setups oficiales: los 5 de OFFICIAL_SETUPS. Los patrones individuales
+ * siguen siendo criterios/preguntas del CORE y no aparecen aquí.
+ */
+function SetupStep({
+  selected,
+  onSelect,
+}: {
+  selected: string;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="panel p-4">
+        <p className="font-display text-lg font-semibold tracking-wide">SELECCIONA TU SETUP</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Elige un único setup oficial. La evaluación usa el mismo CORE ANIKE EJEPIKA en los cinco
+          casos: no cambia pesos, gates ni reglas.
+        </p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {OFFICIAL_SETUPS.map((s) => {
+          const on = selected === s.id;
+          return (
+            <button
+              key={s.id}
+              onClick={() => onSelect(s.id)}
+              aria-pressed={on}
+              className={cn(
+                "panel min-h-24 p-4 text-left transition-all",
+                on
+                  ? "border-primary bg-primary/10 ring-1 ring-primary/40"
+                  : "border-border bg-surface-2 hover:border-primary/40",
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className={cn("label-mono", on && "text-primary")}>{s.code}</span>
+                {on && <span className="label-mono text-primary">SELECCIONADO</span>}
+              </div>
+              <p className="mt-1.5 font-display text-base font-semibold">{s.name}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{s.description}</p>
+              <p className="mt-2 font-mono text-[11px] text-muted-foreground">
+                {setupFocusQuestions(s.id).length} criterios prioritarios del CORE
+              </p>
+            </button>
+          );
+        })}
+      </div>
+
+      {!selected && (
+        <p className="text-xs text-warn">
+          Debes seleccionar un setup para continuar con la evaluación.
+        </p>
+      )}
+    </div>
+  );
+}
+
 
 function TradeStep({
   trade,
@@ -459,24 +564,14 @@ function TradeStep({
       </div>
 
       <div className="panel p-4">
-        <p className="label-mono">Setup</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {SETUPS.map((s) => (
-            <button
-              key={s}
-              onClick={() => set("setup", s)}
-              className={cn(
-                "min-h-11 rounded-xl border px-4 text-sm transition-all",
-                trade.setup === s
-                  ? "border-primary bg-primary/15"
-                  : "border-border bg-surface-2 text-muted-foreground",
-              )}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
+        <p className="label-mono">Setup seleccionado</p>
+        <p className="mt-2 text-sm font-semibold text-primary">{setupLabel(trade.setup)}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Se elige en el paso S. Los patrones individuales son criterios de la evaluación, no
+          setups.
+        </p>
       </div>
+
 
       <div className="panel p-4">
         <label className="block">
