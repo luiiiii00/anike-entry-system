@@ -113,7 +113,7 @@ function Weekly() {
           label="Mejor setup"
           value={
             stats.bestSetup
-              ? `${stats.bestSetup} (${stats.bestSetupSample})`
+              ? `${setupLabel(stats.bestSetup)} (${stats.bestSetupSample})`
               : "Muestra insuficiente"
           }
         />
@@ -121,10 +121,11 @@ function Weekly() {
           label="Peor setup"
           value={
             stats.worstSetup
-              ? `${stats.worstSetup} (${stats.worstSetupSample})`
+              ? `${setupLabel(stats.worstSetup)} (${stats.worstSetupSample})`
               : "Muestra insuficiente"
           }
         />
+
         <Item label="Impulsivas" value={stats.impulsive} />
         <Item label="Fuera del plan" value={stats.offPlan} />
       </div>
