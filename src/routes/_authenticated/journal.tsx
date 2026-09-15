@@ -10,7 +10,7 @@ import { createJournalTradeFn } from "@/lib/evaluations.functions";
 import { fetchAnalyzedEvaluationIds } from "@/lib/ai";
 
 import { useAuth } from "@/hooks/useAuth";
-import { SETUP_GROUPS } from "@/lib/checklist";
+import { OFFICIAL_SETUPS, setupLabel } from "@/lib/checklist";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/journal")({
