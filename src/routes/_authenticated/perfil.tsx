@@ -126,31 +126,30 @@ function Perfil() {
 
       <div className="panel mt-4 p-4">
         <p className="label-mono">Setups preferidos</p>
-        {SETUP_GROUPS.map((g) => (
-          <div key={g.title} className="mt-4">
-            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{g.title}</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {g.items.map((s) => {
-                const on = setups.includes(s);
-                return (
-                  <button
-                    key={s}
-                    onClick={() => setSetups((p) => (on ? p.filter((x) => x !== s) : [...p, s]))}
-                    className={cn(
-                      "min-h-11 rounded-xl border px-3 text-sm",
-                      on
-                        ? "border-primary bg-primary/15"
-                        : "border-border bg-surface-2 text-muted-foreground",
-                    )}
-                  >
-                    {s}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+        <p className="mt-1 text-xs text-muted-foreground">
+          Los cinco setups oficiales de ANIKE EJEPIKA.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {OFFICIAL_SETUPS.map((s) => {
+            const on = setups.includes(s.id);
+            return (
+              <button
+                key={s.id}
+                onClick={() => setSetups((p) => (on ? p.filter((x) => x !== s.id) : [...p, s.id]))}
+                className={cn(
+                  "min-h-11 rounded-xl border px-3 text-sm",
+                  on
+                    ? "border-primary bg-primary/15"
+                    : "border-border bg-surface-2 text-muted-foreground",
+                )}
+              >
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
+
 
 
       <ProtectionLog />
