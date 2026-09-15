@@ -28,7 +28,9 @@ import {
   scoreVsResult,
   setupDistribution,
 } from "@/lib/stats";
+import { setupLabel } from "@/lib/checklist";
 import { useAuth } from "@/hooks/useAuth";
+
 
 export const Route = createFileRoute("/_authenticated/stats")({
   head: () => ({
