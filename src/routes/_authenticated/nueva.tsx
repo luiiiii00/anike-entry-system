@@ -259,9 +259,17 @@ function NuevaEvaluacion() {
           {WIZARD_STEPS.map((s, i) => (
             <button
               key={s.key}
-              onClick={() => setStep(i)}
+              onClick={() => {
+                if (i > 0 && !trade.setup) {
+                  toast.error("Selecciona tu setup para comenzar la evaluación.");
+                  setStep(0);
+                  return;
+                }
+                setStep(i);
+              }}
+              disabled={i > 0 && !trade.setup}
               className={cn(
-                "shrink-0 rounded-lg px-2.5 py-1 font-mono text-[11px] tracking-widest transition-colors",
+                "shrink-0 rounded-lg px-2.5 py-1 font-mono text-[11px] tracking-widest transition-colors disabled:opacity-40",
                 i === step
                   ? "bg-primary/20 text-primary"
                   : "text-muted-foreground hover:text-foreground",
@@ -273,8 +281,30 @@ function NuevaEvaluacion() {
         </div>
       </div>
 
+      {trade.setup && step > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2">
+          <span className="label-mono text-primary">SETUP SELECCIONADO</span>
+          <span className="text-sm font-semibold">{setupLabel(trade.setup)}</span>
+          <button
+            onClick={() => setStep(0)}
+            className="ml-auto text-xs text-muted-foreground underline"
+          >
+            Cambiar
+          </button>
+        </div>
+      )}
+
       <div className="mt-5 animate-fade">
+        {currentStep.key === "setup" && (
+          <SetupStep
+            selected={trade.setup}
+            onSelect={(id) => setTrade((t) => ({ ...t, setup: id }))}
+          />
+        )}
+
         {currentStep.key === "trade" && <TradeStep trade={trade} setTrade={setTrade} />}
+
+
 
         {section && section.id !== "riesgo" && section.id !== "disciplina" && (
           <div className="space-y-6">
