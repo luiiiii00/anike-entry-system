@@ -7,6 +7,7 @@ import { AnikeAiPanel } from "@/components/AnikeAi";
 
 import { fetchEvaluations } from "@/lib/db";
 import { buildInsights, computeStats } from "@/lib/stats";
+import { setupLabel } from "@/lib/checklist";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
