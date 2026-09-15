@@ -285,7 +285,7 @@ function MobileCard({ e, analyzed }: { e: Evaluation; analyzed: boolean }) {
         <div>
           <p className="font-display text-base font-semibold">{e.asset ?? "—"}</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {e.trade_date} · {e.direction ?? "—"} · {e.setup ?? "—"}
+            {e.trade_date} · {e.direction ?? "—"} · {setupLabel(e.setup)}
           </p>
         </div>
         <div className="text-right">
