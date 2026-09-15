@@ -374,12 +374,20 @@ function NuevaEvaluacion() {
           <Save className="h-4 w-4" /> Guardar borrador
         </button>
         <button
-          onClick={() => setStep((s) => Math.min(WIZARD_STEPS.length - 1, s + 1))}
-          disabled={step === WIZARD_STEPS.length - 1}
+          onClick={() => {
+            if (!trade.setup) {
+              toast.error("Selecciona tu setup para comenzar la evaluación.");
+              setStep(0);
+              return;
+            }
+            setStep((s) => Math.min(WIZARD_STEPS.length - 1, s + 1));
+          }}
+          disabled={step === WIZARD_STEPS.length - 1 || !trade.setup}
           className="inline-flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-40 sm:flex-none"
         >
           Siguiente <ChevronRight className="h-4 w-4" />
         </button>
+
       </div>
     </AppShell>
   );
