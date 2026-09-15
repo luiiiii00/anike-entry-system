@@ -429,6 +429,67 @@ function NuevaEvaluacion() {
   );
 }
 
+/**
+ * Paso S — SELECCIONA TU SETUP.
+ * Únicos setups oficiales: los 5 de OFFICIAL_SETUPS. Los patrones individuales
+ * siguen siendo criterios/preguntas del CORE y no aparecen aquí.
+ */
+function SetupStep({
+  selected,
+  onSelect,
+}: {
+  selected: string;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="panel p-4">
+        <p className="font-display text-lg font-semibold tracking-wide">SELECCIONA TU SETUP</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Elige un único setup oficial. La evaluación usa el mismo CORE ANIKE EJEPIKA en los cinco
+          casos: no cambia pesos, gates ni reglas.
+        </p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {OFFICIAL_SETUPS.map((s) => {
+          const on = selected === s.id;
+          return (
+            <button
+              key={s.id}
+              onClick={() => onSelect(s.id)}
+              aria-pressed={on}
+              className={cn(
+                "panel min-h-24 p-4 text-left transition-all",
+                on
+                  ? "border-primary bg-primary/10 ring-1 ring-primary/40"
+                  : "border-border bg-surface-2 hover:border-primary/40",
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className={cn("label-mono", on && "text-primary")}>{s.code}</span>
+                {on && <span className="label-mono text-primary">SELECCIONADO</span>}
+              </div>
+              <p className="mt-1.5 font-display text-base font-semibold">{s.name}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{s.description}</p>
+              <p className="mt-2 font-mono text-[11px] text-muted-foreground">
+                {setupFocusQuestions(s.id).length} criterios prioritarios del CORE
+              </p>
+            </button>
+          );
+        })}
+      </div>
+
+      {!selected && (
+        <p className="text-xs text-warn">
+          Debes seleccionar un setup para continuar con la evaluación.
+        </p>
+      )}
+    </div>
+  );
+}
+
+
 function TradeStep({
   trade,
   setTrade,
