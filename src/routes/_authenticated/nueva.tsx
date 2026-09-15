@@ -459,24 +459,14 @@ function TradeStep({
       </div>
 
       <div className="panel p-4">
-        <p className="label-mono">Setup</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {SETUPS.map((s) => (
-            <button
-              key={s}
-              onClick={() => set("setup", s)}
-              className={cn(
-                "min-h-11 rounded-xl border px-4 text-sm transition-all",
-                trade.setup === s
-                  ? "border-primary bg-primary/15"
-                  : "border-border bg-surface-2 text-muted-foreground",
-              )}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
+        <p className="label-mono">Setup seleccionado</p>
+        <p className="mt-2 text-sm font-semibold text-primary">{setupLabel(trade.setup)}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Se elige en el paso S. Los patrones individuales son criterios de la evaluación, no
+          setups.
+        </p>
       </div>
+
 
       <div className="panel p-4">
         <label className="block">
