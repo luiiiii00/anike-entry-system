@@ -111,13 +111,12 @@ function Journal() {
             className="mt-1.5 min-h-11 w-full rounded-xl border border-input bg-background px-3 text-base"
           >
             <option value="Todos">Todos</option>
-            {SETUP_GROUPS.map((g) => (
-              <optgroup key={g.title} label={g.title}>
-                {g.items.map((s) => (
-                  <option key={s}>{s}</option>
-                ))}
-              </optgroup>
+            {OFFICIAL_SETUPS.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
             ))}
+
           </select>
         </label>
 
