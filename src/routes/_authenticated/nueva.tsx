@@ -215,11 +215,17 @@ function NuevaEvaluacion() {
   }
 
   async function finish(decisionValue: "registrado" | "no_trade") {
-    if (!trade.asset.trim()) {
-      toast.error("Falta el activo. Vuelve al paso 00 Trade.");
+    if (!trade.setup) {
+      toast.error("Selecciona tu setup antes de finalizar.");
       setStep(0);
       return;
     }
+    if (!trade.asset.trim()) {
+      toast.error("Falta el activo. Vuelve al paso 00 Trade.");
+      setStep(1);
+      return;
+    }
+
     if (
       decisionValue === "registrado" &&
       (decision.blocked || decision.finalState === "DESCARTADA")
