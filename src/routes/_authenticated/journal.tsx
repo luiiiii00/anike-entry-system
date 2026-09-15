@@ -193,7 +193,7 @@ function Journal() {
                     <td className={cn("px-3 py-3", e.direction === "SHORT" ? "text-stop" : "text-ok")}>
                       {e.direction ?? "—"}
                     </td>
-                    <td className="px-3 py-3">{e.setup ?? "—"}</td>
+                    <td className="px-3 py-3">{setupLabel(e.setup)}</td>
                     <td className="px-3 py-3 font-mono tabular-nums">{e.score ?? "—"}</td>
                     <td className="px-3 py-3 font-mono">
                       {e.risk?.riskPct ? `${e.risk.riskPct}%` : "—"}
