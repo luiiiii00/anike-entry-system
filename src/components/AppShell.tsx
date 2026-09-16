@@ -90,6 +90,7 @@ export function AppShell({
             <SideLink key={item.label} {...item} />
           ))}
           {isAdmin && <SideLink to="/admin" label="Administración" icon={Shield} />}
+          {isAdmin && <SideLink to="/admin-preguntas" label="Editor de preguntas" icon={BookOpen} />}
 
         </nav>
         <button
