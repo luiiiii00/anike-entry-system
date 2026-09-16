@@ -389,7 +389,7 @@ describe("matriz definitiva S01–S05 (documento maestro)", () => {
   test("los criterios nuevos usan la escala oficial 1 / 0,75 / 0,50 / 0,25 / 0", () => {
     const all = SECTIONS.flatMap((s) => s.groups.flatMap((g) => g.questions));
     const specific = all.filter((q) => /^s0[1-5]_/.test(q.id));
-    expect(specific.length).toBe(56);
+    expect(specific.length).toBe(57);
     for (const q of specific) {
       expect(q.options.map((o) => o.pts)).toEqual([1, 0.75, 0.5, 0.25, 0]);
       expect(q.options.some((o) => o.na)).toBe(false);
