@@ -1144,12 +1144,21 @@ function withSetupQuestions(sections: Section[]): Section[] {
   }));
 }
 
-export const SECTIONS: Section[] = withoutNaOptions(withSetupQuestions(SECTIONS_SOURCE));
+/** Cuestionario base definido en código (sin ediciones del editor de preguntas). */
+export const BASE_SECTIONS: Section[] = withoutNaOptions(withSetupQuestions(SECTIONS_SOURCE));
 
-export const SECTION_BY_ID = Object.fromEntries(SECTIONS.map((s) => [s.id, s])) as Record<
-  SectionId,
-  Section
->;
+function sectionsById(sections: Section[]): Record<SectionId, Section> {
+  return Object.fromEntries(sections.map((s) => [s.id, s])) as Record<SectionId, Section>;
+}
+
+/**
+ * Cuestionario ACTIVO. Se deriva del cuestionario base más la capa de ediciones
+ * publicada desde el editor de administración (`applyChecklistOverlay`).
+ * Es un binding vivo: los módulos que lo importan ven siempre la versión activa.
+ */
+export let SECTIONS: Section[] = BASE_SECTIONS;
+
+export let SECTION_BY_ID: Record<SectionId, Section> = sectionsById(BASE_SECTIONS);
 
 export const WIZARD_STEPS = [
   { key: "setup", step: "S", title: "Setup" },
