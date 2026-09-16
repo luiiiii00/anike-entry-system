@@ -1,7 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ChevronLeft, ChevronRight, Save, X } from "lucide-react";
+import { AlertTriangle, Check, ChevronLeft, ChevronRight, Lock, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { QuestionList } from "@/components/QuestionGroup";
@@ -9,17 +9,18 @@ import { ScoreDial } from "@/components/ScoreDial";
 import { SizingStatus } from "@/components/SizingStatus";
 import { TrafficLight } from "@/components/TrafficLight";
 import {
+  EVALUATION_SETUPS,
   FIBO_SL_RATIO,
   MARKETS,
-  OFFICIAL_SETUPS,
   SECTIONS,
   SESSIONS,
   answersForSetup,
-  getQuestionsForSetup,
+  evaluationBlocks,
+  getActiveQuestionsBySetup,
   missingActiveAnswers,
-  sectionGroupsForSetup,
+  missingInBlock,
   setupLabel,
-  WIZARD_STEPS,
+  type EvaluationBlock,
 } from "@/lib/checklist";
 
 import {
@@ -47,10 +48,14 @@ export const Route = createFileRoute("/_authenticated/nueva")({
       { title: "Nueva evaluación — ANIKE EJEPIKA" },
       {
         name: "description",
-        content: "Checklist de 11 pasos para validar tu idea antes de entrar al mercado.",
+        content:
+          "Terminal de validación de entrada: bloques secuenciales 00 → 08 con la matriz del setup elegido.",
       },
       { property: "og:title", content: "Nueva evaluación — ANIKE EJEPIKA" },
-      { property: "og:description", content: "Checklist de 11 pasos antes de entrar al mercado." },
+      {
+        property: "og:description",
+        content: "Valida tu entrada bloque por bloque antes de operar.",
+      },
     ],
   }),
   component: NuevaEvaluacion,
@@ -87,8 +92,10 @@ function NuevaEvaluacion() {
   });
 
   const [evalId, setEvalId] = useState<string | undefined>(id);
+  /** 0 = selección de setup · 1..n = bloques 00–08 · n+1 = decisión. */
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [blockError, setBlockError] = useState<string | null>(null);
   const [trade, setTrade] = useState<TradeInfo>({
     trade_no: null,
     trade_date: new Date().toISOString().slice(0, 10),
@@ -109,7 +116,6 @@ function NuevaEvaluacion() {
 
   useEffect(() => {
     if (!settings) return;
-    setTrade((t) => (t.trade_no === null ? t : t));
     setRisk((r) =>
       r.capital === undefined
         ? {
@@ -145,10 +151,10 @@ function NuevaEvaluacion() {
       idea: d.idea ?? "",
     });
     // Al reabrir una evaluación se reconstruye el cuestionario desde el setup guardado.
-    // Sin setup oficial (histórico) se muestran las respuestas tal como se guardaron.
+    // Sin setup reconocido (histórico) se muestran las respuestas tal como se guardaron.
     const loaded = (d.answers ?? {}) as Answers;
     setAnswers(
-      getQuestionsForSetup(d.setup).length > 0 ? answersForSetup(loaded, d.setup) : loaded,
+      getActiveQuestionsBySetup(d.setup).length > 0 ? answersForSetup(loaded, d.setup) : loaded,
     );
     setRisk(d.risk ?? {});
   }, [draftQuery.data]);
@@ -166,16 +172,73 @@ function NuevaEvaluacion() {
       market: trade.market ?? null,
     });
   }, [answers, risk, settings, trade.setup, trade.direction, trade.market, catalog.stamp]);
+
   const metrics = useMemo(
     () => computeRisk(risk, trade.direction, { market: trade.market ?? null }),
     [risk, trade.direction, trade.market],
   );
 
-  const currentStep = WIZARD_STEPS[step]!;
-  const section = SECTIONS.find((s) => s.id === currentStep.key);
+  // Bloques secuenciales de la matriz activa: 00 Comercio → 08 Disciplina.
+  const blocks = useMemo<EvaluationBlock[]>(() => {
+    void catalog.stamp;
+    return evaluationBlocks(trade.setup);
+  }, [trade.setup, catalog.stamp]);
+
+  const lastStep = blocks.length + 1;
+  const currentBlock = step >= 1 && step <= blocks.length ? blocks[step - 1] : undefined;
 
   function setAnswer(qid: string, value: string) {
+    setBlockError(null);
     setAnswers((prev) => ({ ...prev, [qid]: value }));
+  }
+
+  function goTo(next: number) {
+    setBlockError(null);
+    setStep(next);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  /** No se puede avanzar mientras el bloque actual esté incompleto. */
+  function goNext() {
+    if (step === 0) {
+      if (!trade.setup) {
+        toast.error("Selecciona un tipo de evaluación para comenzar.");
+        return;
+      }
+      goTo(1);
+      return;
+    }
+    if (currentBlock) {
+      if (currentBlock.id === "comercio" && !trade.asset.trim()) {
+        setBlockError("Falta el activo de la operación.");
+        return;
+      }
+      if (missingInBlock(answers, trade.setup, currentBlock.id).length > 0) {
+        setBlockError("Completa todas las preguntas antes de continuar.");
+        return;
+      }
+    }
+    goTo(Math.min(lastStep, step + 1));
+  }
+
+  function selectSetup(nextSetup: string) {
+    if (nextSetup === trade.setup) return;
+    const hasAnswers = Object.keys(answers).length > 0;
+    if (
+      hasAnswers &&
+      typeof window !== "undefined" &&
+      !window.confirm(
+        "Cambiar el tipo de evaluación carga otra matriz de preguntas. Las respuestas que no pertenezcan a la nueva matriz se descartarán. ¿Continuar?",
+      )
+    ) {
+      return;
+    }
+    setTrade((t) => ({ ...t, setup: nextSetup }));
+    // Cambiar de setup reconstruye el cuestionario: las respuestas del setup
+    // anterior no contaminan la nueva matriz.
+    setAnswers((prev) => answersForSetup(prev, nextSetup));
+    setBlockError(null);
+    setStep(0);
   }
 
   async function persist(status: "draft" | "completed", decisionValue?: string) {
@@ -227,28 +290,23 @@ function NuevaEvaluacion() {
 
   async function finish(decisionValue: "registrado" | "no_trade") {
     if (!trade.setup) {
-      toast.error("Selecciona tu setup antes de finalizar.");
-      setStep(0);
+      toast.error("Selecciona el tipo de evaluación antes de finalizar.");
+      goTo(0);
       return;
     }
     if (!trade.asset.trim()) {
-      toast.error("Falta el activo. Vuelve al paso 00 Trade.");
-      setStep(1);
+      toast.error("Falta el activo. Vuelve al bloque 00 Comercio.");
+      goTo(1);
       return;
     }
 
-    // Toda pregunta del cuestionario activo es obligatoria: no hay "No aplica".
+    // Toda pregunta de la matriz activa es obligatoria: no hay "No aplica".
     const missing = missingActiveAnswers(answers, trade.setup);
     if (missing.length > 0) {
       const first = missing[0]!;
       toast.error(`Faltan ${missing.length} respuestas obligatorias del cuestionario.`);
-      const sectionIndex = WIZARD_STEPS.findIndex(
-        (w) =>
-          SECTIONS.find((sec) => sec.id === w.key)
-            ?.groups.flatMap((g) => g.questions)
-            .some((q) => q.id === first) ?? false,
-      );
-      if (sectionIndex >= 0) setStep(sectionIndex);
+      const index = blocks.findIndex((b) => b.questions.some((q) => q.id === first));
+      if (index >= 0) goTo(index + 1);
       return;
     }
 
@@ -267,7 +325,15 @@ function NuevaEvaluacion() {
     router.navigate({ to: "/trade/$id", params: { id: saved.id } });
   }
 
-  const progress = ((step + 1) / WIZARD_STEPS.length) * 100;
+  const completedBlocks = blocks.filter(
+    (b) => missingInBlock(answers, trade.setup, b.id).length === 0,
+  ).length;
+  const progress =
+    blocks.length === 0
+      ? 0
+      : step === 0
+        ? 0
+        : Math.round((Math.min(completedBlocks, blocks.length) / blocks.length) * 100);
 
   if (!catalog.ready) {
     return (
@@ -279,8 +345,14 @@ function NuevaEvaluacion() {
 
   return (
     <AppShell
-      title="Nueva evaluación"
-      subtitle={`${currentStep.step} ${currentStep.title}`}
+      title="Evaluación"
+      subtitle={
+        step === 0
+          ? "Selecciona el tipo de evaluación"
+          : currentBlock
+            ? `${currentBlock.step} — ${currentBlock.title.toUpperCase()}`
+            : "Decisión CORE"
+      }
       action={
         <button
           onClick={exitAndContinue}
@@ -290,137 +362,171 @@ function NuevaEvaluacion() {
         </button>
       }
     >
-      <div className="sticky top-[92px] z-10 -mx-4 bg-background/90 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6">
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
-          <div
-            className="h-full rounded-full bg-primary transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {WIZARD_STEPS.map((s, i) => (
+      {step > 0 && (
+        <div className="sticky top-[92px] z-10 -mx-4 border-b border-border/60 bg-background/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <p className="font-display text-sm font-semibold tracking-wide text-primary">
+              {setupLabel(trade.setup)}
+            </p>
+            <p className="font-mono text-[11px] tabular-nums text-muted-foreground">
+              {progress}% · {completedBlocks}/{blocks.length} bloques
+            </p>
+          </div>
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {blocks.map((b, i) => {
+              const done = missingInBlock(answers, trade.setup, b.id).length === 0;
+              const active = step === i + 1;
+              const reachable = i + 1 <= step || done;
+              return (
+                <button
+                  key={b.id}
+                  onClick={() => (reachable ? goTo(i + 1) : undefined)}
+                  disabled={!reachable}
+                  className={cn(
+                    "shrink-0 rounded-lg border px-2 py-1 font-mono text-[11px] tracking-widest transition-colors",
+                    active
+                      ? "border-primary/60 bg-primary/15 text-primary"
+                      : done
+                        ? "border-ok/40 bg-ok-soft/25 text-ok"
+                        : "border-border text-muted-foreground",
+                    !reachable && "opacity-45",
+                  )}
+                >
+                  {done && !active ? "✓" : active ? "●" : "○"} {b.step}
+                </button>
+              );
+            })}
             <button
-              key={s.key}
-              onClick={() => {
-                if (i > 0 && !trade.setup) {
-                  toast.error("Selecciona tu setup para comenzar la evaluación.");
-                  setStep(0);
-                  return;
-                }
-                setStep(i);
-              }}
-              disabled={i > 0 && !trade.setup}
+              onClick={() => (completedBlocks === blocks.length ? goTo(lastStep) : undefined)}
+              disabled={completedBlocks !== blocks.length}
               className={cn(
-                "shrink-0 rounded-lg px-2.5 py-1 font-mono text-[11px] tracking-widest transition-colors disabled:opacity-40",
-                i === step
-                  ? "bg-primary/20 text-primary"
-                  : "text-muted-foreground hover:text-foreground",
+                "shrink-0 rounded-lg border px-2 py-1 font-mono text-[11px] tracking-widest",
+                step === lastStep
+                  ? "border-primary/60 bg-primary/15 text-primary"
+                  : "border-border text-muted-foreground",
+                completedBlocks !== blocks.length && "opacity-45",
               )}
             >
-              {s.step} {s.title.toUpperCase()}
+              ◆ DECISIÓN
             </button>
-          ))}
-        </div>
-      </div>
-
-      {trade.setup && step > 0 && (
-        <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2">
-          <span className="label-mono text-primary">SETUP SELECCIONADO</span>
-          <span className="text-sm font-semibold">{setupLabel(trade.setup)}</span>
-          <button
-            onClick={() => setStep(0)}
-            className="ml-auto text-xs text-muted-foreground underline"
-          >
-            Cambiar
-          </button>
+          </div>
         </div>
       )}
 
       <div className="mt-5 animate-fade">
-        {currentStep.key === "setup" && (
-          <SetupStep
-            selected={trade.setup}
-            onSelect={(id) => {
-              if (id === trade.setup) return;
-              setTrade((t) => ({ ...t, setup: id }));
-              // Cambiar de setup reconstruye el cuestionario: las respuestas del
-              // setup anterior no contaminan el nuevo.
-              setAnswers((prev) => answersForSetup(prev, id));
-            }}
-          />
-        )}
+        {step === 0 && <SetupStep selected={trade.setup} onSelect={selectSetup} />}
 
-        {currentStep.key === "trade" && <TradeStep trade={trade} setTrade={setTrade} />}
-
-        {section && section.id !== "riesgo" && section.id !== "disciplina" && (
-          <div className="space-y-6">
-            {sectionGroupsForSetup(section, trade.setup).map((g, i) => (
-              <QuestionList
-                key={i}
-                groupTitle={g.title}
-                questions={g.questions}
-                answers={answers}
-                onChange={setAnswer}
-              />
+        {currentBlock && (
+          <div className="space-y-4">
+            {/* Bloques anteriores: cerrados, accesibles para modificar respuestas. */}
+            {blocks.slice(0, step - 1).map((b, i) => (
+              <button
+                key={b.id}
+                onClick={() => goTo(i + 1)}
+                className="flex w-full items-center gap-3 rounded-xl border border-border bg-surface-2/60 px-4 py-3 text-left"
+              >
+                <Check className="h-4 w-4 text-ok" />
+                <span className="font-mono text-xs tracking-widest text-muted-foreground">
+                  {b.step}
+                </span>
+                <span className="text-sm text-foreground/80">{b.title}</span>
+                <span className="ml-auto text-[11px] text-muted-foreground">Modificar</span>
+              </button>
             ))}
-          </div>
-        )}
 
-        {section?.id === "riesgo" && (
-          <div className="space-y-5">
-            <RiskPanel
-              risk={risk}
-              setRisk={setRisk}
-              currency={settings?.currency ?? "USD"}
-              maxRiskPct={Number(settings?.max_risk_pct ?? 1)}
-              minRR={Number(settings?.min_rr ?? 2)}
-              direction={trade.direction}
-              market={trade.market}
-            />
-            {sectionGroupsForSetup(section, trade.setup).map((g, i) => (
-              <QuestionList
-                key={i}
-                questions={g.questions}
-                answers={answers}
-                onChange={setAnswer}
-              />
-            ))}
-          </div>
-        )}
-
-        {section?.id === "disciplina" && (
-          <div className="space-y-5">
-            <div className="panel border-warn/30 bg-warn-soft/25 p-4">
-              <p className="label-mono">Filtro psicológico</p>
-              <p className="mt-1.5 text-sm text-muted-foreground">
-                Responde con honestidad. Este filtro no juzga tu análisis: revisa el motivo real de
-                la entrada.
-              </p>
-            </div>
-            {sectionGroupsForSetup(section, trade.setup).map((g, i) => (
-              <QuestionList
-                key={i}
-                questions={g.questions}
-                answers={answers}
-                onChange={setAnswer}
-              />
-            ))}
-            {decision.emotional && (
-              <div className="panel animate-rise border-stop/50 bg-stop-soft/40 p-5">
-                <div className="flex items-center gap-2 text-stop">
-                  <AlertTriangle className="h-5 w-5" />
-                  <p className="font-display text-lg font-semibold">EMOTIONAL STOP</p>
-                </div>
-                <p className="mt-2 text-sm text-foreground/90">
-                  La operación presenta una señal de comportamiento impulsivo. Detén la ejecución y
-                  vuelve a evaluar tu plan.
-                </p>
+            <section className="panel border-primary/25 p-4 sm:p-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-lg bg-primary/15 px-2 py-1 font-mono text-xs tracking-widest text-primary">
+                  {currentBlock.step}
+                </span>
+                <h2 className="font-display text-lg font-semibold tracking-wide">
+                  {currentBlock.title.toUpperCase()}
+                </h2>
+                <span className="ml-auto font-mono text-[11px] text-muted-foreground">
+                  {currentBlock.questions.length - missingInBlock(answers, trade.setup, currentBlock.id).length}
+                  /{currentBlock.questions.length}
+                </span>
               </div>
-            )}
+
+              <div className="mt-4 space-y-5">
+                {currentBlock.id === "comercio" && <TradeStep trade={trade} setTrade={setTrade} />}
+
+                {currentBlock.id === "riesgo" && (
+                  <RiskPanel
+                    risk={risk}
+                    setRisk={setRisk}
+                    currency={settings?.currency ?? "USD"}
+                    maxRiskPct={Number(settings?.max_risk_pct ?? 1)}
+                    minRR={Number(settings?.min_rr ?? 2)}
+                    direction={trade.direction}
+                    market={trade.market}
+                  />
+                )}
+
+                {currentBlock.id === "disciplina" && (
+                  <div className="panel border-warn/30 bg-warn-soft/25 p-4">
+                    <p className="label-mono">Filtro psicológico</p>
+                    <p className="mt-1.5 text-sm text-muted-foreground">
+                      Responde con honestidad. Este filtro no juzga tu análisis: revisa el motivo
+                      real de la entrada.
+                    </p>
+                  </div>
+                )}
+
+                {currentBlock.groups.map((g, i) => (
+                  <QuestionList
+                    key={i}
+                    groupTitle={g.title}
+                    questions={g.questions}
+                    answers={answers}
+                    onChange={setAnswer}
+                  />
+                ))}
+
+                {currentBlock.id === "disciplina" && decision.emotional && (
+                  <div className="panel animate-rise border-stop/50 bg-stop-soft/40 p-5">
+                    <div className="flex items-center gap-2 text-stop">
+                      <AlertTriangle className="h-5 w-5" />
+                      <p className="font-display text-lg font-semibold">EMOTIONAL STOP</p>
+                    </div>
+                    <p className="mt-2 text-sm text-foreground/90">
+                      La operación presenta una señal de comportamiento impulsivo. Detén la
+                      ejecución y vuelve a evaluar tu plan.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {blockError && (
+                <p className="mt-4 flex items-center gap-2 text-xs text-warn">
+                  <Lock className="h-3.5 w-3.5" /> {blockError}
+                </p>
+              )}
+            </section>
+
+            {/* Bloques siguientes: bloqueados hasta completar el actual. */}
+            {blocks.slice(step).map((b) => (
+              <div
+                key={b.id}
+                className="flex items-center gap-3 rounded-xl border border-dashed border-border/70 px-4 py-3 opacity-55"
+              >
+                <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="font-mono text-xs tracking-widest text-muted-foreground">
+                  {b.step}
+                </span>
+                <span className="text-sm text-muted-foreground">{b.title}</span>
+              </div>
+            ))}
           </div>
         )}
 
-        {currentStep.key === "resultado" && (
+        {step === lastStep && blocks.length > 0 && (
           <ResultStep
             decision={decision}
             metrics={metrics}
@@ -436,11 +542,11 @@ function NuevaEvaluacion() {
 
       <div className="mt-8 flex flex-wrap items-center gap-2">
         <button
-          onClick={() => setStep((s) => Math.max(0, s - 1))}
+          onClick={() => goTo(Math.max(0, step - 1))}
           disabled={step === 0}
           className="inline-flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-4 text-sm disabled:opacity-40 sm:flex-none"
         >
-          <ChevronLeft className="h-4 w-4" /> Anterior
+          <ChevronLeft className="h-4 w-4" /> Atrás
         </button>
         <button
           onClick={saveDraft}
@@ -450,15 +556,8 @@ function NuevaEvaluacion() {
           <Save className="h-4 w-4" /> Guardar borrador
         </button>
         <button
-          onClick={() => {
-            if (!trade.setup) {
-              toast.error("Selecciona tu setup para comenzar la evaluación.");
-              setStep(0);
-              return;
-            }
-            setStep((s) => Math.min(WIZARD_STEPS.length - 1, s + 1));
-          }}
-          disabled={step === WIZARD_STEPS.length - 1 || !trade.setup}
+          onClick={goNext}
+          disabled={step === lastStep || !trade.setup}
           className="inline-flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-40 sm:flex-none"
         >
           Siguiente <ChevronRight className="h-4 w-4" />
@@ -469,24 +568,24 @@ function NuevaEvaluacion() {
 }
 
 /**
- * Paso S — SELECCIONA TU SETUP.
- * Únicos setups oficiales: los 5 de OFFICIAL_SETUPS. Los patrones individuales
- * siguen siendo criterios/preguntas del CORE y no aparecen aquí.
+ * Selección del tipo de evaluación: SETUP LIBRE (matriz original ANIKE EJEPIKA)
+ * o uno de los 5 setups oficiales. Cada opción carga exclusivamente su matriz.
  */
 function SetupStep({ selected, onSelect }: { selected: string; onSelect: (id: string) => void }) {
   return (
     <div className="space-y-4">
       <div className="panel p-4">
-        <p className="font-display text-lg font-semibold tracking-wide">SELECCIONA TU SETUP</p>
+        <p className="font-display text-lg font-semibold tracking-wide">TIPO DE EVALUACIÓN</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Elige un único setup oficial. La evaluación usa el mismo CORE ANIKE EJEPIKA en los cinco
-          casos: no cambia pesos, gates ni reglas.
+          Elige una única opción. Cada una carga exclusivamente su propia matriz de preguntas. El
+          CORE ANIKE EJEPIKA es el mismo en todos los casos: no cambian pesos, gates ni reglas.
         </p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        {OFFICIAL_SETUPS.map((s) => {
+        {EVALUATION_SETUPS.map((s) => {
           const on = selected === s.id;
+          const total = getActiveQuestionsBySetup(s.id).length;
           return (
             <button
               key={s.id}
@@ -506,7 +605,7 @@ function SetupStep({ selected, onSelect }: { selected: string; onSelect: (id: st
               <p className="mt-1.5 font-display text-base font-semibold">{s.name}</p>
               <p className="mt-1 text-xs text-muted-foreground">{s.description}</p>
               <p className="mt-2 font-mono text-[11px] text-muted-foreground">
-                {getQuestionsForSetup(s.id).length} preguntas exclusivas de este setup
+                {total} preguntas en esta matriz
               </p>
             </button>
           );
@@ -515,7 +614,7 @@ function SetupStep({ selected, onSelect }: { selected: string; onSelect: (id: st
 
       {!selected && (
         <p className="text-xs text-warn">
-          Debes seleccionar un setup para continuar con la evaluación.
+          Debes seleccionar un tipo de evaluación para continuar.
         </p>
       )}
     </div>
