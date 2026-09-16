@@ -101,6 +101,8 @@ function NuevaEvaluacion() {
   });
   const [answers, setAnswers] = useState<Answers>({});
   const [risk, setRisk] = useState<RiskData>({});
+  // Versión publicada del cuestionario (editor de administración).
+  const catalog = useChecklistCatalog();
 
   const settings = settingsQuery.data;
 
@@ -265,6 +267,14 @@ function NuevaEvaluacion() {
   }
 
   const progress = ((step + 1) / WIZARD_STEPS.length) * 100;
+
+  if (!catalog.ready) {
+    return (
+      <AppShell title="Nueva evaluación" subtitle="Preparando cuestionario">
+        <p className="text-sm text-muted-foreground">Cargando cuestionario...</p>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell
