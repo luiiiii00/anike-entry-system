@@ -682,7 +682,24 @@ export function RiskPanel({
           onChange={(v) => set("target", v)}
           type="number"
         />
+        <TextField
+          label="Tamaño de contrato del instrumento (opcional)"
+          value={str(risk.contractSize)}
+          onChange={(v) => set("contractSize", v)}
+          type="number"
+        />
+        <TextField
+          label="Valor por punto / tick (opcional)"
+          value={str(risk.pointValue)}
+          onChange={(v) => set("pointValue", v)}
+          type="number"
+        />
       </div>
+      <p className="mt-2 text-[11px] text-muted-foreground">
+        El tamaño de contrato y el valor por punto los tomamos sólo de lo que escribas: nunca
+        inventamos la especificación de un instrumento.
+      </p>
+
 
       <div className="mt-5 rounded-xl border border-border bg-surface-2 p-3">
         <p className="label-mono">Fibonacci del impulso</p>
