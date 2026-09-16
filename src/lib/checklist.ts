@@ -43,11 +43,26 @@ const ynd = (yes = 1, no = 0, doubt = 0.4): Option[] => [
   { v: "dudoso", label: "Dudoso", pts: doubt },
 ];
 
+/**
+ * Estado de un patrón (5 factores oficiales de ANIKE EJEPIKA).
+ * Los valores `formacion` e `invalidado` se conservan: los usan las HARD rules
+ * y los avisos CONDICIONAL del motor.
+ */
 const PATTERN_STATE: Option[] = [
   { v: "confirmado", label: "Confirmado", pts: 1 },
-  { v: "formacion", label: "En formación", pts: 0.4 },
-  { v: "invalidado", label: "Invalidado", pts: 0 },
-  NA_OPTION,
+  { v: "fuerte", label: "Confirmación fuerte pero no completa", pts: 0.75 },
+  { v: "formacion", label: "En proceso de confirmación", pts: 0.5 },
+  { v: "debil", label: "Señal débil", pts: 0.25 },
+  { v: "invalidado", label: "Invalidado / sin confirmación", pts: 0 },
+];
+
+/** Escala oficial de factores: 1,00 / 0,75 / 0,50 / 0,25 / 0,00. No existe "No aplica". */
+const f5 = (l1: string, l2: string, l3: string, l4: string, l5: string): Option[] => [
+  { v: "excelente", label: l1, pts: 1 },
+  { v: "fuerte", label: l2, pts: 0.75 },
+  { v: "parcial", label: l3, pts: 0.5 },
+  { v: "debil", label: l4, pts: 0.25 },
+  { v: "ausente", label: l5, pts: 0 },
 ];
 
 export const INSTRUMENTS = ["BTC", "ETH", "SOL", "Forex", "Índices", "Otro"];
@@ -207,7 +222,7 @@ const SECTIONS_SOURCE: Section[] = [
           },
           {
             id: "h1_pattern_change_state",
-            label: "¿El patrón está confirmado?",
+            label: "¿El patrón de cambio está confirmado?",
             hint: "Un patrón observado no es lo mismo que un patrón confirmado.",
             options: PATTERN_STATE,
           },
@@ -262,7 +277,7 @@ const SECTIONS_SOURCE: Section[] = [
           },
           {
             id: "h1_pattern_cont_state",
-            label: "¿El patrón está confirmado?",
+            label: "¿El patrón de continuidad está confirmado?",
             options: PATTERN_STATE,
           },
         ],
@@ -272,18 +287,19 @@ const SECTIONS_SOURCE: Section[] = [
         questions: [
           {
             id: "h1_fibo",
-            label: "¿En qué nivel de retroceso de Fibonacci se encuentra el precio?",
-            hint: "0,75 es el nivel predeterminado de referencia para el Stop Loss. No entrar únicamente porque el precio tocó Fibonacci, especialmente 0,50.",
+            label: "¿Qué nivel Fibonacci oficial está siendo utilizado?",
+            hint: "0,75 es principalmente la referencia del SL predeterminado, no una señal de entrada por sí misma.",
             options: [
-              { v: "0_38", label: "0,38", pts: 0.8 },
-              { v: "0_50", label: "0,50", pts: 1 },
               { v: "0_618", label: "0,618", pts: 1 },
-              { v: "0_75", label: "0,75", pts: 0.7 },
+              { v: "0_50", label: "0,50", pts: 1 },
+              { v: "0_38", label: "0,38", pts: 0.75 },
+              { v: "0_75", label: "0,75", pts: 0.75 },
               NA_OPTION,
             ],
           },
         ],
       },
+
       {
         title: "02.6 Reacción en Fibonacci",
         questions: [
@@ -726,7 +742,771 @@ function withoutNaOptions(sections: Section[]): Section[] {
   }));
 }
 
-export const SECTIONS: Section[] = withoutNaOptions(SECTIONS_SOURCE);
+/* ===========================================================================
+ * CRITERIOS ESPECÍFICOS DE CADA SETUP OFICIAL (S01–S05)
+ * ---------------------------------------------------------------------------
+ * Cada bloque declara EXPLÍCITAMENTE a qué setup y a qué bloque CORE pertenece.
+ * Los pesos CORE, la fórmula, los gates, las HARD rules, el umbral 80 y los
+ * estados NO cambian: el setup sólo determina qué criterios se evalúan.
+ * =========================================================================== */
+type SetupSpecificBlock = {
+  setup: OfficialSetupId;
+  sectionId: SectionId;
+  title: string;
+  questions: Question[];
+};
+
+const SETUP_SPECIFIC: SetupSpecificBlock[] = [
+  // ---------------------------------------------------------------- S01
+  {
+    setup: "REVERSION",
+    sectionId: "contexto",
+    title: "S01 — REVERSIÓN · Contexto",
+    questions: [
+      {
+        id: "s01_prev_trend",
+        label:
+          "¿Existe una tendencia o estructura previa claramente identificable que pueda ser revertida?",
+        options: f5(
+          "Sí, claramente identificable",
+          "Sí, pero parcialmente definida",
+          "Poco clara",
+          "Muy débil",
+          "No existe",
+        ),
+      },
+    ],
+  },
+  {
+    setup: "REVERSION",
+    sectionId: "estructura",
+    title: "S01 — REVERSIÓN · Estructura",
+    questions: [
+      {
+        id: "s01_exhaustion",
+        label: "¿Se observa agotamiento del movimiento previo?",
+        options: f5(
+          "Agotamiento claro",
+          "Agotamiento fuerte",
+          "Agotamiento parcial",
+          "Evidencia débil",
+          "No hay agotamiento",
+        ),
+      },
+      {
+        id: "s01_key_level",
+        label: "¿Existe un máximo/mínimo relevante susceptible de ser superado o defendido?",
+        options: f5(
+          "Nivel claramente definido",
+          "Nivel relevante",
+          "Nivel moderadamente claro",
+          "Nivel poco claro",
+          "No existe nivel relevante",
+        ),
+      },
+      {
+        id: "s01_structure_change",
+        label: "¿Existe evidencia de cambio de estructura a favor de la nueva dirección?",
+        options: f5(
+          "Cambio de estructura confirmado",
+          "Evidencia fuerte",
+          "Cambio parcialmente definido",
+          "Primer indicio solamente",
+          "No existe cambio",
+        ),
+      },
+    ],
+  },
+  {
+    setup: "REVERSION",
+    sectionId: "zona",
+    title: "S01 — REVERSIÓN · Zona",
+    questions: [
+      {
+        id: "s01_zone_known",
+        label: "¿La reversión ocurre en una zona técnica previamente identificada?",
+        options: f5(
+          "Zona muy relevante",
+          "Zona relevante",
+          "Zona moderadamente relevante",
+          "Zona débil",
+          "No existe zona",
+        ),
+      },
+      {
+        id: "s01_zone_confluence",
+        label: "¿La zona tiene confluencia suficiente para justificar la reacción?",
+        options: f5(
+          "Confluencia fuerte",
+          "Buena confluencia",
+          "Confluencia parcial",
+          "Confluencia débil",
+          "Sin confluencia",
+        ),
+      },
+    ],
+  },
+  {
+    setup: "REVERSION",
+    sectionId: "confirmacion",
+    title: "S01 — REVERSIÓN · Confirmación",
+    questions: [
+      {
+        id: "s01_confirm_direction",
+        label: "¿La confirmación favorece claramente la nueva dirección?",
+        options: f5(
+          "Claramente",
+          "Mayormente",
+          "Parcialmente",
+          "Débilmente",
+          "No favorece la nueva dirección",
+        ),
+      },
+      {
+        id: "s01_confirm_before_entry",
+        label: "¿El precio confirma la intención antes de la entrada?",
+        options: f5(
+          "Confirmación completa antes de entrar",
+          "Confirmación casi completa",
+          "Confirmación parcial",
+          "Anticipación parcial",
+          "Entrada anticipada",
+        ),
+      },
+    ],
+  },
+  {
+    setup: "REVERSION",
+    sectionId: "riesgo",
+    title: "S01 — REVERSIÓN · Riesgo",
+    questions: [
+      {
+        id: "s01_sl_invalidation",
+        label: "¿El Stop Loss está detrás de la invalidación lógica de la reversión?",
+        options: f5(
+          "Totalmente protegido por invalidación",
+          "Muy bien colocado",
+          "Aceptable",
+          "Débil",
+          "Sin invalidación clara",
+        ),
+      },
+    ],
+  },
+  {
+    setup: "REVERSION",
+    sectionId: "recorrido",
+    title: "S01 — REVERSIÓN · Recorrido",
+    questions: [
+      {
+        id: "s01_room_to_target",
+        label: "¿Existe espacio suficiente hasta el objetivo antes de una zona opuesta relevante?",
+        options: f5(
+          "Amplio espacio",
+          "Espacio suficiente",
+          "Espacio limitado",
+          "Muy poco espacio",
+          "Sin recorrido",
+        ),
+      },
+    ],
+  },
+  {
+    setup: "REVERSION",
+    sectionId: "ejecucion",
+    title: "S01 — REVERSIÓN · Ejecución",
+    questions: [
+      {
+        id: "s01_plan_respect",
+        label: "¿La entrada respeta completamente el plan de reversión?",
+        options: f5(
+          "Sí, completamente",
+          "Casi completamente",
+          "Parcialmente",
+          "Se forzó parcialmente",
+          "Se ejecutó fuera del plan",
+        ),
+      },
+    ],
+  },
+  // ---------------------------------------------------------------- S02
+  {
+    setup: "CONTINUACION",
+    sectionId: "contexto",
+    title: "S02 — CONTINUACIÓN · Contexto",
+    questions: [
+      {
+        id: "s02_trend_clear",
+        label: "¿Existe una tendencia dominante clara?",
+        options: f5(
+          "Tendencia muy clara",
+          "Tendencia clara",
+          "Tendencia moderadamente clara",
+          "Tendencia débil",
+          "Sin tendencia",
+        ),
+      },
+    ],
+  },
+  {
+    setup: "CONTINUACION",
+    sectionId: "estructura",
+    title: "S02 — CONTINUACIÓN · Estructura",
+    questions: [
+      {
+        id: "s02_swings_direction",
+        label: "¿La secuencia de máximos y mínimos mantiene la dirección dominante?",
+        options: f5("Completamente", "Mayormente", "Parcialmente", "Débilmente", "Está invalidada"),
+      },
+      {
+        id: "s02_correction_valid",
+        label: "¿La corrección mantiene la estructura principal sin invalidarla?",
+        options: f5(
+          "Mantiene perfectamente",
+          "Mantiene con pequeñas desviaciones",
+          "Parcialmente",
+          "Muy cerca de invalidar",
+          "Invalidó la tendencia",
+        ),
+      },
+    ],
+  },
+  {
+    setup: "CONTINUACION",
+    sectionId: "zona",
+    title: "S02 — CONTINUACIÓN · Zona",
+    questions: [
+      {
+        id: "s02_pullback_zone",
+        label: "¿El retroceso llega a una zona técnica relevante dentro de la tendencia?",
+        options: f5(
+          "Zona muy relevante",
+          "Relevante",
+          "Moderadamente relevante",
+          "Poco relevante",
+          "Sin zona",
+        ),
+      },
+    ],
+  },
+  {
+    setup: "CONTINUACION",
+    sectionId: "confirmacion",
+    title: "S02 — CONTINUACIÓN · Confirmación",
+    questions: [
+      {
+        id: "s02_confirm_direction",
+        label: "¿La confirmación favorece la dirección de la tendencia?",
+        options: f5("Claramente", "Mayormente", "Parcialmente", "Débilmente", "No"),
+      },
+      {
+        id: "s02_confirm_before_entry",
+        label: "¿El precio confirma la continuación antes de entrar?",
+        options: f5(
+          "Confirmación completa",
+          "Confirmación fuerte",
+          "Parcial",
+          "Anticipación",
+          "Entrada antes de confirmar",
+        ),
+      },
+    ],
+  },
+  {
+    setup: "CONTINUACION",
+    sectionId: "riesgo",
+    title: "S02 — CONTINUACIÓN · Riesgo",
+    questions: [
+      {
+        id: "s02_sl_invalidation",
+        label: "¿El Stop Loss está ubicado detrás de la invalidación de la continuación?",
+        options: f5("Correctamente", "Muy bien", "Aceptable", "Débil", "Incorrecto"),
+      },
+    ],
+  },
+  {
+    setup: "CONTINUACION",
+    sectionId: "recorrido",
+    title: "S02 — CONTINUACIÓN · Recorrido",
+    questions: [
+      {
+        id: "s02_room",
+        label: "¿El objetivo tiene recorrido suficiente dentro de la tendencia?",
+        options: f5("Amplio", "Suficiente", "Moderado", "Limitado", "Insuficiente"),
+      },
+    ],
+  },
+  {
+    setup: "CONTINUACION",
+    sectionId: "ejecucion",
+    title: "S02 — CONTINUACIÓN · Ejecución",
+    questions: [
+      {
+        id: "s02_no_incomplete_correction",
+        label: "¿La entrada evita ejecutarse durante una corrección incompleta?",
+        options: f5(
+          "Sí, completamente",
+          "Casi completamente",
+          "Parcialmente",
+          "Existe anticipación",
+          "Se entró durante corrección incompleta",
+        ),
+      },
+      {
+        id: "s02_plan_respect",
+        label: "¿La operación respeta el plan y las reglas del setup?",
+        options: f5("Completamente", "Casi completamente", "Parcialmente", "Débilmente", "No"),
+      },
+    ],
+  },
+  // ---------------------------------------------------------------- S03
+  {
+    setup: "RUPTURA_RETESTEO",
+    sectionId: "estructura",
+    title: "S03 — RUPTURA + RETESTEO · Estructura",
+    questions: [
+      {
+        id: "s03_structure_defined",
+        label: "¿Existe una estructura o zona claramente delimitada susceptible de ruptura?",
+        options: f5(
+          "Claramente definida",
+          "Bien definida",
+          "Moderadamente definida",
+          "Poco clara",
+          "No existe",
+        ),
+      },
+      {
+        id: "s03_break_displacement",
+        label: "¿La ruptura presenta suficiente desplazamiento para considerarla válida?",
+        options: f5(
+          "Ruptura clara y fuerte",
+          "Ruptura clara",
+          "Ruptura moderada",
+          "Ruptura débil",
+          "No existe ruptura válida",
+        ),
+      },
+    ],
+  },
+  {
+    setup: "RUPTURA_RETESTEO",
+    sectionId: "zona",
+    title: "S03 — RUPTURA + RETESTEO · Zona",
+    questions: [
+      {
+        id: "s03_level_relevant",
+        label: "¿El nivel de ruptura es relevante dentro de la estructura actual?",
+        options: f5(
+          "Muy relevante",
+          "Relevante",
+          "Moderadamente relevante",
+          "Poco relevante",
+          "Irrelevante",
+        ),
+      },
+      {
+        id: "s03_level_as_retest",
+        label: "¿El nivel roto puede actuar como zona de retesteo?",
+        options: f5("Claramente", "Sí, con buena estructura", "Parcialmente", "Dudoso", "No"),
+      },
+      {
+        id: "s03_retest_on_level",
+        label: "¿El retesteo ocurre realmente sobre el nivel o zona previamente rota?",
+        options: f5("Exactamente", "Muy cerca", "Parcialmente", "Alejado", "No existe retesteo"),
+      },
+    ],
+  },
+  {
+    setup: "RUPTURA_RETESTEO",
+    sectionId: "confirmacion",
+    title: "S03 — RUPTURA + RETESTEO · Confirmación",
+    questions: [
+      {
+        id: "s03_break_close",
+        label: "¿La ruptura fue confirmada mediante cierre de vela?",
+        options: f5(
+          "Cierre claro fuera del nivel",
+          "Cierre válido pero débil",
+          "Cierre parcialmente válido",
+          "Solo penetración intravela",
+          "No hubo cierre",
+        ),
+      },
+      {
+        id: "s03_retest_reaction",
+        label: "¿El retesteo muestra rechazo o reacción coherente con la ruptura?",
+        options: f5(
+          "Reacción clara",
+          "Reacción fuerte",
+          "Reacción parcial",
+          "Reacción débil",
+          "Sin reacción",
+        ),
+      },
+      {
+        id: "s03_pattern_confirm",
+        label: "¿Existe un patrón de confirmación válido según la biblioteca?",
+        options: f5(
+          "Patrón válido y confirmado",
+          "Patrón válido con confirmación fuerte",
+          "Patrón parcialmente confirmado",
+          "Patrón en formación",
+          "Sin patrón / confirmación",
+        ),
+      },
+      {
+        id: "s03_confirm_direction",
+        label: "¿El precio confirma la dirección después del retesteo?",
+        options: f5("Claramente", "Mayormente", "Parcialmente", "Débilmente", "No confirma"),
+      },
+    ],
+  },
+  {
+    setup: "RUPTURA_RETESTEO",
+    sectionId: "riesgo",
+    title: "S03 — RUPTURA + RETESTEO · Riesgo",
+    questions: [
+      {
+        id: "s03_sl_invalidation",
+        label: "¿El Stop Loss queda detrás de la invalidación del retesteo?",
+        options: f5("Correctamente", "Muy bien", "Aceptable", "Débil", "Incorrecto"),
+      },
+    ],
+  },
+  {
+    setup: "RUPTURA_RETESTEO",
+    sectionId: "recorrido",
+    title: "S03 — RUPTURA + RETESTEO · Recorrido",
+    questions: [
+      {
+        id: "s03_room",
+        label: "¿Existe recorrido suficiente hacia el objetivo después de la ruptura?",
+        options: f5("Amplio", "Suficiente", "Moderado", "Limitado", "Insuficiente"),
+      },
+    ],
+  },
+  {
+    setup: "RUPTURA_RETESTEO",
+    sectionId: "ejecucion",
+    title: "S03 — RUPTURA + RETESTEO · Ejecución",
+    questions: [
+      {
+        id: "s03_entry_not_chasing",
+        label:
+          "¿La entrada se realiza durante/después de la confirmación y no persiguiendo el precio?",
+        options: f5(
+          "Entrada perfectamente ejecutada",
+          "Buena ejecución",
+          "Ejecución aceptable",
+          "Algo anticipada",
+          "Se persiguió el precio",
+        ),
+      },
+    ],
+  },
+  // ---------------------------------------------------------------- S04
+  {
+    setup: "ZONA_FIBONACCI",
+    sectionId: "estructura",
+    title: "S04 — ZONA + FIBONACCI · Estructura",
+    questions: [
+      {
+        id: "s04_impulse_clear",
+        label: "¿Existe un movimiento previo suficientemente claro para aplicar Fibonacci?",
+        options: f5(
+          "Impulso claramente definido",
+          "Bien definido",
+          "Moderadamente definido",
+          "Poco claro",
+          "No existe",
+        ),
+      },
+      {
+        id: "s04_impulse_correct",
+        label: "¿El impulso utilizado para Fibonacci está correctamente identificado?",
+        options: f5("Totalmente", "Correctamente", "Parcialmente", "Dudoso", "Incorrecto"),
+      },
+      {
+        id: "s04_structure_sense",
+        label: "¿La estructura mantiene sentido con el retroceso planteado?",
+        options: f5("Totalmente", "Mayormente", "Parcialmente", "Débilmente", "No"),
+      },
+    ],
+  },
+  {
+    setup: "ZONA_FIBONACCI",
+    sectionId: "zona",
+    title: "S04 — ZONA + FIBONACCI · Zona",
+    questions: [
+      {
+        id: "s04_zone_confluent",
+        label: "¿Existe una zona técnica relevante coincidente con el retroceso?",
+        options: f5("Confluencia muy clara", "Buena confluencia", "Parcial", "Débil", "No existe"),
+      },
+      {
+        id: "s04_confluence_clear",
+        label: "¿La confluencia zona + Fibonacci es clara?",
+        options: f5("Muy clara", "Clara", "Parcial", "Débil", "No existe"),
+      },
+      {
+        id: "s04_price_reacting",
+        label: "¿El precio está reaccionando en la confluencia?",
+        options: f5(
+          "Reacción clara",
+          "Reacción fuerte",
+          "Reacción parcial",
+          "Reacción débil",
+          "Sin reacción",
+        ),
+      },
+    ],
+  },
+  {
+    setup: "ZONA_FIBONACCI",
+    sectionId: "confirmacion",
+    title: "S04 — ZONA + FIBONACCI · Confirmación",
+    questions: [
+      {
+        id: "s04_pattern_valid",
+        label: "¿Existe un patrón válido de cambio o continuidad cuando corresponde?",
+        options: f5(
+          "Patrón confirmado",
+          "Patrón fuerte",
+          "Patrón parcialmente confirmado",
+          "En formación",
+          "No existe",
+        ),
+      },
+      {
+        id: "s04_not_only_fibo",
+        label: "¿La entrada tiene confirmación suficiente y no depende únicamente de Fibonacci?",
+        options: f5(
+          "Confirmación completa",
+          "Buena confirmación",
+          "Parcial",
+          "Depende parcialmente de Fibonacci",
+          "Depende únicamente de Fibonacci",
+        ),
+      },
+    ],
+  },
+  {
+    setup: "ZONA_FIBONACCI",
+    sectionId: "riesgo",
+    title: "S04 — ZONA + FIBONACCI · Riesgo",
+    questions: [
+      {
+        id: "s04_sl_invalidation",
+        label: "¿El Stop Loss está detrás de la invalidación de la zona?",
+        options: f5("Correctamente", "Muy bien", "Aceptable", "Débil", "Incorrecto"),
+      },
+    ],
+  },
+  {
+    setup: "ZONA_FIBONACCI",
+    sectionId: "recorrido",
+    title: "S04 — ZONA + FIBONACCI · Recorrido",
+    questions: [
+      {
+        id: "s04_room",
+        label: "¿El objetivo ofrece recorrido suficiente respecto al riesgo?",
+        options: f5("Amplio", "Suficiente", "Moderado", "Limitado", "Insuficiente"),
+      },
+    ],
+  },
+  {
+    setup: "ZONA_FIBONACCI",
+    sectionId: "ejecucion",
+    title: "S04 — ZONA + FIBONACCI · Ejecución",
+    questions: [
+      {
+        id: "s04_entry_after_confirmation",
+        label: "¿La entrada se ejecuta después de la confirmación?",
+        options: f5(
+          "Sí, claramente",
+          "Sí, con pequeña anticipación",
+          "Parcialmente",
+          "Anticipada",
+          "Antes de cualquier confirmación",
+        ),
+      },
+      {
+        id: "s04_fibo_rules",
+        label: "¿Se respetan las reglas de aplicación de Fibonacci y del plan?",
+        options: f5("Completamente", "Casi completamente", "Parcialmente", "Débilmente", "No"),
+      },
+    ],
+  },
+  // ---------------------------------------------------------------- S05
+  {
+    setup: "IMPULSO_PULLBACK",
+    sectionId: "estructura",
+    title: "S05 — IMPULSO + PULLBACK · Estructura",
+    questions: [
+      {
+        id: "s05_impulse_clear",
+        label: "¿Existe un impulso claro y dominante?",
+        options: f5("Muy claro", "Claro", "Moderadamente claro", "Débil", "No existe"),
+      },
+      {
+        id: "s05_impulse_coherent",
+        label: "¿El impulso genera una estructura coherente con la dirección operada?",
+        options: f5(
+          "Totalmente coherente",
+          "Mayormente coherente",
+          "Parcialmente",
+          "Débilmente",
+          "Contraria",
+        ),
+      },
+      {
+        id: "s05_pullback_valid",
+        label: "¿El pullback mantiene la estructura del impulso sin invalidarla?",
+        options: f5(
+          "Perfectamente",
+          "Bien",
+          "Parcialmente",
+          "Cerca de invalidar",
+          "Invalidó el impulso",
+        ),
+      },
+    ],
+  },
+  {
+    setup: "IMPULSO_PULLBACK",
+    sectionId: "zona",
+    title: "S05 — IMPULSO + PULLBACK · Zona",
+    questions: [
+      {
+        id: "s05_pullback_zone",
+        label: "¿El retroceso llega a una zona de interés para reanudar el movimiento?",
+        options: f5("Zona muy clara", "Zona clara", "Moderadamente clara", "Débil", "No existe"),
+      },
+    ],
+  },
+  {
+    setup: "IMPULSO_PULLBACK",
+    sectionId: "confirmacion",
+    title: "S05 — IMPULSO + PULLBACK · Confirmación",
+    questions: [
+      {
+        id: "s05_pullback_rejection",
+        label: "¿El pullback muestra rechazo o pérdida de presión contra la dirección del impulso?",
+        options: f5("Evidencia clara", "Evidencia fuerte", "Parcial", "Débil", "No existe"),
+      },
+      {
+        id: "s05_pattern_valid",
+        label: "¿Existe un patrón válido de continuidad o confirmación?",
+        options: f5(
+          "Patrón confirmado",
+          "Patrón fuerte",
+          "Parcialmente confirmado",
+          "En formación",
+          "No existe",
+        ),
+      },
+      {
+        id: "s05_confirm_resume",
+        label: "¿El precio confirma la reanudación del impulso?",
+        options: f5("Confirmación clara", "Confirmación fuerte", "Parcial", "Débil", "No confirma"),
+      },
+    ],
+  },
+  {
+    setup: "IMPULSO_PULLBACK",
+    sectionId: "riesgo",
+    title: "S05 — IMPULSO + PULLBACK · Riesgo",
+    questions: [
+      {
+        id: "s05_sl_invalidation",
+        label: "¿El Stop Loss queda detrás de la invalidación del pullback?",
+        options: f5("Correctamente", "Muy bien", "Aceptable", "Débil", "Incorrecto"),
+      },
+      {
+        id: "s05_rr_min",
+        label: "¿La operación mantiene un R:R mínimo de 1:2?",
+        options: f5(
+          "R:R ≥ 1:2 claramente",
+          "Cercano a 1:2",
+          "Entre 1:1,5 y < 1:2",
+          "Entre 1:1 y < 1:1,5",
+          "< 1:1",
+        ),
+      },
+    ],
+  },
+  {
+    setup: "IMPULSO_PULLBACK",
+    sectionId: "recorrido",
+    title: "S05 — IMPULSO + PULLBACK · Recorrido",
+    questions: [
+      {
+        id: "s05_target_room",
+        label: "¿El objetivo permite capturar una parte razonable del impulso?",
+        options: f5(
+          "Amplio recorrido",
+          "Recorrido suficiente",
+          "Moderado",
+          "Limitado",
+          "Insuficiente",
+        ),
+      },
+    ],
+  },
+  {
+    setup: "IMPULSO_PULLBACK",
+    sectionId: "ejecucion",
+    title: "S05 — IMPULSO + PULLBACK · Ejecución",
+    questions: [
+      {
+        id: "s05_no_chasing",
+        label: "¿La entrada evita perseguir el movimiento inicial?",
+        options: f5(
+          "Totalmente",
+          "Mayormente",
+          "Parcialmente",
+          "Se persiguió parcialmente",
+          "Se persiguió claramente",
+        ),
+      },
+    ],
+  },
+  {
+    setup: "IMPULSO_PULLBACK",
+    sectionId: "disciplina",
+    title: "S05 — IMPULSO + PULLBACK · Disciplina",
+    questions: [
+      {
+        id: "s05_plan_no_fomo",
+        label: "¿La operación cumple las reglas del plan y no surge por FOMO?",
+        options: f5(
+          "Cumple completamente",
+          "Cumple casi completamente",
+          "Parcialmente",
+          "Existe impulso / FOMO parcial",
+          "Surge por FOMO / fuera del plan",
+        ),
+      },
+    ],
+  },
+];
+
+/** Añade a cada bloque CORE los grupos específicos de los setups oficiales. */
+function withSetupQuestions(sections: Section[]): Section[] {
+  return sections.map((section) => ({
+    ...section,
+    groups: [
+      ...section.groups,
+      ...SETUP_SPECIFIC.filter((b) => b.sectionId === section.id).map((b) => ({
+        title: b.title,
+        questions: b.questions,
+      })),
+    ],
+  }));
+}
+
+export const SECTIONS: Section[] = withoutNaOptions(withSetupQuestions(SECTIONS_SOURCE));
 
 export const SECTION_BY_ID = Object.fromEntries(SECTIONS.map((s) => [s.id, s])) as Record<
   SectionId,
@@ -991,7 +1771,12 @@ export const SESSIONS = ["Asia", "Londres", "Nueva York", "Overlap", "Fuera de s
  * La matriz NO modifica pesos, fórmula del score, gates, HARD rules ni estados.
  * =========================================================================== */
 
-/** Preguntas comunes a los 5 setups, declaradas de forma intencional. */
+/**
+ * CORE COMÚN MÍNIMO: sólo los criterios que los 5 setups comparten de verdad
+ * (identificación de la operación, contexto, estructura base, riesgo del CORE,
+ * recorrido, ejecución, disciplina y resultados post-cierre). Todo criterio
+ * técnico propio de un setup vive en `SETUP_EXCLUSIVE_QUESTIONS`.
+ */
 export const COMMON_QUESTION_IDS: string[] = [
   // Comercio
   "co_instrument",
@@ -1000,38 +1785,28 @@ export const COMMON_QUESTION_IDS: string[] = [
   "ctx_direction",
   "ctx_swings",
   "ctx_aligned",
-  "ctx_levels",
-  "ctx_near_zone",
-  // Estructura base
+  // Estructura base (criterios de HARD rules del CORE)
   "h1_structure",
   "h1_struct",
-  // Zona
+  // Zona base
   "z_relevance",
-  "z_reacted",
   "z_space",
-  "z_clear",
-  "z_mid",
-  // Confirmación base (incluye los criterios de HARD rules del CORE)
+  // Confirmación base (criterios de HARD rules del CORE)
   "cf5_diag_break",
   "cf5_close",
-  "cf_signal",
   "cf_basis",
   // Riesgo
-  "r_sl_fibo_ok",
   "r_invalidation",
   "r_stop_logic",
   "r_limit",
   "r_rr",
   "r_loss_ok",
   // Recorrido
-  "rc_target",
   "rc_room",
   "rc_rr2",
   // Ejecución
   "ex_conditions",
   "m5_timing",
-  "ex_plan",
-  "ex_respect",
   // Disciplina
   "ds_why",
   "ds_revenge",
@@ -1042,27 +1817,74 @@ export const COMMON_QUESTION_IDS: string[] = [
   "rs_process",
 ];
 
-/** Preguntas EXCLUSIVAS de cada setup oficial. Una pregunta sólo puede figurar en uno. */
-export const SETUP_EXCLUSIVE_QUESTIONS: Record<OfficialSetupId, string[]> = {
-  REVERSION: [
-    "h1_pattern_change",
-    "h1_pattern_change_state",
-    "h1_rsi_div",
-    "h1_rsi_div_fibo",
-    "cf_price_action",
-  ],
-  CONTINUACION: ["h1_pattern_cont", "h1_pattern_cont_state", "h1_macd", "cf5_macd_cross"],
-  RUPTURA_RETESTEO: ["cf5_retest", "cf5_retest_ok", "cf5_volume"],
-  ZONA_FIBONACCI: ["h1_fibo", "h1_fibo_react", "h1_fibo_weak", "z_type"],
-  IMPULSO_PULLBACK: ["cf5_rsi", "cf5_rsi_extended", "cf5_macd"],
+/**
+ * Criterios de la biblioteca ANIKE EJEPIKA reutilizados por un único setup
+ * (mantienen su `questionId` histórico para no perder evaluaciones antiguas).
+ */
+const SETUP_REUSED_QUESTIONS: Record<OfficialSetupId, string[]> = {
+  REVERSION: ["h1_pattern_change", "h1_pattern_change_state"],
+  CONTINUACION: ["h1_pattern_cont", "h1_pattern_cont_state"],
+  RUPTURA_RETESTEO: [],
+  ZONA_FIBONACCI: ["h1_fibo"],
+  IMPULSO_PULLBACK: [],
 };
 
 /**
- * Preguntas del CORE declaradas fuera de los 5 setups oficiales (categoría G).
- * Hoy no existe ninguna: la lista queda explícita para que cualquier alta futura
- * sea una decisión consciente y no un efecto de la ausencia de mapeo.
+ * Preguntas EXCLUSIVAS de cada setup oficial: los criterios específicos
+ * declarados en `SETUP_SPECIFIC` más los criterios reutilizados de la
+ * biblioteca. Una pregunta sólo puede figurar en un setup.
  */
-export const UNUSED_QUESTION_IDS: string[] = [];
+export const SETUP_EXCLUSIVE_QUESTIONS: Record<OfficialSetupId, string[]> = Object.fromEntries(
+  (
+    [
+      "REVERSION",
+      "CONTINUACION",
+      "RUPTURA_RETESTEO",
+      "ZONA_FIBONACCI",
+      "IMPULSO_PULLBACK",
+    ] as OfficialSetupId[]
+  ).map((setup) => [
+    setup,
+    [
+      ...SETUP_SPECIFIC.filter((b) => b.setup === setup).flatMap((b) =>
+        b.questions.map((q) => q.id),
+      ),
+      ...SETUP_REUSED_QUESTIONS[setup],
+    ],
+  ]),
+) as Record<OfficialSetupId, string[]>;
+
+/**
+ * Preguntas del CORE declaradas FUERA de los 5 setups oficiales: se conservan
+ * únicamente para leer evaluaciones antiguas. No entran en ningún cuestionario
+ * activo ni en el cálculo del score de una evaluación nueva.
+ */
+export const UNUSED_QUESTION_IDS: string[] = [
+  "ctx_levels",
+  "ctx_near_zone",
+  "z_type",
+  "z_reacted",
+  "z_clear",
+  "z_mid",
+  "h1_fibo_react",
+  "h1_fibo_weak",
+  "h1_rsi_div",
+  "h1_rsi_div_fibo",
+  "h1_macd",
+  "cf5_retest",
+  "cf5_retest_ok",
+  "cf5_macd",
+  "cf5_macd_cross",
+  "cf5_rsi",
+  "cf5_rsi_extended",
+  "cf5_volume",
+  "cf_price_action",
+  "cf_signal",
+  "r_sl_fibo_ok",
+  "rc_target",
+  "ex_plan",
+  "ex_respect",
+];
 
 /** Pregunta ya resuelta para un setup concreto: `setupId` es explícito. */
 export type SetupQuestion = Question & { setupId: OfficialSetupId; sectionId: SectionId };
