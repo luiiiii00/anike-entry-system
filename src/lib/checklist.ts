@@ -1484,7 +1484,7 @@ const SETUP_REUSED_QUESTIONS: Record<OfficialSetupId, string[]> = {
  * declarados en `SETUP_SPECIFIC` más los criterios reutilizados de la
  * biblioteca. Una pregunta sólo puede figurar en un setup.
  */
-export const SETUP_EXCLUSIVE_QUESTIONS: Record<OfficialSetupId, string[]> = Object.fromEntries(
+const BASE_SETUP_EXCLUSIVE_QUESTIONS: Record<OfficialSetupId, string[]> = Object.fromEntries(
   (
     [
       "REVERSION",
@@ -1504,12 +1504,17 @@ export const SETUP_EXCLUSIVE_QUESTIONS: Record<OfficialSetupId, string[]> = Obje
   ]),
 ) as Record<OfficialSetupId, string[]>;
 
+/** Preguntas exclusivas ACTIVAS por setup (base ± ediciones publicadas). Binding vivo. */
+export let SETUP_EXCLUSIVE_QUESTIONS: Record<OfficialSetupId, string[]> = {
+  ...BASE_SETUP_EXCLUSIVE_QUESTIONS,
+};
+
 /**
  * Preguntas del CORE declaradas FUERA de los 5 setups oficiales: se conservan
  * únicamente para leer evaluaciones antiguas. No entran en ningún cuestionario
  * activo ni en el cálculo del score de una evaluación nueva.
  */
-export const UNUSED_QUESTION_IDS: string[] = [
+const BASE_UNUSED_QUESTION_IDS: string[] = [
   "ctx_levels",
   "ctx_near_zone",
   "z_type",
@@ -1536,12 +1541,21 @@ export const UNUSED_QUESTION_IDS: string[] = [
   "ex_respect",
 ];
 
+/** Preguntas fuera de los setups ACTIVOS (histórico + retiradas desde el editor). */
+export let UNUSED_QUESTION_IDS: string[] = [...BASE_UNUSED_QUESTION_IDS];
+
 /** Pregunta ya resuelta para un setup concreto: `setupId` es explícito. */
 export type SetupQuestion = Question & { setupId: OfficialSetupId; sectionId: SectionId };
 
-const ALL_CORE_QUESTIONS: { question: Question; sectionId: SectionId }[] = SECTIONS.flatMap((s) =>
-  s.groups.flatMap((g) => g.questions.map((question) => ({ question, sectionId: s.id }))),
-);
+function collectCoreQuestions(
+  sections: Section[],
+): { question: Question; sectionId: SectionId }[] {
+  return sections.flatMap((s) =>
+    s.groups.flatMap((g) => g.questions.map((question) => ({ question, sectionId: s.id }))),
+  );
+}
+
+let ALL_CORE_QUESTIONS = collectCoreQuestions(BASE_SECTIONS);
 
 /**
  * Pertenencia EXPLÍCITA: la pregunta debe estar en la lista de comunes o en la
@@ -1553,14 +1567,29 @@ export function belongsExplicitlyToSetup(questionId: string, setupId: string): b
   return COMMON_QUESTION_IDS.includes(questionId) || exclusive.includes(questionId);
 }
 
-const SETUP_QUESTIONS: Record<OfficialSetupId, SetupQuestion[]> = Object.fromEntries(
-  OFFICIAL_SETUP_IDS.map((setupId) => [
-    setupId,
-    ALL_CORE_QUESTIONS.filter(({ question }) => belongsExplicitlyToSetup(question.id, setupId)).map(
-      ({ question, sectionId }) => ({ ...question, setupId, sectionId }),
-    ),
-  ]),
-) as Record<OfficialSetupId, SetupQuestion[]>;
+function buildSetupQuestions(
+  core: { question: Question; sectionId: SectionId }[],
+  common: string[],
+  exclusive: Record<OfficialSetupId, string[]>,
+): Record<OfficialSetupId, SetupQuestion[]> {
+  return Object.fromEntries(
+    OFFICIAL_SETUP_IDS.map((setupId) => [
+      setupId,
+      core
+        .filter(
+          ({ question }) =>
+            common.includes(question.id) || (exclusive[setupId] ?? []).includes(question.id),
+        )
+        .map(({ question, sectionId }) => ({ ...question, setupId, sectionId })),
+    ]),
+  ) as Record<OfficialSetupId, SetupQuestion[]>;
+}
+
+let SETUP_QUESTIONS = buildSetupQuestions(
+  ALL_CORE_QUESTIONS,
+  BASE_COMMON_QUESTION_IDS,
+  BASE_SETUP_EXCLUSIVE_QUESTIONS,
+);
 
 /**
  * Auditoría de la matriz: detecta preguntas sin declarar, declaradas dos veces o
