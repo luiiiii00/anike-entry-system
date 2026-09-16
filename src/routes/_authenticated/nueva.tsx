@@ -323,8 +323,6 @@ function NuevaEvaluacion() {
 
         {currentStep.key === "trade" && <TradeStep trade={trade} setTrade={setTrade} />}
 
-
-
         {section && section.id !== "riesgo" && section.id !== "disciplina" && (
           <div className="space-y-6">
             {sectionGroupsForSetup(section, trade.setup).map((g, i) => (
@@ -436,7 +434,6 @@ function NuevaEvaluacion() {
         >
           Siguiente <ChevronRight className="h-4 w-4" />
         </button>
-
       </div>
     </AppShell>
   );
@@ -447,13 +444,7 @@ function NuevaEvaluacion() {
  * Únicos setups oficiales: los 5 de OFFICIAL_SETUPS. Los patrones individuales
  * siguen siendo criterios/preguntas del CORE y no aparecen aquí.
  */
-function SetupStep({
-  selected,
-  onSelect,
-}: {
-  selected: string;
-  onSelect: (id: string) => void;
-}) {
+function SetupStep({ selected, onSelect }: { selected: string; onSelect: (id: string) => void }) {
   return (
     <div className="space-y-4">
       <div className="panel p-4">
@@ -501,7 +492,6 @@ function SetupStep({
     </div>
   );
 }
-
 
 function TradeStep({
   trade,
@@ -584,7 +574,6 @@ function TradeStep({
           setups.
         </p>
       </div>
-
 
       <div className="panel p-4">
         <label className="block">

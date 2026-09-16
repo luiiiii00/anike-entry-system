@@ -212,8 +212,8 @@ describe("integración wizard", () => {
     const rev = sectionGroupsForSetup(SECTION_BY_ID["estructura"], "REVERSION").flatMap((g) =>
       g.questions.map((q) => q.id),
     );
-    const rup = sectionGroupsForSetup(SECTION_BY_ID["estructura"], "RUPTURA_RETESTEO").flatMap((g) =>
-      g.questions.map((q) => q.id),
+    const rup = sectionGroupsForSetup(SECTION_BY_ID["estructura"], "RUPTURA_RETESTEO").flatMap(
+      (g) => g.questions.map((q) => q.id),
     );
     expect(rev).not.toEqual(rup);
     expect(rev.includes("h1_rsi_div")).toBe(true);
