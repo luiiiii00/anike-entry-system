@@ -859,7 +859,7 @@ function ResultStep({
           "panel animate-rise p-5",
           decision.finalState === "APROBADA" && "border-ok/50 bg-ok-soft/25",
           decision.finalState === "CONDICIONAL" && "border-warn/50 bg-warn-soft/25",
-          decision.finalState === "DESCARTADA" && "border-stop/50 bg-stop-soft/30",
+          decision.finalState === "NO TRADE" && "border-stop/50 bg-stop-soft/30",
         )}
       >
         <p className="font-display text-xl font-semibold">
@@ -870,9 +870,18 @@ function ResultStep({
           {decision.finalState === "APROBADA"
             ? "Todos los criterios críticos se cumplen. La decisión de ejecutar sigue siendo tuya."
             : decision.finalState === "CONDICIONAL"
-              ? "Hay elementos sin resolver: espera confirmación antes de ejecutar."
+              ? "Hay elementos sin resolver: no puede registrarse como operación ANIKE EJEPIKA."
               : "Existe al menos una condición crítica incumplida: la operación no debe ejecutarse."}
         </p>
+        {decision.gatesFailed.length > 0 && (
+          <ul className="mt-3 space-y-1.5 text-sm text-foreground/90">
+            {decision.gatesFailed.map((g) => (
+              <li key={g} className="flex gap-2">
+                <span className="text-warn">•</span> Gate obligatorio no alcanzado: {g}
+              </li>
+            ))}
+          </ul>
+        )}
         {decision.warnings.length > 0 && (
           <ul className="mt-3 space-y-1.5 text-sm text-foreground/90">
             {decision.warnings.map((w) => (
