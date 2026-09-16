@@ -409,7 +409,9 @@ describe("matriz definitiva S01–S05 (documento maestro)", () => {
         expect(inSection.some((q) => q.id.startsWith("s0"))).toBe(true);
       }
       const duplicated = getQuestionsForSetup(id).filter(
-        (q) => q.id.startsWith("s0") && ["riesgo", "recorrido", "ejecucion", "disciplina"].includes(q.sectionId),
+        (q) =>
+          q.id.startsWith("s0") &&
+          ["riesgo", "recorrido", "ejecucion", "disciplina"].includes(q.sectionId),
       );
       expect(duplicated).toEqual([]);
     }
