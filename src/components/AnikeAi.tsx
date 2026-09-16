@@ -161,6 +161,23 @@ export function AnikeAiPanel(props: Props) {
       )}
 
       {open && latest && !analyze.isPending && <AiReviewBody review={latest} />}
+
+      {open && previous.length > 0 && !analyze.isPending && (
+        <div className="border-t border-border p-5">
+          <p className="label-mono">ANÁLISIS ANTERIORES</p>
+          <div className="mt-2 space-y-2">
+            {previous.map((r) => (
+              <details key={r.id} className="rounded-xl border border-border bg-surface-2">
+                <summary className="cursor-pointer px-4 py-3 text-sm">
+                  {new Date(r.created_at).toLocaleString("es-PY")} · {r.review_type}
+                </summary>
+                <AiReviewBody review={r} />
+              </details>
+            ))}
+          </div>
+        </div>
+      )}
+
     </section>
   );
 }
