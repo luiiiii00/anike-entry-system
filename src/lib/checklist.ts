@@ -222,9 +222,21 @@ export const SECTIONS: Section[] = [
                 pts: 1,
               },
               { v: "tri_asc", label: "Triángulo ascendente — posible continuidad alcista", pts: 1 },
-              { v: "tri_desc", label: "Triángulo descendente — posible continuidad bajista", pts: 1 },
-              { v: "banderin_alcista", label: "Banderín alcista — posible continuidad alcista", pts: 1 },
-              { v: "banderin_bajista", label: "Banderín bajista — posible continuidad bajista", pts: 1 },
+              {
+                v: "tri_desc",
+                label: "Triángulo descendente — posible continuidad bajista",
+                pts: 1,
+              },
+              {
+                v: "banderin_alcista",
+                label: "Banderín alcista — posible continuidad alcista",
+                pts: 1,
+              },
+              {
+                v: "banderin_bajista",
+                label: "Banderín bajista — posible continuidad bajista",
+                pts: 1,
+              },
               {
                 v: "bandera_rect_alcista",
                 label: "Bandera rectangular alcista — posible continuidad alcista",
@@ -718,7 +730,11 @@ export const LEGACY_SECTIONS: { id: string; title: string; questions: Question[]
     questions: [
       { id: "ctx_trend", label: "El token está en:", options: [] },
       { id: "ctx_day", label: "Estoy viendo un día de:", options: [] },
-      { id: "ctx_range_pos", label: "Dónde está el precio respecto al rango del día:", options: [] },
+      {
+        id: "ctx_range_pos",
+        label: "Dónde está el precio respecto al rango del día:",
+        options: [],
+      },
       { id: "d_levels", label: "¿Hay pisos y techos relevantes? (diario)", options: [] },
       { id: "d_candles", label: "Dirección de las últimas 2 velas (diario):", options: [] },
       { id: "d_zone", label: "¿El precio choca con una zona importante? (diario)", options: [] },
@@ -730,7 +746,11 @@ export const LEGACY_SECTIONS: { id: string; title: string; questions: Question[]
       { id: "z_vol", label: "Hay volatilidad:", options: [] },
       { id: "cf_vol_favors", label: "La volatilidad favorece:", options: [] },
       { id: "cf_entry_phase", label: "Estoy entrando en:", options: [] },
-      { id: "r_stop_tight", label: "¿Mi stop está demasiado cerca para la volatilidad?", options: [] },
+      {
+        id: "r_stop_tight",
+        label: "¿Mi stop está demasiado cerca para la volatilidad?",
+        options: [],
+      },
       { id: "r_space", label: "¿Hay espacio suficiente para moverse a favor?", options: [] },
       { id: "r_reward", label: "¿Lo que podría ganar compensa lo que arriesgo?", options: [] },
       { id: "rc_obstacle", label: "¿Zona contraria relevante antes del objetivo?", options: [] },
@@ -767,11 +787,7 @@ export const LEGACY_SECTIONS: { id: string; title: string; questions: Question[]
  * NO altera pesos, gates, HARD ni la fórmula del score.
  */
 export type OfficialSetupId =
-  | "REVERSION"
-  | "CONTINUACION"
-  | "RUPTURA_RETESTEO"
-  | "ZONA_FIBONACCI"
-  | "IMPULSO_PULLBACK";
+  "REVERSION" | "CONTINUACION" | "RUPTURA_RETESTEO" | "ZONA_FIBONACCI" | "IMPULSO_PULLBACK";
 
 export type OfficialSetup = {
   id: OfficialSetupId;
@@ -821,8 +837,16 @@ export const OFFICIAL_SETUPS: OfficialSetup[] = [
     code: "S03",
     name: "RUPTURA + RETESTEO",
     label: "S03 — RUPTURA + RETESTEO",
-    description: "La diagonal o el nivel se rompe y el precio vuelve a validarlo antes de continuar.",
-    focus: ["cf5_diag_break", "cf5_close", "cf5_retest", "cf5_retest_ok", "cf5_volume", "z_relevance"],
+    description:
+      "La diagonal o el nivel se rompe y el precio vuelve a validarlo antes de continuar.",
+    focus: [
+      "cf5_diag_break",
+      "cf5_close",
+      "cf5_retest",
+      "cf5_retest_ok",
+      "cf5_volume",
+      "z_relevance",
+    ],
   },
   {
     id: "ZONA_FIBONACCI",
@@ -838,7 +862,15 @@ export const OFFICIAL_SETUPS: OfficialSetup[] = [
     name: "IMPULSO + PULLBACK",
     label: "S05 — IMPULSO + PULLBACK",
     description: "Tras un impulso con fuerza, el precio corrige y ofrece entrada a favor.",
-    focus: ["ctx_swings", "h1_structure", "h1_fibo", "cf5_rsi", "cf5_rsi_extended", "rc_target", "rc_rr2"],
+    focus: [
+      "ctx_swings",
+      "h1_structure",
+      "h1_fibo",
+      "cf5_rsi",
+      "cf5_rsi_extended",
+      "rc_target",
+      "rc_rr2",
+    ],
   },
 ];
 
@@ -916,6 +948,113 @@ export const SETUP_GROUPS: { title: string; items: string[] }[] = [
 
 export const SETUPS = OFFICIAL_SETUP_IDS;
 
-
 export const MARKETS = ["Crypto", "Forex", "Índices", "Acciones", "Futuros", "Otro"];
 export const SESSIONS = ["Asia", "Londres", "Nueva York", "Overlap", "Fuera de sesión"];
+
+/* ===========================================================================
+ * FUENTE ÚNICA DE VERDAD: SETUP → PREGUNTAS
+ * ---------------------------------------------------------------------------
+ * Cada pregunta del CORE queda asignada explícitamente a uno o varios setups
+ * oficiales. `getQuestionsForSetup(setupId)` devuelve EXCLUSIVAMENTE las
+ * preguntas de ese setup, ya etiquetadas con `setupId`.
+ *
+ * Restricción de integridad del CORE: una pregunta sólo puede excluirse de un
+ * setup si ofrece la opción "No aplica" (na). Así el cálculo del score usa el
+ * mecanismo ya existente (los criterios no evaluables se excluyen sin penalizar)
+ * y NO se modifican pesos, fórmula, gates, HARD, estados ni clasificación.
+ * =========================================================================== */
+
+/** Preguntas exclusivas de ciertos setups. Todas tienen opción "No aplica". */
+export const SETUP_QUESTION_SCOPE: Record<string, OfficialSetupId[]> = {
+  h1_pattern_change: ["REVERSION"],
+  h1_pattern_change_state: ["REVERSION"],
+  h1_rsi_div: ["REVERSION"],
+  h1_rsi_div_fibo: ["REVERSION"],
+  cf_price_action: ["REVERSION", "ZONA_FIBONACCI"],
+  h1_pattern_cont: ["CONTINUACION", "IMPULSO_PULLBACK"],
+  h1_pattern_cont_state: ["CONTINUACION", "IMPULSO_PULLBACK"],
+  h1_macd: ["CONTINUACION", "IMPULSO_PULLBACK"],
+  cf5_macd: ["CONTINUACION", "IMPULSO_PULLBACK"],
+  cf5_macd_cross: ["CONTINUACION", "IMPULSO_PULLBACK"],
+  cf5_retest: ["RUPTURA_RETESTEO"],
+  cf5_retest_ok: ["RUPTURA_RETESTEO"],
+  cf5_volume: ["RUPTURA_RETESTEO", "CONTINUACION", "IMPULSO_PULLBACK"],
+  h1_fibo: ["ZONA_FIBONACCI", "IMPULSO_PULLBACK"],
+  h1_fibo_react: ["ZONA_FIBONACCI", "IMPULSO_PULLBACK"],
+  h1_fibo_weak: ["ZONA_FIBONACCI", "IMPULSO_PULLBACK"],
+  z_type: ["REVERSION", "ZONA_FIBONACCI", "RUPTURA_RETESTEO"],
+  cf_signal: ["REVERSION", "CONTINUACION", "ZONA_FIBONACCI", "IMPULSO_PULLBACK"],
+};
+
+/** Pregunta ya resuelta para un setup concreto: `setupId` es explícito. */
+export type SetupQuestion = Question & { setupId: OfficialSetupId; sectionId: SectionId };
+
+function questionBelongsToSetup(questionId: string, setupId: OfficialSetupId): boolean {
+  const scope = SETUP_QUESTION_SCOPE[questionId];
+  return scope === undefined ? true : scope.includes(setupId);
+}
+
+const ALL_CORE_QUESTIONS: { question: Question; sectionId: SectionId }[] = SECTIONS.flatMap((s) =>
+  s.groups.flatMap((g) => g.questions.map((question) => ({ question, sectionId: s.id }))),
+);
+
+const SETUP_QUESTIONS: Record<OfficialSetupId, SetupQuestion[]> = Object.fromEntries(
+  OFFICIAL_SETUP_IDS.map((setupId) => [
+    setupId,
+    ALL_CORE_QUESTIONS.filter(({ question }) => questionBelongsToSetup(question.id, setupId)).map(
+      ({ question, sectionId }) => ({ ...question, setupId, sectionId }),
+    ),
+  ]),
+) as Record<OfficialSetupId, SetupQuestion[]>;
+
+/** Devuelve EXCLUSIVAMENTE las preguntas del setup indicado. Setup inválido → []. */
+export function getQuestionsForSetup(setupId: string | null | undefined): SetupQuestion[] {
+  if (!setupId) return [];
+  return SETUP_QUESTIONS[setupId as OfficialSetupId] ?? [];
+}
+
+/** IDs de preguntas activas del setup (para aislar respuestas). */
+export function activeQuestionIds(setupId: string | null | undefined): Set<string> {
+  return new Set(getQuestionsForSetup(setupId).map((q) => q.id));
+}
+
+/** Grupos de una sección ya filtrados por setup (el wizard sólo renderiza esto). */
+export function sectionGroupsForSetup(
+  section: Section,
+  setupId: string | null | undefined,
+): { title?: string; questions: SetupQuestion[] }[] {
+  const active = getQuestionsForSetup(setupId);
+  const byId = new Map(active.map((q) => [q.id, q]));
+  return section.groups
+    .map((g) => ({
+      ...(g.title ? { title: g.title } : {}),
+      questions: g.questions.flatMap((q) => {
+        const found = byId.get(q.id);
+        return found ? [found] : [];
+      }),
+    }))
+    .filter((g) => g.questions.length > 0);
+}
+
+/**
+ * Reconstruye las respuestas al cambiar de setup:
+ * 1. descarta toda respuesta de preguntas que no pertenecen al nuevo setup;
+ * 2. marca "No aplica" las preguntas excluidas para que el score no penalice
+ *    criterios que el setup no evalúa (mecanismo `na` ya existente del CORE).
+ */
+export function answersForSetup(
+  answers: Record<string, string>,
+  setupId: string | null | undefined,
+): Record<string, string> {
+  if (!setupId || !SETUP_QUESTIONS[setupId as OfficialSetupId]) return {};
+  const active = activeQuestionIds(setupId);
+  const next: Record<string, string> = {};
+  for (const [id, value] of Object.entries(answers)) {
+    if (active.has(id)) next[id] = value;
+  }
+  for (const { question } of ALL_CORE_QUESTIONS) {
+    if (active.has(question.id)) continue;
+    if (question.options.some((o) => o.na)) next[question.id] = "na";
+  }
+  return next;
+}
