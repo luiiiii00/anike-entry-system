@@ -309,7 +309,7 @@ describe("refsFromRow — mapeo único plan/real", () => {
   test("el análisis completo funciona con las referencias mapeadas", () => {
     const { planned, real } = refsFromRow(row, 5000);
     const a = analyzePostTradeAll(planned, real);
-    expect(a.result.outcome).toBe("WIN");
+    expect(a.result.status).toBe("GANANCIA");
     expect(Number.isFinite(a.result.netPnl ?? 0)).toBe(true);
   });
 });
