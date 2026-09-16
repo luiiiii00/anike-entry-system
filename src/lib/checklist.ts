@@ -2181,8 +2181,8 @@ export type OverlayEdit = {
 export type OverlayAddedQuestion = {
   id: string;
   sectionId: SectionId;
-  /** `COMMON` = presente en los 5 setups; si no, exclusiva de ese setup. */
-  owner: OfficialSetupId | "COMMON";
+  /** `COMMON` = presente en las 6 matrices; si no, exclusiva de esa matriz. */
+  owner: EvaluationSetupId | "COMMON";
   label: string;
   hint?: string;
   options: OverlayOption[];
