@@ -65,7 +65,6 @@ const f5 = (l1: string, l2: string, l3: string, l4: string, l5: string): Option[
   { v: "ausente", label: l5, pts: 0 },
 ];
 
-
 export const INSTRUMENTS = ["BTC", "ETH", "SOL", "Forex", "Índices", "Otro"];
 
 /** Niveles oficiales de Fibonacci de ANIKE EJEPIKA. 0,75 es el SL predeterminado. */
@@ -227,7 +226,6 @@ const SECTIONS_SOURCE: Section[] = [
             hint: "Un patrón observado no es lo mismo que un patrón confirmado.",
             options: PATTERN_STATE,
           },
-
         ],
       },
       {
@@ -902,8 +900,7 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
     questions: [
       {
         id: "s01_room_to_target",
-        label:
-          "¿Existe espacio suficiente hasta el objetivo antes de una zona opuesta relevante?",
+        label: "¿Existe espacio suficiente hasta el objetivo antes de una zona opuesta relevante?",
         options: f5(
           "Amplio espacio",
           "Espacio suficiente",
@@ -959,13 +956,7 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
       {
         id: "s02_swings_direction",
         label: "¿La secuencia de máximos y mínimos mantiene la dirección dominante?",
-        options: f5(
-          "Completamente",
-          "Mayormente",
-          "Parcialmente",
-          "Débilmente",
-          "Está invalidada",
-        ),
+        options: f5("Completamente", "Mayormente", "Parcialmente", "Débilmente", "Está invalidada"),
       },
       {
         id: "s02_correction_valid",
@@ -1251,13 +1242,7 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
       {
         id: "s04_zone_confluent",
         label: "¿Existe una zona técnica relevante coincidente con el retroceso?",
-        options: f5(
-          "Confluencia muy clara",
-          "Buena confluencia",
-          "Parcial",
-          "Débil",
-          "No existe",
-        ),
+        options: f5("Confluencia muy clara", "Buena confluencia", "Parcial", "Débil", "No existe"),
       },
       {
         id: "s04_confluence_clear",
@@ -1396,13 +1381,7 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
       {
         id: "s05_pullback_zone",
         label: "¿El retroceso llega a una zona de interés para reanudar el movimiento?",
-        options: f5(
-          "Zona muy clara",
-          "Zona clara",
-          "Moderadamente clara",
-          "Débil",
-          "No existe",
-        ),
+        options: f5("Zona muy clara", "Zona clara", "Moderadamente clara", "Débil", "No existe"),
       },
     ],
   },
@@ -1413,15 +1392,8 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
     questions: [
       {
         id: "s05_pullback_rejection",
-        label:
-          "¿El pullback muestra rechazo o pérdida de presión contra la dirección del impulso?",
-        options: f5(
-          "Evidencia clara",
-          "Evidencia fuerte",
-          "Parcial",
-          "Débil",
-          "No existe",
-        ),
+        label: "¿El pullback muestra rechazo o pérdida de presión contra la dirección del impulso?",
+        options: f5("Evidencia clara", "Evidencia fuerte", "Parcial", "Débil", "No existe"),
       },
       {
         id: "s05_pattern_valid",
@@ -1437,13 +1409,7 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
       {
         id: "s05_confirm_resume",
         label: "¿El precio confirma la reanudación del impulso?",
-        options: f5(
-          "Confirmación clara",
-          "Confirmación fuerte",
-          "Parcial",
-          "Débil",
-          "No confirma",
-        ),
+        options: f5("Confirmación clara", "Confirmación fuerte", "Parcial", "Débil", "No confirma"),
       },
     ],
   },
@@ -1541,7 +1507,6 @@ function withSetupQuestions(sections: Section[]): Section[] {
 }
 
 export const SECTIONS: Section[] = withoutNaOptions(withSetupQuestions(SECTIONS_SOURCE));
-
 
 export const SECTION_BY_ID = Object.fromEntries(SECTIONS.map((s) => [s.id, s])) as Record<
   SectionId,
@@ -1920,7 +1885,6 @@ export const UNUSED_QUESTION_IDS: string[] = [
   "ex_plan",
   "ex_respect",
 ];
-
 
 /** Pregunta ya resuelta para un setup concreto: `setupId` es explícito. */
 export type SetupQuestion = Question & { setupId: OfficialSetupId; sectionId: SectionId };

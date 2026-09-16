@@ -87,7 +87,6 @@ describe("aislamiento de preguntas por setup", () => {
     expect(rev.has("h1_pattern_cont")).toBe(false);
     expect(activeQuestionIds("RUPTURA_RETESTEO").has("s03_retest_on_level")).toBe(true);
     expect(rev.has("s03_retest_on_level")).toBe(false);
-
   });
 });
 
@@ -276,7 +275,6 @@ describe("integración wizard", () => {
     expect(rev).not.toEqual(rup);
     expect(rev.includes("h1_pattern_change")).toBe(true);
     expect(rup.includes("h1_pattern_change")).toBe(false);
-
   });
 });
 
