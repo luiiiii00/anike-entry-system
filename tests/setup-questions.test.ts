@@ -339,3 +339,82 @@ describe("regla ANIKE: el cuestionario activo no admite No aplica", () => {
     expect(score.score).toBeGreaterThanOrEqual(0);
   });
 });
+
+describe("matriz definitiva S01–S05 (documento maestro)", () => {
+  const EXPECTED_EXCLUSIVE: Record<OfficialSetupId, number> = {
+    REVERSION: 13,
+    CONTINUACION: 12,
+    RUPTURA_RETESTEO: 12,
+    ZONA_FIBONACCI: 13,
+    IMPULSO_PULLBACK: 12,
+  };
+
+  test("cada setup declara exactamente sus criterios específicos", () => {
+    for (const id of IDS) {
+      expect(SETUP_EXCLUSIVE_QUESTIONS[id].length).toBe(EXPECTED_EXCLUSIVE[id]);
+    }
+  });
+
+  test("los criterios específicos de un setup no aparecen en otro", () => {
+    for (const id of IDS) {
+      for (const qid of SETUP_EXCLUSIVE_QUESTIONS[id]) {
+        for (const other of IDS.filter((o) => o !== id)) {
+          expect(activeQuestionIds(other).has(qid)).toBe(false);
+        }
+      }
+    }
+  });
+
+  test("el CORE común mínimo no arrastra criterios técnicos de un setup", () => {
+    for (const qid of [
+      "z_type",
+      "z_reacted",
+      "h1_fibo",
+      "h1_rsi_div",
+      "cf5_retest",
+      "cf5_volume",
+      "cf_price_action",
+      "rc_target",
+    ]) {
+      expect(COMMON_QUESTION_IDS.includes(qid)).toBe(false);
+    }
+  });
+
+  test("los criterios retirados sólo se conservan para lectura histórica", () => {
+    for (const qid of UNUSED_QUESTION_IDS) {
+      for (const id of IDS) expect(activeQuestionIds(id).has(qid)).toBe(false);
+    }
+  });
+
+  test("los criterios nuevos usan la escala oficial 1 / 0,75 / 0,50 / 0,25 / 0", () => {
+    const all = SECTIONS.flatMap((s) => s.groups.flatMap((g) => g.questions));
+    const specific = all.filter((q) => /^s0[1-5]_/.test(q.id));
+    expect(specific.length).toBe(56);
+    for (const q of specific) {
+      expect(q.options.map((o) => o.pts)).toEqual([1, 0.75, 0.5, 0.25, 0]);
+      expect(q.options.some((o) => o.na)).toBe(false);
+    }
+  });
+
+  test("cada setup mantiene criterios en todos los bloques con gate", () => {
+    for (const id of IDS) {
+      for (const sectionId of ["estructura", "zona", "confirmacion", "riesgo", "recorrido"]) {
+        const inSection = getQuestionsForSetup(id).filter((q) => q.sectionId === sectionId);
+        expect(inSection.length).toBeGreaterThan(0);
+        expect(inSection.some((q) => q.id.startsWith(`s0`))).toBe(true);
+      }
+    }
+  });
+
+  test("los pesos, gates y umbral del CORE no cambian con la nueva matriz", () => {
+    expect(SECTIONS.reduce((a, s) => a + s.weight, 0)).toBe(100);
+    for (const id of IDS) {
+      const answers: Record<string, string> = {};
+      for (const q of getQuestionsForSetup(id)) {
+        const best = [...q.options].sort((a, b) => b.pts - a.pts)[0];
+        if (best) answers[q.id] = best.v;
+      }
+      expect(computeScore(answers, activeQuestionIds(id)).score).toBe(100);
+    }
+  });
+});
