@@ -2357,6 +2357,10 @@ export function buildChecklistCatalog(overlayInput?: ChecklistOverlay | null): C
     };
   });
 
+  // El timeframe se reasigna siempre desde el bloque CORE: las preguntas nuevas
+  // heredan la temporalidad de su bloque y nunca se duplican por timeframe.
+  const sections: Section[] = withTimeframes(edited);
+
   const disabled = new Set(overlay.disabled);
   const matrix = Object.fromEntries(
     EVALUATION_SETUP_IDS.map((setupId) => [
