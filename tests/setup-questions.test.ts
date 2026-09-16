@@ -8,6 +8,8 @@ import {
   UNUSED_QUESTION_IDS,
   validateSetupQuestionMatrix,
   getQuestionsForSetup,
+  HISTORICAL_NA_VALUE,
+  missingActiveAnswers,
   OFFICIAL_SETUP_IDS,
   OFFICIAL_SETUPS,
   SECTIONS,
@@ -273,5 +275,65 @@ describe("integración wizard", () => {
     expect(rev).not.toEqual(rup);
     expect(rev.includes("h1_rsi_div")).toBe(true);
     expect(rup.includes("h1_rsi_div")).toBe(false);
+  });
+});
+
+describe("regla ANIKE: el cuestionario activo no admite No aplica", () => {
+  const NA_LABELS = ["no aplica", "n/a", "na", "no disponible"];
+
+  test("ninguna pregunta activa de los 5 setups ofrece opción na", () => {
+    for (const id of IDS) {
+      for (const q of getQuestionsForSetup(id)) {
+        expect(q.options.some((o) => o.na)).toBe(false);
+        expect(q.options.some((o) => o.v === "na" || o.v === "no_disponible")).toBe(false);
+        expect(q.options.some((o) => NA_LABELS.includes(o.label.trim().toLowerCase()))).toBe(false);
+        expect(q.options.length).toBeGreaterThan(1);
+      }
+    }
+  });
+
+  test("ninguna pregunta del CORE conserva opciones na", () => {
+    const all = SECTIONS.flatMap((s) => s.groups.flatMap((g) => g.questions));
+    expect(all.flatMap((q) => q.options).filter((o) => o.na).length).toBe(0);
+  });
+
+  test("cf5_volume exige respuesta real (Sí / No / Dudoso)", () => {
+    const q = SECTIONS.flatMap((s) => s.groups.flatMap((g) => g.questions)).find(
+      (x) => x.id === "cf5_volume",
+    )!;
+    expect(q.options.map((o) => o.v)).toEqual(["si", "no", "dudoso"]);
+  });
+
+  test("answersForSetup no inyecta ningún valor na", () => {
+    for (const id of IDS) {
+      const out = answersForSetup({}, id);
+      expect(out).toEqual({});
+      expect(Object.values(answersForSetup({ ctx_aligned: "si" }, id))).not.toContain("na");
+    }
+  });
+
+  test("pregunta activa sin respuesta ⇒ evaluación incompleta", () => {
+    for (const id of IDS) {
+      const active = getQuestionsForSetup(id);
+      const answers: Record<string, string> = {};
+      for (const q of active) answers[q.id] = q.options[0]!.v;
+      expect(missingActiveAnswers(answers, id)).toEqual([]);
+      const partial = { ...answers };
+      delete partial["ctx_aligned"];
+      expect(missingActiveAnswers(partial, id)).toEqual(["ctx_aligned"]);
+      expect(missingActiveAnswers({}, id).length).toBeGreaterThan(0);
+    }
+  });
+
+  test("las respuestas históricas con na se leen sin romper", () => {
+    const historical = { ctx_aligned: "si", h1_pattern_change: HISTORICAL_NA_VALUE };
+    const q = SECTIONS.flatMap((s) => s.groups.flatMap((g) => g.questions)).find(
+      (x) => x.id === "h1_pattern_change",
+    )!;
+    const label = q.options.find((o) => o.v === historical["h1_pattern_change"])?.label ?? "na";
+    expect(label).toBe("na");
+    const score = computeScore(historical);
+    expect(Number.isFinite(score.score)).toBe(true);
+    expect(score.score).toBeGreaterThanOrEqual(0);
   });
 });
