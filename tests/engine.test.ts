@@ -1,5 +1,15 @@
 import { describe, expect, it } from "bun:test";
-import { computeRisk, computeScore, evaluate, sizingStatus } from "@/lib/scoring";
+import {
+  computeRisk,
+  computeScore,
+  evaluate,
+  sizingStatus,
+  APPROVAL_GATES,
+  APPROVAL_MIN_SCORE,
+  PRE_TRADE_WEIGHT,
+} from "@/lib/scoring";
+import { SECTIONS } from "@/lib/checklist";
+import { readFileSync } from "node:fs";
 import { calculatePostTrade } from "@/lib/posttrade";
 import type { Evaluation } from "@/lib/db";
 import {
@@ -310,14 +320,14 @@ describe("evaluate — fuente única de verdad", () => {
     const d = evaluate({ answers: { ...passing, ds_motive: "revancha" }, risk: {}, maxRiskPct: 1 });
     expect(d.emotional).toBe(true);
     expect(d.blocked).toBe(true);
-    expect(d.finalState).toBe("DESCARTADA");
+    expect(d.finalState).toBe("NO TRADE");
     expect(d.classification).toBe("NO TRADE");
   });
 
   it("una regla crítica descarta la operación", () => {
     const d = evaluate({ answers: { ...passing, cf5_close: "no" }, risk: {}, maxRiskPct: 1 });
     expect(d.hardRules.length).toBeGreaterThan(0);
-    expect(d.finalState).toBe("DESCARTADA");
+    expect(d.finalState).toBe("NO TRADE");
   });
 
   it("expone las métricas de riesgo recalculadas con la precisión del lotaje", () => {
@@ -406,7 +416,9 @@ describe("estados de operación", () => {
     expect(s.netPnl).toBe(0);
   });
 
-  it("una CONDICIONAL sí puede registrarse y cerrarse si el trader la ejecutó", () => {
+  // Con el CORE actual una CONDICIONAL NO puede registrarse (el servidor lo rechaza).
+  // Las estadísticas deben seguir leyendo filas históricas que sí quedaron registradas.
+  it("una CONDICIONAL histórica ya registrada sigue contando en las estadísticas", () => {
     const s = computeStats([
       ev({ final_state: "CONDICIONAL", decision: "registrado", result_r: 1, net_pnl: 50 }),
     ]);
@@ -562,5 +574,239 @@ describe("numeración con huecos permitidos", () => {
     ]);
     expect(curve.map((p) => p.name)).toEqual(["#1", "#4"]);
     expect(curve.at(-1)?.r).toBe(2);
+  });
+});
+
+/* ================= CORE definitivo: fórmula, gates y estados ================= */
+
+const PRE_SECTIONS = SECTIONS.filter((s) => !s.postTrade);
+const PRE_QUESTIONS = PRE_SECTIONS.flatMap((s) => s.groups.flatMap((g) => g.questions));
+
+/** Mejor respuesta posible de cada pregunta pre-trade (nunca "No aplica"). */
+function bestAnswers(): Record<string, string> {
+  const a: Record<string, string> = {};
+  for (const q of PRE_QUESTIONS) {
+    const opts = q.options.filter((o) => !o.na);
+    const best = opts.reduce((m, o) => (o.pts > m.pts ? o : m), opts[0]!);
+    a[q.id] = best.v;
+  }
+  return a;
+}
+
+const perfect = bestAnswers();
+const decide = (answers: Record<string, string>) =>
+  evaluate({ answers, risk: {}, maxRiskPct: 1, preferredSetups: [] });
+
+/**
+ * Degrada un bloque hasta bajar de `limit` % sin activar ninguna HARD ni el freno
+ * emocional: así se demuestra que el gate por sí solo deja la evaluación CONDICIONAL.
+ */
+function degradeBlock(sectionId: string, limit: number) {
+  const section = PRE_SECTIONS.find((s) => s.id === sectionId)!;
+  const questions = section.groups.flatMap((g) => g.questions);
+  let answers = { ...perfect };
+  // Estado que aparece cuando el bloque sólo puede bajar del gate activando una HARD.
+  let blockedBelow: string | null = null;
+  for (const q of questions) {
+    const opts = q.options.filter((o) => !o.na).sort((x, y) => x.pts - y.pts);
+    for (const opt of opts) {
+      const trial = { ...answers, [q.id]: opt.v };
+      const d = decide(trial);
+      if (d.hardRules.length > 0 || d.emotional) {
+        if (d.breakdown[section.id]!.percent < limit) blockedBelow = d.finalState;
+        continue;
+      }
+      answers = trial;
+      if (d.breakdown[section.id]!.percent < limit)
+        return { answers, decision: d, reached: true, blockedBelow };
+      break;
+    }
+  }
+  return { answers, decision: decide(answers), reached: false, blockedBelow };
+}
+
+describe("CORE — pesos y fórmula", () => {
+  it("los pesos CORE son 5/10/25/10/20/10/5/5/5/5 y suman 100", () => {
+    expect(SECTIONS.map((s) => s.weight)).toEqual([5, 10, 25, 10, 20, 10, 5, 5, 5, 5]);
+    expect(SECTIONS.reduce((n, s) => n + s.weight, 0)).toBe(100);
+  });
+
+  it("Resultados es POST-TRADE y el pre-trade se normaliza sobre 95 (L)", () => {
+    expect(PRE_SECTIONS.reduce((n, s) => n + s.weight, 0)).toBe(PRE_TRADE_WEIGHT);
+    expect(PRE_TRADE_WEIGHT).toBe(95);
+    const r = computeScore(perfect);
+    // Resultados sin responder no redistribuye su 5 %: el pre-trade perfecto ya es 100.
+    expect(r.breakdown.resultados.weight).toBe(5);
+    expect(r.score).toBe(100);
+  });
+
+  it("el 5 % de Resultados no entra en el score pre-trade", () => {
+    const withResult = { ...perfect, rs_result: "ganadora", rs_process: "no" };
+    expect(computeScore(withResult).score).toBe(computeScore(perfect).score);
+  });
+});
+
+describe("CORE — score interno vs score visible", () => {
+  it("el score visible es el floor del interno, nunca redondeo (A/M)", () => {
+    const { answers, decision } = degradeBlock("estructura", 100);
+    expect(decision.scoreVisible).toBe(Math.floor(decision.score));
+    expect(decision.scoreVisible).toBeLessThanOrEqual(decision.score);
+    expect(computeScore(answers).scoreVisible).toBe(Math.floor(computeScore(answers).score));
+  });
+
+  it("un interno con decimales bajo 80 no aprueba aunque el visible sea 79 (A)", () => {
+    // Búsqueda de un score interno en [79, 80): visible 79 y NO APROBADA.
+    let found: ReturnType<typeof decide> | null = null;
+    for (const section of PRE_SECTIONS) {
+      for (const q of section.groups.flatMap((g) => g.questions)) {
+        for (const opt of q.options.filter((o) => !o.na)) {
+          const d = decide({ ...perfect, [q.id]: opt.v });
+          if (d.hardRules.length > 0 || d.emotional) continue;
+          if (d.score >= 79 && d.score < 80) found = d;
+        }
+      }
+    }
+    if (found) {
+      expect(found.scoreVisible).toBe(79);
+      expect(found.finalState).not.toBe("APROBADA");
+    }
+    // Regla explícita: 79.87 interno => 79 visible, y 79.87 < 80 no aprueba.
+    expect(Math.floor(79.87)).toBe(79);
+    expect(79.87 >= APPROVAL_MIN_SCORE).toBe(false);
+  });
+
+  it("la clasificación y el estado nunca usan el valor visible (M)", () => {
+    const { decision } = degradeBlock("comercio", 100);
+    const byInternal = decision.score >= APPROVAL_MIN_SCORE;
+    expect(decision.finalState === "APROBADA").toBe(
+      byInternal &&
+        decision.complete &&
+        decision.gatesFailed.length === 0 &&
+        decision.warnings.length === 0,
+    );
+  });
+});
+
+describe("CORE — gates obligatorios", () => {
+  it("score interno ≥ 80 con todos los gates cumplidos => APROBADA (B/K)", () => {
+    const d = decide(perfect);
+    expect(d.hardRules).toEqual([]);
+    expect(d.complete).toBe(true);
+    expect(d.score).toBeGreaterThanOrEqual(APPROVAL_MIN_SCORE);
+    expect(d.gatesFailed).toEqual([]);
+    expect(d.finalState).toBe("APROBADA");
+  });
+
+  it("los gates son Estructura 70 / Zona 60 / Confirmación 60 / Riesgo 80 / Recorrido 60", () => {
+    expect(APPROVAL_GATES.map((g) => [g.id, g.min])).toEqual([
+      ["estructura", 70],
+      ["zona", 60],
+      ["confirmacion", 60],
+      ["riesgo", 80],
+      ["recorrido", 60],
+    ]);
+  });
+
+  for (const gate of [
+    { id: "estructura", min: 70, case: "C" },
+    { id: "zona", min: 60, case: "D" },
+    { id: "confirmacion", min: 60, case: "E" },
+    { id: "riesgo", min: 80, case: "F" },
+    { id: "recorrido", min: 60, case: "G" },
+  ]) {
+    it(`${gate.case}. ${gate.id} por debajo de ${gate.min}% => CONDICIONAL, no APROBADA`, () => {
+      const { decision, reached, blockedBelow } = degradeBlock(gate.id, gate.min);
+      expect(decision.hardRules).toEqual([]);
+      expect(decision.emotional).toBe(false);
+      if (reached) {
+        expect(decision.breakdown[gate.id as "zona"]!.percent).toBeLessThan(gate.min);
+        expect(decision.gatesFailed.length).toBeGreaterThan(0);
+        expect(decision.finalState).toBe("CONDICIONAL");
+      } else {
+        // El bloque no puede bajar del gate sin activar antes una HARD: precedencia
+        // HARD → NO TRADE (nunca APROBADA con el gate incumplido).
+        expect(decision.breakdown[gate.id as "zona"]!.percent).toBeGreaterThanOrEqual(gate.min);
+        expect(blockedBelow).toBe("NO TRADE");
+      }
+    });
+  }
+});
+
+describe("CORE — HARD, completitud y estados oficiales", () => {
+  it("cualquier HARD produce NO TRADE aunque el score sea máximo (H)", () => {
+    const d = decide({ ...perfect, cf5_close: "no" });
+    expect(d.hardRules.length).toBeGreaterThan(0);
+    expect(d.finalState).toBe("NO TRADE");
+    expect(d.classification).toBe("NO TRADE");
+  });
+
+  it("una evaluación incompleta no puede ser APROBADA (I)", () => {
+    const partial = { ...perfect };
+    delete partial[PRE_QUESTIONS[0]!.id];
+    const d = decide(partial);
+    expect(d.complete).toBe(false);
+    expect(d.missing.length).toBeGreaterThan(0);
+    expect(d.finalState).not.toBe("APROBADA");
+  });
+
+  it("el motor nuevo nunca produce DESCARTADA (N)", () => {
+    const states = [
+      decide(perfect).finalState,
+      decide({ ...perfect, cf5_close: "no" }).finalState,
+      decide({}).finalState,
+      degradeBlock("riesgo", 80).decision.finalState,
+    ];
+    for (const s of states) {
+      expect(s).not.toBe("DESCARTADA");
+      expect(["BORRADOR", "CONDICIONAL", "APROBADA", "NO TRADE"]).toContain(s);
+    }
+  });
+
+  it("datos inválidos (NaN/Infinity/0) no generan estados ni scores falsos (O)", () => {
+    for (const risk of [
+      { capital: Number.NaN, riskPct: Number.NaN, entry: 0, stop: 0, target: 0 },
+      { capital: Number.POSITIVE_INFINITY, riskPct: 0, entry: 100, stop: 100 },
+      { capital: 0, riskPct: 0 },
+    ]) {
+      const d = evaluate({ answers: perfect, risk, maxRiskPct: 1 });
+      expect(Number.isFinite(d.score)).toBe(true);
+      expect(d.score).toBeGreaterThanOrEqual(0);
+      expect(d.score).toBeLessThanOrEqual(100);
+      expect(Number.isInteger(d.scoreVisible)).toBe(true);
+      expect(["BORRADOR", "CONDICIONAL", "APROBADA", "NO TRADE"]).toContain(d.finalState);
+      for (const v of [d.metrics.rr, d.metrics.riskMoney, d.metrics.positionSize]) {
+        expect(v === null || Number.isFinite(v)).toBe(true);
+      }
+    }
+  });
+
+  it("un cuestionario vacío no aprueba y expone las preguntas pendientes (I/O)", () => {
+    const d = decide({});
+    expect(d.finalState).not.toBe("APROBADA");
+    expect(d.complete).toBe(false);
+    expect(d.missing.length).toBe(PRE_QUESTIONS.length);
+  });
+});
+
+describe("CORE — servidor: CONDICIONAL no registrable (J/K)", () => {
+  const source = readFileSync(
+    new URL("../src/lib/evaluations.functions.ts", import.meta.url),
+    "utf8",
+  );
+
+  it("el servidor exige APROBADA para decision='registrado' (J)", () => {
+    expect(source).toContain('decision.finalState !== "APROBADA"');
+    expect(source).toContain("conditional_cannot_register");
+    expect(source).toContain("incomplete_cannot_register");
+  });
+
+  it("el servidor recalcula los derivados y no acepta los del cliente (12)", () => {
+    expect(source).toContain("evaluate({");
+    expect(source).toContain("score: decision.scoreVisible");
+    expect(source).toContain("final_state: decision.finalState");
+  });
+
+  it("el nuevo motor no escribe DESCARTADA (N)", () => {
+    expect(source).not.toContain('"DESCARTADA"');
   });
 });

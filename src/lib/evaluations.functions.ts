@@ -55,8 +55,11 @@ const MESSAGES: Record<string, string> = {
   completed_evaluation_is_frozen:
     "Esta evaluación ya está finalizada: sus datos no pueden modificarse. Crea una nueva evaluación.",
   derived_fields_are_server_managed: "Los campos calculados los determina el servidor.",
-  trade_rejected_cannot_register:
-    "La operación está DESCARTADA por el sistema: no puede registrarse.",
+  trade_rejected_cannot_register: "La operación es NO TRADE por el sistema: no puede registrarse.",
+  conditional_cannot_register:
+    "La operación es CONDICIONAL: no cumple los gates obligatorios del sistema y no puede registrarse como operación ANIKE EJEPIKA. Puedes finalizarla como NO TRADE.",
+  incomplete_cannot_register:
+    "El cuestionario activo del setup está incompleto: todas sus preguntas son obligatorias.",
   decision_required: "Debes elegir REGISTRAR o NO TRADE para finalizar.",
   decision_locked: "La decisión de una evaluación finalizada no puede cambiarse.",
   asset_required: "Falta el activo de la operación.",
@@ -121,13 +124,19 @@ export const saveEvaluationFn = createServerFn({ method: "POST" })
       direction: data.direction ?? null,
       market: data.market ?? null,
     });
-    const rejected = decision.blocked || decision.finalState === "DESCARTADA";
+    // Precedencia del motor: sólo una evaluación APROBADA puede registrarse.
+    // NO TRADE (HARD/freno emocional) y CONDICIONAL (gates o pendientes) no son registrables.
+    const rejected = decision.blocked || decision.finalState === "NO TRADE";
 
     let effectiveDecision: "registrado" | "no_trade" | null = null;
     if (data.status === "completed") {
       if (!data.decision) throw friendly("decision_required");
       if (!data.asset?.trim()) throw friendly("asset_required");
-      if (data.decision === "registrado" && rejected) throw friendly("trade_rejected_cannot_register");
+      if (data.decision === "registrado") {
+        if (rejected) throw friendly("trade_rejected_cannot_register");
+        if (!decision.complete) throw friendly("incomplete_cannot_register");
+        if (decision.finalState !== "APROBADA") throw friendly("conditional_cannot_register");
+      }
       effectiveDecision = data.decision;
     }
 
@@ -147,7 +156,11 @@ export const saveEvaluationFn = createServerFn({ method: "POST" })
 
     let id = current?.id;
     if (id) {
-      const { error } = await supabase.from("evaluations").update(source).eq("id", id).eq("user_id", userId);
+      const { error } = await supabase
+        .from("evaluations")
+        .update(source)
+        .eq("id", id)
+        .eq("user_id", userId);
       if (error) throw dbError(error.message);
     } else {
       const { data: inserted, error } = await supabase
@@ -164,7 +177,9 @@ export const saveEvaluationFn = createServerFn({ method: "POST" })
     const { data: row, error } = await supabaseAdmin
       .from("evaluations")
       .update({
-        score: decision.score,
+        // Se persiste el score VISIBLE (floor); la clasificación y el estado ya
+        // se decidieron con el score interno con decimales.
+        score: decision.scoreVisible,
         breakdown: decision.breakdown as unknown as Json,
         classification: decision.classification,
         hard_rules: decision.hardRules,

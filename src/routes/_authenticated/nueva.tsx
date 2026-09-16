@@ -249,11 +249,13 @@ function NuevaEvaluacion() {
       return;
     }
 
-    if (
-      decisionValue === "registrado" &&
-      (decision.blocked || decision.finalState === "DESCARTADA")
-    ) {
-      toast.error("La operación está DESCARTADA por el sistema: no puede registrarse.");
+    // El servidor es la autoridad: aquí sólo se evita un envío que ya se sabe inválido.
+    if (decisionValue === "registrado" && decision.finalState !== "APROBADA") {
+      toast.error(
+        decision.finalState === "CONDICIONAL"
+          ? "La operación es CONDICIONAL: no cumple los gates obligatorios y no puede registrarse."
+          : "La operación es NO TRADE por el sistema: no puede registrarse.",
+      );
       return;
     }
     const saved = await persist("completed", decisionValue);
@@ -836,7 +838,7 @@ function ResultStep({
     <div className="space-y-5">
       <p className="label-mono">Análisis completado</p>
       <div className="panel flex flex-col items-center gap-6 p-6 sm:flex-row sm:items-start">
-        <ScoreDial score={decision.score} light={decision.light} size={190} />
+        <ScoreDial score={decision.scoreVisible} light={decision.light} size={190} />
         <div className="w-full space-y-4">
           <div>
             <p className="font-display text-2xl font-semibold">{trade.asset || "—"}</p>
@@ -857,7 +859,7 @@ function ResultStep({
           "panel animate-rise p-5",
           decision.finalState === "APROBADA" && "border-ok/50 bg-ok-soft/25",
           decision.finalState === "CONDICIONAL" && "border-warn/50 bg-warn-soft/25",
-          decision.finalState === "DESCARTADA" && "border-stop/50 bg-stop-soft/30",
+          decision.finalState === "NO TRADE" && "border-stop/50 bg-stop-soft/30",
         )}
       >
         <p className="font-display text-xl font-semibold">
@@ -868,9 +870,18 @@ function ResultStep({
           {decision.finalState === "APROBADA"
             ? "Todos los criterios críticos se cumplen. La decisión de ejecutar sigue siendo tuya."
             : decision.finalState === "CONDICIONAL"
-              ? "Hay elementos sin resolver: espera confirmación antes de ejecutar."
+              ? "Hay elementos sin resolver: no puede registrarse como operación ANIKE EJEPIKA."
               : "Existe al menos una condición crítica incumplida: la operación no debe ejecutarse."}
         </p>
+        {decision.gatesFailed.length > 0 && (
+          <ul className="mt-3 space-y-1.5 text-sm text-foreground/90">
+            {decision.gatesFailed.map((g) => (
+              <li key={g} className="flex gap-2">
+                <span className="text-warn">•</span> Gate obligatorio no alcanzado: {g}
+              </li>
+            ))}
+          </ul>
+        )}
         {decision.warnings.length > 0 && (
           <ul className="mt-3 space-y-1.5 text-sm text-foreground/90">
             {decision.warnings.map((w) => (
@@ -913,7 +924,8 @@ function ResultStep({
       )}
 
       <div className="panel divide-y divide-border">
-        <Row label="Score" value={`${decision.score} / 100`} />
+        {/* Score visible = floor del interno; la decisión usa el interno con decimales. */}
+        <Row label="Score" value={`${decision.scoreVisible} / 100`} />
         <Row label="Clasificación" value={decision.classification} />
         <Row
           label="Estado final"
@@ -970,7 +982,7 @@ function ResultStep({
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           <button
             onClick={onRegister}
-            disabled={saving || decision.blocked || decision.finalState === "DESCARTADA"}
+            disabled={saving || decision.finalState !== "APROBADA"}
             className="min-h-13 rounded-xl bg-primary text-sm font-semibold tracking-wide text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-40"
           >
             REGISTRAR TRADE
@@ -983,10 +995,11 @@ function ResultStep({
             NO TRADE
           </button>
         </div>
-        {(decision.blocked || decision.finalState === "DESCARTADA") && (
+        {decision.finalState !== "APROBADA" && (
           <p className="mt-3 text-xs text-stop">
-            El registro como entrada aprobada está desactivado: la operación está DESCARTADA por
-            reglas críticas, score insuficiente o señales impulsivas.
+            El registro como entrada ANIKE EJEPIKA está desactivado: sólo una evaluación APROBADA
+            (completa, sin reglas críticas, score ≥ 80 y todos los gates obligatorios cumplidos)
+            puede registrarse.
           </p>
         )}
       </div>

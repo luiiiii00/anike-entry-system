@@ -219,65 +219,120 @@ function round(n: number, d: number) {
 
 export type Breakdown = Record<
   SectionId,
-  { earned: number; weight: number; answered: number; total: number }
+  {
+    earned: number;
+    weight: number;
+    answered: number;
+    total: number;
+    /** F_block × 100: cumplimiento del bloque, usado por los gates obligatorios. */
+    percent: number;
+  }
 >;
+
+/**
+ * Peso pre-trade del CORE: 100 − Resultados (5, POST-TRADE).
+ * El 5 % de Resultados NUNCA se redistribuye: el score pre-trade se normaliza
+ * sobre 95 y el bloque Resultados queda fuera del cálculo pre-trade.
+ */
+export const PRE_TRADE_WEIGHT = 95;
+
+/** Gates obligatorios (mínimo de cumplimiento por bloque) para APROBADA. */
+export const APPROVAL_GATES: { id: SectionId; label: string; min: number }[] = [
+  { id: "estructura", label: "Estructura", min: 70 },
+  { id: "zona", label: "Zona", min: 60 },
+  { id: "confirmacion", label: "Confirmación", min: 60 },
+  { id: "riesgo", label: "Riesgo", min: 80 },
+  { id: "recorrido", label: "Recorrido", min: 60 },
+];
+
+/** Score interno mínimo (con decimales) para poder aprobar. */
+export const APPROVAL_MIN_SCORE = 80;
+
+export type ScoreResult = {
+  /** Score INTERNO con decimales: única base de clasificación/estado. */
+  score: number;
+  /** Score VISIBLE: floor del interno (nunca se redondea al alza). */
+  scoreVisible: number;
+  breakdown: Breakdown;
+  /** Todas las preguntas pre-trade activas están respondidas. */
+  complete: boolean;
+  /** IDs de preguntas pre-trade activas sin responder. */
+  missing: string[];
+};
 
 /**
  * `activeIds` limita el cálculo a las preguntas del cuestionario ACTIVO (setup
  * seleccionado). Los pesos, la fórmula y los umbrales no cambian: sólo se dejan
  * de contar criterios que el setup no presenta. Sin `activeIds` se evalúa todo
  * (evaluaciones históricas sin setup).
+ *
+ * Fórmula CORE:
+ *   F_block      = Σ(Factor_i × PesoInterno_i) / Σ(PesoInterno_i)
+ *   Puntos_block = F_block × PesoCORE_block
+ *   Score interno pre-trade = Σ Puntos_block(pre-trade) / 95 × 100
  */
-export function computeScore(
-  answers: Answers,
-  activeIds?: Set<string>,
-): { score: number; breakdown: Breakdown } {
+export function computeScore(answers: Answers, activeIds?: Set<string>): ScoreResult {
   const breakdown = {} as Breakdown;
   const inScope = (id: string) => activeIds === undefined || activeIds.has(id);
+  const missing: string[] = [];
 
-  // Los bloques post-trade (Resultados) solo entran en el cálculo cuando ya se respondieron:
-  // antes de tener resultado el peso se redistribuye para que el máximo siga siendo 100.
-  const active = SECTIONS.filter((section) => {
-    if (!section.postTrade) return true;
-    return section.groups
-      .flatMap((g) => g.questions)
-      .filter((q) => inScope(q.id))
-      .some((q) => answers[q.id] !== undefined && answers[q.id] !== "");
-  });
-  const activeWeight = active.reduce((sum, s) => sum + s.weight, 0);
-  const factor = activeWeight > 0 ? 100 / activeWeight : 1;
-
-  let total = 0;
+  let preTradePoints = 0;
 
   for (const section of SECTIONS) {
     const questions = section.groups.flatMap((g) => g.questions).filter((q) => inScope(q.id));
-    const isActive = active.includes(section);
-    const weight = round(section.weight * (isActive ? factor : 0), 2);
+    const weight = section.weight;
     let got = 0;
     let max = 0;
     let answered = 0;
     for (const q of questions) {
       const value = answers[q.id];
-      const opt = value === undefined ? undefined : q.options.find((o) => o.v === value);
-      if (value !== undefined) answered += 1;
-      // "No aplica": criterio no evaluable — se excluye del cálculo (no penaliza ni suma).
+      const opt =
+        value === undefined || value === "" ? undefined : q.options.find((o) => o.v === value);
+      if (opt !== undefined) answered += 1;
+      else if (!section.postTrade) missing.push(q.id);
+      // Compatibilidad histórica: una opción "No aplica" guardada no penaliza ni suma.
       if (opt?.na) continue;
       const best = Math.max(...q.options.filter((o) => !o.na).map((o) => o.pts));
-      max += best;
-      if (opt) got += opt.pts;
+      if (Number.isFinite(best)) max += best;
+      if (opt && Number.isFinite(opt.pts)) got += opt.pts;
     }
-    // Si todos los criterios de la sección quedaron como "No aplica", la sección no penaliza.
-    const earned = max > 0 ? round((got / max) * weight, 2) : weight;
-    breakdown[section.id] = { earned, weight, answered, total: questions.length };
-    total += earned;
+    // Sin criterios evaluables el bloque no penaliza (F_block = 1).
+    const f = max > 0 ? clamp01(got / max) : 1;
+    const earned = round(f * weight, 4);
+    breakdown[section.id] = {
+      earned,
+      weight,
+      answered,
+      total: questions.length,
+      percent: round(f * 100, 2),
+    };
+    // El bloque Resultados (POST-TRADE) queda fuera del score pre-trade.
+    if (!section.postTrade) preTradePoints += earned;
   }
 
-  return { score: Math.max(0, Math.min(100, Math.round(total))), breakdown };
+  const raw = (preTradePoints / PRE_TRADE_WEIGHT) * 100;
+  const score = Number.isFinite(raw) ? round(Math.max(0, Math.min(100, raw)), 2) : 0;
+
+  return {
+    score,
+    scoreVisible: Math.floor(score),
+    breakdown,
+    complete: missing.length === 0,
+    missing,
+  };
+}
+
+function clamp01(n: number) {
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(1, n));
 }
 
 export type Classification = "SETUP A+" | "SETUP A" | "SETUP B" | "NO TRADE";
 export type Light = "ok" | "warn" | "stop";
-export type FinalState = "APROBADA" | "CONDICIONAL" | "DESCARTADA";
+/** Estados oficiales del CORE. `DESCARTADA` sólo existe como dato histórico. */
+export type FinalState = "BORRADOR" | "CONDICIONAL" | "APROBADA" | "NO TRADE";
+/** Incluye el estado histórico para lectura de evaluaciones antiguas. */
+export type FinalStateLegacy = FinalState | "DESCARTADA";
 
 export function classify(score: number): {
   classification: Classification;
@@ -454,8 +509,19 @@ export function isEmotional(a: Answers) {
   );
 }
 
+export type GateResult = {
+  id: SectionId;
+  label: string;
+  value: number;
+  min: number;
+  passed: boolean;
+};
+
 export type Decision = {
+  /** Score INTERNO con decimales: la clasificación y el estado usan SIEMPRE éste. */
   score: number;
+  /** Score VISIBLE (floor). Sólo para mostrar; nunca decide. */
+  scoreVisible: number;
   breakdown: Breakdown;
   classification: Classification;
   light: Light;
@@ -465,14 +531,29 @@ export type Decision = {
   finalState: FinalState;
   emotional: boolean;
   blocked: boolean;
+  /** Cuestionario activo completo (todas las preguntas pre-trade respondidas). */
+  complete: boolean;
+  /** Preguntas activas pendientes. */
+  missing: string[];
+  /** Gates obligatorios por bloque y su resultado. */
+  gates: GateResult[];
+  /** Gates que no se cumplen. */
+  gatesFailed: string[];
   /** Métricas de riesgo recalculadas (incluye exactitud del lotaje). */
   metrics: RiskMetrics;
 };
 
+/**
+ * Precedencia estricta del motor:
+ *   VALIDACIÓN → HARD → COMPLETITUD → GATES/PENDIENTES → SCORE → ESTADO/DECISIÓN.
+ * Un HARD produce NO TRADE de forma inmediata y no puede ser sobrescrito por un
+ * score alto. Sin HARD, cualquier gate incumplido, pendiente o completitud
+ * insuficiente deja la evaluación CONDICIONAL (nunca APROBADA).
+ */
 export function evaluate(input: {
   answers: Answers;
   risk: RiskData;
-  maxRiskPct: number;
+  maxRiskPct?: number;
   setup?: string | null;
   preferredSetups?: string[];
   direction?: string | null;
@@ -483,17 +564,21 @@ export function evaluate(input: {
 }): Decision {
   // El cuestionario activo lo define el setup oficial seleccionado (matriz explícita).
   const active = input.setup ? activeQuestionIds(input.setup) : undefined;
-  const { score, breakdown } = computeScore(input.answers, active?.size ? active : undefined);
+  const { score, scoreVisible, breakdown, complete, missing } = computeScore(
+    input.answers,
+    active?.size ? active : undefined,
+  );
   const metrics = computeRisk(input.risk, input.direction, {
     market: input.market ?? null,
     contractSize: input.contractSize ?? null,
     pointValue: input.pointValue ?? null,
   });
 
+  const maxRiskPct = Number.isFinite(Number(input.maxRiskPct)) ? Number(input.maxRiskPct) : 1;
   const ctx: HardRuleCtx = {
     a: input.answers,
     risk: metrics,
-    maxRiskPct: input.maxRiskPct,
+    maxRiskPct,
     setup: input.setup,
     preferredSetups: input.preferredSetups ?? [],
   };
@@ -501,48 +586,60 @@ export function evaluate(input: {
   const warnings = checkConditional(ctx);
   const emotional = isEmotional(input.answers);
   const blocked = hardRules.length > 0 || emotional;
-  const base = classify(score);
 
-  // El score no es el único mecanismo de decisión: una condición crítica descarta la operación.
-  const finalState: FinalState = blocked
-    ? "DESCARTADA"
-    : score < 65
-      ? "DESCARTADA"
-      : warnings.length > 0 || score < 75
-        ? "CONDICIONAL"
-        : "APROBADA";
+  const gates: GateResult[] = APPROVAL_GATES.map((g) => {
+    const value = breakdown[g.id]?.percent ?? 0;
+    return { id: g.id, label: g.label, value, min: g.min, passed: value >= g.min };
+  });
+  const gatesFailed = gates.filter((g) => !g.passed).map((g) => `${g.label} < ${g.min}%`);
 
+  const common = {
+    score,
+    scoreVisible,
+    breakdown,
+    hardRules,
+    warnings,
+    emotional,
+    blocked,
+    complete,
+    missing,
+    gates,
+    gatesFailed,
+    metrics,
+  };
+
+  // 1) HARD (o freno emocional): NO TRADE inmediato, sin importar el score.
   if (blocked) {
     return {
-      score,
-      breakdown,
+      ...common,
       classification: "NO TRADE",
       light: "stop",
       message: "No ejecutar.",
-      hardRules,
-      warnings,
-      finalState,
-      emotional,
-      blocked,
-      metrics,
+      finalState: "NO TRADE",
     };
   }
 
+  const base = classify(score);
+
+  // 2) COMPLETITUD → 3) GATES/PENDIENTES → 4) SCORE interno.
+  const approved =
+    complete && score >= APPROVAL_MIN_SCORE && gatesFailed.length === 0 && warnings.length === 0;
+
   return {
-    score,
-    breakdown,
+    ...common,
     ...base,
-    hardRules,
-    warnings,
-    finalState,
-    emotional,
-    blocked,
-    metrics,
+    finalState: approved ? "APROBADA" : "CONDICIONAL",
   };
 }
 
-export const FINAL_STATE_UI: Record<FinalState, { dot: string; label: string; light: Light }> = {
+export const FINAL_STATE_UI: Record<
+  FinalStateLegacy,
+  { dot: string; label: string; light: Light }
+> = {
+  BORRADOR: { dot: "⚪", label: "BORRADOR", light: "warn" },
   APROBADA: { dot: "🟢", label: "APROBADA", light: "ok" },
   CONDICIONAL: { dot: "🟡", label: "CONDICIONAL", light: "warn" },
-  DESCARTADA: { dot: "🔴", label: "DESCARTADA", light: "stop" },
+  "NO TRADE": { dot: "🔴", label: "NO TRADE", light: "stop" },
+  // Estado histórico: sólo lectura de evaluaciones antiguas.
+  DESCARTADA: { dot: "🔴", label: "NO TRADE (histórico)", light: "stop" },
 };
