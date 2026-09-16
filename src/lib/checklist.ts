@@ -1642,7 +1642,9 @@ function withSetupQuestions(sections: Section[]): Section[] {
 }
 
 /** Cuestionario base definido en código (sin ediciones del editor de preguntas). */
-export const BASE_SECTIONS: Section[] = withoutNaOptions(withSetupQuestions(SECTIONS_SOURCE));
+export const BASE_SECTIONS: Section[] = withTimeframes(
+  withoutNaOptions(withSetupQuestions(SECTIONS_SOURCE)),
+);
 
 function sectionsById(sections: Section[]): Record<SectionId, Section> {
   return Object.fromEntries(sections.map((s) => [s.id, s])) as Record<SectionId, Section>;
