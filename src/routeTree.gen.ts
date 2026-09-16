@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as ActivarRouteImport } from './routes/activar'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AdminPreguntasRouteImport } from './routes/admin-preguntas'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as EstadoRouteImport } from './routes/estado'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
@@ -46,6 +47,11 @@ const ActivarRoute = ActivarRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPreguntasRoute = AdminPreguntasRouteImport.update({
+  id: '/admin-preguntas',
+  path: '/admin-preguntas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -128,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activar': typeof ActivarRoute
   '/admin': typeof AdminRoute
+  '/admin-preguntas': typeof AdminPreguntasRoute
   '/auth': typeof AuthRoute
   '/estado': typeof EstadoRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -148,6 +155,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activar': typeof ActivarRoute
   '/admin': typeof AdminRoute
+  '/admin-preguntas': typeof AdminPreguntasRoute
   '/auth': typeof AuthRoute
   '/estado': typeof EstadoRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/activar': typeof ActivarRoute
   '/admin': typeof AdminRoute
+  '/admin-preguntas': typeof AdminPreguntasRoute
   '/auth': typeof AuthRoute
   '/estado': typeof EstadoRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -192,6 +201,7 @@ export interface FileRouteTypes {
     | '/'
     | '/activar'
     | '/admin'
+    | '/admin-preguntas'
     | '/auth'
     | '/estado'
     | '/forgot-password'
@@ -212,6 +222,7 @@ export interface FileRouteTypes {
     | '/'
     | '/activar'
     | '/admin'
+    | '/admin-preguntas'
     | '/auth'
     | '/estado'
     | '/forgot-password'
@@ -233,6 +244,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/activar'
     | '/admin'
+    | '/admin-preguntas'
     | '/auth'
     | '/estado'
     | '/forgot-password'
@@ -255,6 +267,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   ActivarRoute: typeof ActivarRoute
   AdminRoute: typeof AdminRoute
+  AdminPreguntasRoute: typeof AdminPreguntasRoute
   AuthRoute: typeof AuthRoute
   EstadoRoute: typeof EstadoRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
@@ -292,6 +305,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-preguntas': {
+      id: '/admin-preguntas'
+      path: '/admin-preguntas'
+      fullPath: '/admin-preguntas'
+      preLoaderRoute: typeof AdminPreguntasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -432,6 +452,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   ActivarRoute: ActivarRoute,
   AdminRoute: AdminRoute,
+  AdminPreguntasRoute: AdminPreguntasRoute,
   AuthRoute: AuthRoute,
   EstadoRoute: EstadoRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
