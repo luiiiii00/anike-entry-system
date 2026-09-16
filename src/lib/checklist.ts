@@ -279,7 +279,7 @@ const SECTIONS_SOURCE: Section[] = [
           },
           {
             id: "h1_pattern_cont_state",
-            label: "¿El patrón está confirmado?",
+            label: "¿El patrón de continuidad está confirmado?",
             options: PATTERN_STATE,
           },
         ],
@@ -289,18 +289,19 @@ const SECTIONS_SOURCE: Section[] = [
         questions: [
           {
             id: "h1_fibo",
-            label: "¿En qué nivel de retroceso de Fibonacci se encuentra el precio?",
-            hint: "0,75 es el nivel predeterminado de referencia para el Stop Loss. No entrar únicamente porque el precio tocó Fibonacci, especialmente 0,50.",
+            label: "¿Qué nivel Fibonacci oficial está siendo utilizado?",
+            hint: "0,75 es principalmente la referencia del SL predeterminado, no una señal de entrada por sí misma.",
             options: [
-              { v: "0_38", label: "0,38", pts: 0.8 },
-              { v: "0_50", label: "0,50", pts: 1 },
               { v: "0_618", label: "0,618", pts: 1 },
-              { v: "0_75", label: "0,75", pts: 0.7 },
+              { v: "0_50", label: "0,50", pts: 1 },
+              { v: "0_38", label: "0,38", pts: 0.75 },
+              { v: "0_75", label: "0,75", pts: 0.75 },
               NA_OPTION,
             ],
           },
         ],
       },
+
       {
         title: "02.6 Reacción en Fibonacci",
         questions: [
