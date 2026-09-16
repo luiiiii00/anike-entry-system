@@ -1,6 +1,13 @@
 /** `na: true` marca una opción "No aplica": no penaliza ni suma, se excluye del cálculo. */
 export type Option = { v: string; label: string; pts: number; na?: boolean };
-export type Question = { id: string; label: string; hint?: string; options: Option[] };
+/** `meta: true` marca una pregunta DESCRIPTIVA (patrón, nivel Fibonacci): nunca puntúa. */
+export type Question = {
+  id: string;
+  label: string;
+  hint?: string;
+  meta?: boolean;
+  options: Option[];
+};
 export type SectionId =
   | "comercio"
   | "contexto"
