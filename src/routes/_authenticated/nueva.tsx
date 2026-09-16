@@ -751,10 +751,12 @@ export function RiskPanel({
   const overRisk = m.riskPctUsed !== null && m.riskPctUsed > maxRiskPct;
   const underRR = m.rr !== null && m.rr < minRR;
 
+  // Fibonacci es irrelevante en S01, S02, S03 y S05: sólo se muestra en S04 y SETUP LIBRE.
+  const fiboRelevant = setup === "ZONA_FIBONACCI" || setup === "FREE" || !setup;
   const fibo = fiboProjection(risk, direction);
   // Divergencia entre el SL manual y el nivel 0,75: sólo se avisa, no se corrige.
   const slDivergence =
-    fibo.sl !== null && risk.stop !== undefined && Number.isFinite(risk.stop)
+    fiboRelevant && fibo.sl !== null && risk.stop !== undefined && Number.isFinite(risk.stop)
       ? Math.abs(Number(risk.stop) - fibo.sl)
       : null;
   const slDiverges = slDivergence !== null && slDivergence > 0;
