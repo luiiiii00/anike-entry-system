@@ -43,12 +43,28 @@ const ynd = (yes = 1, no = 0, doubt = 0.4): Option[] => [
   { v: "dudoso", label: "Dudoso", pts: doubt },
 ];
 
+/**
+ * Estado de un patrón (5 factores oficiales de ANIKE EJEPIKA).
+ * Los valores `formacion` e `invalidado` se conservan: los usan las HARD rules
+ * y los avisos CONDICIONAL del motor.
+ */
 const PATTERN_STATE: Option[] = [
   { v: "confirmado", label: "Confirmado", pts: 1 },
-  { v: "formacion", label: "En formación", pts: 0.4 },
-  { v: "invalidado", label: "Invalidado", pts: 0 },
-  NA_OPTION,
+  { v: "fuerte", label: "Confirmación fuerte pero no completa", pts: 0.75 },
+  { v: "formacion", label: "En proceso de confirmación", pts: 0.5 },
+  { v: "debil", label: "Señal débil", pts: 0.25 },
+  { v: "invalidado", label: "Invalidado / sin confirmación", pts: 0 },
 ];
+
+/** Escala oficial de factores: 1,00 / 0,75 / 0,50 / 0,25 / 0,00. No existe "No aplica". */
+const f5 = (l1: string, l2: string, l3: string, l4: string, l5: string): Option[] => [
+  { v: "excelente", label: l1, pts: 1 },
+  { v: "fuerte", label: l2, pts: 0.75 },
+  { v: "parcial", label: l3, pts: 0.5 },
+  { v: "debil", label: l4, pts: 0.25 },
+  { v: "ausente", label: l5, pts: 0 },
+];
+
 
 export const INSTRUMENTS = ["BTC", "ETH", "SOL", "Forex", "Índices", "Otro"];
 
@@ -207,10 +223,11 @@ const SECTIONS_SOURCE: Section[] = [
           },
           {
             id: "h1_pattern_change_state",
-            label: "¿El patrón está confirmado?",
+            label: "¿El patrón de cambio está confirmado?",
             hint: "Un patrón observado no es lo mismo que un patrón confirmado.",
             options: PATTERN_STATE,
           },
+
         ],
       },
       {
