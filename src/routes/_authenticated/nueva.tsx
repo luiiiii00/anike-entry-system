@@ -467,6 +467,7 @@ function NuevaEvaluacion() {
                     minRR={Number(settings?.min_rr ?? 2)}
                     direction={trade.direction}
                     market={trade.market}
+                    setup={trade.setup}
                   />
                 )}
 
