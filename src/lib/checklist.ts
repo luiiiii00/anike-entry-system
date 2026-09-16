@@ -1,11 +1,17 @@
 /** `na: true` marca una opción "No aplica": no penaliza ni suma, se excluye del cálculo. */
 export type Option = { v: string; label: string; pts: number; na?: boolean };
 /** `meta: true` marca una pregunta DESCRIPTIVA (patrón, nivel Fibonacci): nunca puntúa. */
+/** Temporalidades oficiales del flujo ANIKE EJEPIKA: 1D → 1H → 5M. */
+export type Timeframe = "1D" | "1H" | "5M";
+export const TIMEFRAMES: Timeframe[] = ["1D", "1H", "5M"];
+
 export type Question = {
   id: string;
   label: string;
   hint?: string;
   meta?: boolean;
+  /** Temporalidad de análisis asociada. Informativa: no altera el cálculo CORE. */
+  timeframe?: Timeframe;
   options: Option[];
 };
 export type SectionId =
