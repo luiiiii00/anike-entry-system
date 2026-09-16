@@ -274,8 +274,9 @@ function answerLines(a: EvalRow["answers"]) {
 }
 
 /**
- * Estado final del sistema (🟢 APROBADA / 🟡 CONDICIONAL / 🔴 DESCARTADA) reconstruido
- * a partir de lo guardado: reglas duras, freno emocional, score y avisos condicionales.
+ * Estado final del sistema (🟢 APROBADA / 🟡 CONDICIONAL / 🔴 NO TRADE). Se usa el
+ * estado ya guardado por el servidor y, si la evaluación es histórica y no lo tiene,
+ * se reconstruye con las reglas duras, el freno emocional y los avisos condicionales.
  */
 function finalStateBlock(e: EvalRow): string[] {
   const answers = (e.answers ?? {}) as Record<string, string>;
@@ -289,14 +290,16 @@ function finalStateBlock(e: EvalRow): string[] {
     preferredSetups: [],
   });
   const critical = (e.hard_rules?.length ?? 0) > 0 || e.emotional_stop === true;
-  const score = e.score ?? 0;
+  const stored = e.final_state;
   const finalState: FinalState = critical
-    ? "DESCARTADA"
-    : score < 65
-      ? "DESCARTADA"
-      : warnings.length > 0 || score < 75
-        ? "CONDICIONAL"
-        : "APROBADA";
+    ? "NO TRADE"
+    : stored === "APROBADA" || stored === "CONDICIONAL" || stored === "BORRADOR"
+      ? stored
+      : stored === "DESCARTADA" || stored === "NO TRADE"
+        ? "NO TRADE"
+        : warnings.length > 0
+          ? "CONDICIONAL"
+          : "APROBADA";
   const fibo = e.risk?.["slFibo"];
   return [
     "",
