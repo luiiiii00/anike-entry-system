@@ -14,7 +14,9 @@ import {
   OFFICIAL_SETUPS,
   SECTIONS,
   SESSIONS,
-  setupFocusQuestions,
+  answersForSetup,
+  getQuestionsForSetup,
+  sectionGroupsForSetup,
   setupLabel,
   WIZARD_STEPS,
 } from "@/lib/checklist";
@@ -138,7 +140,12 @@ function NuevaEvaluacion() {
       setup: d.setup ?? "",
       idea: d.idea ?? "",
     });
-    setAnswers(d.answers ?? {});
+    // Al reabrir una evaluación se reconstruye el cuestionario desde el setup guardado.
+    // Sin setup oficial (histórico) se muestran las respuestas tal como se guardaron.
+    const loaded = (d.answers ?? {}) as Answers;
+    setAnswers(
+      getQuestionsForSetup(d.setup).length > 0 ? answersForSetup(loaded, d.setup) : loaded,
+    );
     setRisk(d.risk ?? {});
   }, [draftQuery.data]);
 
@@ -304,7 +311,13 @@ function NuevaEvaluacion() {
         {currentStep.key === "setup" && (
           <SetupStep
             selected={trade.setup}
-            onSelect={(id) => setTrade((t) => ({ ...t, setup: id }))}
+            onSelect={(id) => {
+              if (id === trade.setup) return;
+              setTrade((t) => ({ ...t, setup: id }));
+              // Cambiar de setup reconstruye el cuestionario: las respuestas del
+              // setup anterior no contaminan el nuevo.
+              setAnswers((prev) => answersForSetup(prev, id));
+            }}
           />
         )}
 
@@ -314,7 +327,7 @@ function NuevaEvaluacion() {
 
         {section && section.id !== "riesgo" && section.id !== "disciplina" && (
           <div className="space-y-6">
-            {section.groups.map((g, i) => (
+            {sectionGroupsForSetup(section, trade.setup).map((g, i) => (
               <QuestionList
                 key={i}
                 groupTitle={g.title}
@@ -337,7 +350,7 @@ function NuevaEvaluacion() {
               direction={trade.direction}
               market={trade.market}
             />
-            {section.groups.map((g, i) => (
+            {sectionGroupsForSetup(section, trade.setup).map((g, i) => (
               <QuestionList
                 key={i}
                 questions={g.questions}
@@ -357,7 +370,7 @@ function NuevaEvaluacion() {
                 la entrada.
               </p>
             </div>
-            {section.groups.map((g, i) => (
+            {sectionGroupsForSetup(section, trade.setup).map((g, i) => (
               <QuestionList
                 key={i}
                 questions={g.questions}
@@ -473,7 +486,7 @@ function SetupStep({
               <p className="mt-1.5 font-display text-base font-semibold">{s.name}</p>
               <p className="mt-1 text-xs text-muted-foreground">{s.description}</p>
               <p className="mt-2 font-mono text-[11px] text-muted-foreground">
-                {setupFocusQuestions(s.id).length} criterios prioritarios del CORE
+                {getQuestionsForSetup(s.id).length} preguntas exclusivas de este setup
               </p>
             </button>
           );
