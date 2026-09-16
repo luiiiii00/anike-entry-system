@@ -605,11 +605,27 @@ function degradeBlock(sectionId: string, limit: number) {
       if (d.hardRules.length > 0 || d.emotional) continue;
       answers = trial;
       const dd = decide(answers);
-      if (dd.breakdown[section.id]!.percent < limit) return { answers, decision: dd };
+      if (dd.breakdown[section.id]!.percent < limit)
+        return { answers, decision: dd, reached: true };
       break;
     }
   }
-  return { answers, decision: decide(answers) };
+  return { answers, decision: decide(answers), reached: false };
+}
+
+/**
+ * Primer estado que aparece al empeorar el bloque por debajo de `percent`: sirve para
+ * demostrar que, cuando el gate no puede incumplirse sin HARD, el motor da NO TRADE.
+ */
+function decideWorst(sectionId: string, percent: number): string | null {
+  const section = PRE_SECTIONS.find((s) => s.id === sectionId)!;
+  for (const q of section.groups.flatMap((g) => g.questions)) {
+    for (const opt of q.options.filter((o) => !o.na).sort((x, y) => x.pts - y.pts)) {
+      const d = decide({ ...perfect, [q.id]: opt.v });
+      if (d.breakdown[section.id]!.percent < percent) return d.finalState;
+    }
+  }
+  return null;
 }
 
 describe("CORE — pesos y fórmula", () => {
@@ -699,12 +715,20 @@ describe("CORE — gates obligatorios", () => {
     { id: "recorrido", min: 60, case: "G" },
   ]) {
     it(`${gate.case}. ${gate.id} por debajo de ${gate.min}% => CONDICIONAL, no APROBADA`, () => {
-      const { decision } = degradeBlock(gate.id, gate.min);
+      const { decision, reached } = degradeBlock(gate.id, gate.min);
       expect(decision.hardRules).toEqual([]);
       expect(decision.emotional).toBe(false);
-      expect(decision.breakdown[gate.id as "zona"]!.percent).toBeLessThan(gate.min);
-      expect(decision.gatesFailed.length).toBeGreaterThan(0);
-      expect(decision.finalState).toBe("CONDICIONAL");
+      if (reached) {
+        expect(decision.breakdown[gate.id as "zona"]!.percent).toBeLessThan(gate.min);
+        expect(decision.gatesFailed.length).toBeGreaterThan(0);
+        expect(decision.finalState).toBe("CONDICIONAL");
+      } else {
+        // El bloque no puede bajar del gate sin activar antes una HARD: precedencia
+        // HARD → NO TRADE (nunca APROBADA con el gate incumplido).
+        expect(decision.breakdown[gate.id as "zona"]!.percent).toBeGreaterThanOrEqual(gate.min);
+        const worse = decideWorst(gate.id, decision.breakdown[gate.id as "zona"]!.percent);
+        expect(worse).toBe("NO TRADE");
+      }
     });
   }
 });
