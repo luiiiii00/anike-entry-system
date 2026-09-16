@@ -5,10 +5,10 @@ import {
   analyzeLeverage,
   analyzePostTradeAll,
   finite,
-  type PlannedRef,
-  type RealRef,
+  refsFromRow,
   type Verdict,
 } from "@/lib/posttrade-analytics";
+
 import { CURRENCIES, fmtMoney, fmtNumber, fmtPercent, fmtR, type Currency } from "@/lib/posttrade";
 import { computeRisk } from "@/lib/scoring";
 import { SizingStatus } from "@/components/SizingStatus";
@@ -37,48 +37,6 @@ const borderClass = (v: Verdict) =>
 
 const NA = "No disponible";
 
-function plannedFrom(e: Evaluation): PlannedRef {
-  const risk = (e.risk ?? {}) as Record<string, unknown>;
-  return {
-    entry: finite(risk["entry"]),
-    stopLoss: finite(risk["stop"]) ?? finite(risk["slFibo"]),
-    takeProfit: finite(risk["target"]),
-    riskPct: finite(risk["riskPct"]),
-    capital: finite(risk["capital"]),
-  };
-}
-
-function realFrom(e: Evaluation, capital: number): RealRef {
-  const saved = (e.post_trade_inputs ?? {}) as Record<string, unknown>;
-  return {
-    direction: e.direction === "SHORT" ? "SHORT" : e.direction === "LONG" ? "LONG" : null,
-    entry: finite(e.entry_price),
-    exit: finite(e.exit_price),
-    stopLoss: finite(e.stop_loss),
-    takeProfit: finite(e.take_profit),
-    quantity: finite(e.quantity),
-    netPnl: finite(e.net_pnl),
-    grossPnl: finite(e.gross_pnl),
-    fees: finite(e.fees),
-    riskAmount: finite(e.risk_amount),
-    riskPercent: finite(e.risk_percent),
-    plannedRr: finite(e.planned_rr),
-    resultR: finite(e.result_r),
-    capital: finite(saved["capital"]) ?? finite(capital),
-    leverage: finite(e.leverage),
-    margin: finite(e.margin),
-    notionalValue: finite(e.notional_value),
-    ema50: finite(saved["ema50"]),
-    ema50Close: finite(saved["ema50Close"]),
-    maxFavorablePrice: finite(saved["maxFavorablePrice"]),
-    maxAdversePrice: finite(saved["maxAdversePrice"]),
-
-    followedPlan: e.followed_plan,
-    emotionalStop: e.emotional_stop,
-    hardRules: e.hard_rules,
-  };
-}
-
 export function PostTradeAnalytics({
   evaluation,
   capital,
@@ -94,9 +52,15 @@ export function PostTradeAnalytics({
       ? (currency as Currency)
       : "USD";
 
-  const planned = useMemo(() => plannedFrom(evaluation), [evaluation]);
-  const real = useMemo(() => realFrom(evaluation, capital), [evaluation, capital]);
+  // Mapeo único de plan/real (compartido con ANIKE IA): no duplicamos campos.
+  const refs = useMemo(
+    () => refsFromRow(evaluation as unknown as Record<string, unknown>, capital),
+    [evaluation, capital],
+  );
+  const planned = refs.planned;
+  const real = refs.real;
   const a = useMemo(() => analyzePostTradeAll(planned, real), [planned, real]);
+
 
   const closed = !!evaluation.calculated_at && a.result.netPnl !== null;
 

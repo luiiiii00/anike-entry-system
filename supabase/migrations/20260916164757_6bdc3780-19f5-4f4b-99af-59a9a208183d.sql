@@ -1,0 +1,3 @@
+ALTER TABLE public.ai_reviews
+  ADD COLUMN IF NOT EXISTS why text NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS contradictions text NOT NULL DEFAULT '';

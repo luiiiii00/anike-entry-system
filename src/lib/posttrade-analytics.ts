@@ -781,7 +781,57 @@ export type PostTradeAnalytics = {
   diagnosis: { text: string; verdict: Verdict };
 };
 
+/**
+ * Fuente ÚNICA de las referencias plan/real a partir de una fila de evaluación
+ * ya guardada en el servidor. La usan la interfaz post-trade y ANIKE IA para no
+ * duplicar el mapeo de campos. No calcula nada: sólo normaliza a número finito.
+ */
+export function refsFromRow(
+  row: Record<string, unknown>,
+  capitalFallback?: number | null,
+): { planned: PlannedRef; real: RealRef } {
+  const risk = (row["risk"] ?? {}) as Record<string, unknown>;
+  const saved = (row["post_trade_inputs"] ?? {}) as Record<string, unknown>;
+  const direction = row["direction"];
+  return {
+    planned: {
+      entry: finite(risk["entry"]),
+      stopLoss: finite(risk["stop"]) ?? finite(risk["slFibo"]),
+      takeProfit: finite(risk["target"]),
+      riskPct: finite(risk["riskPct"]),
+      capital: finite(risk["capital"]),
+    },
+    real: {
+      direction: direction === "SHORT" ? "SHORT" : direction === "LONG" ? "LONG" : null,
+      entry: finite(row["entry_price"]),
+      exit: finite(row["exit_price"]),
+      stopLoss: finite(row["stop_loss"]),
+      takeProfit: finite(row["take_profit"]),
+      quantity: finite(row["quantity"]),
+      netPnl: finite(row["net_pnl"]),
+      grossPnl: finite(row["gross_pnl"]),
+      fees: finite(row["fees"]),
+      riskAmount: finite(row["risk_amount"]),
+      riskPercent: finite(row["risk_percent"]),
+      plannedRr: finite(row["planned_rr"]),
+      resultR: finite(row["result_r"]),
+      capital: finite(saved["capital"]) ?? finite(capitalFallback),
+      leverage: finite(row["leverage"]),
+      margin: finite(row["margin"]),
+      notionalValue: finite(row["notional_value"]),
+      ema50: finite(saved["ema50"]),
+      ema50Close: finite(saved["ema50Close"]),
+      maxFavorablePrice: finite(saved["maxFavorablePrice"]),
+      maxAdversePrice: finite(saved["maxAdversePrice"]),
+      followedPlan: (row["followed_plan"] ?? null) as string | null,
+      emotionalStop: (row["emotional_stop"] ?? null) as boolean | null,
+      hardRules: (row["hard_rules"] ?? null) as string[] | null,
+    },
+  };
+}
+
 export function analyzePostTradeAll(planned: PlannedRef, real: RealRef): PostTradeAnalytics {
+
   const result = analyzeResult(real, planned);
   const deviations = analyzeDeviations(planned, real);
   const excursions = analyzeExcursions(real, result);

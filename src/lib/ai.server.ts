@@ -4,11 +4,14 @@
  * La clave del proveedor nunca llega al navegador.
  */
 
-import { SECTIONS } from "./checklist";
+import { SECTIONS, setupLabel } from "./checklist";
 import {
+  APPROVAL_GATES,
+  APPROVAL_MIN_SCORE,
   FINAL_STATE_UI,
   checkConditional,
   computeRisk,
+  sizingStatus,
   type FinalState,
   type RiskData,
 } from "./scoring";
@@ -17,13 +20,18 @@ export type AiReviewType = "PRE_TRADE" | "NO_TRADE" | "POST_TRADE" | "WEEKLY_REV
 
 export type AiResult = {
   summary: string;
+  /** Por qué el sistema llegó a ese estado (score + gates + HARD + setup + riesgo). */
+  why: string;
+  /** Contradicciones detectadas entre bloques de la evaluación. */
+  contradictions: string;
   what_worked: string;
   what_failed: string;
   what_learned: string;
   next_time: string;
 };
 
-const MODEL = "google/gemini-3.7-flash";
+const MODEL = "openai/gpt-6-astra";
+
 
 const SYSTEM_PROMPT = `Eres ANIKE IA, el mentor de trading del sistema ANIKE EJEPIKA.
 
@@ -56,14 +64,22 @@ CÓMO ANALIZAS
 - No repitas lo que el trader ya respondió; agrega valor sobre eso ("el contexto está a favor, pero por sí solo no justifica la entrada"). Cada párrafo debe aportar algo nuevo.
 - Si recibes historial de operaciones, busca patrones y prioriza: fortaleza, debilidad recurrente y comportamiento asociado a mejores resultados. Con pocas muestras no afirmes: usa "con las operaciones disponibles", "hay una tendencia inicial", "necesitamos más operaciones para confirmarlo".
 
+COHERENCIA CON EL MOTOR (obligatorio)
+- El estado final (APROBADA / CONDICIONAL / NO TRADE) ya lo decidió el motor. Nunca lo recalculas, nunca lo discutes, nunca lo suavizas.
+- Recibes el score interno, el umbral de aprobación y los cinco gates obligatorios con su valor real. Úsalos para EXPLICAR el estado: nombra el gate o la regla concreta que decidió el resultado.
+- Una CONDICIONAL no es una entrada "casi buena que se puede tomar": es una entrada que todavía no cumple. Jamás sugieras ejecutarla ni digas que podría entrarse igual.
+- Si el lotaje viene marcado como ORIENTATIVO o NO DISPONIBLE, no lo trates como tamaño ejecutable.
+
 CÓMO ESCRIBES CADA CAMPO (markdown breve, sin repetir los títulos de sección)
 - summary → TU LECTURA: 2 a 4 frases sobre la calidad general del proceso, interpretando el score y la coherencia entre proceso y resultado. Cierra SIEMPRE con una última línea que empiece exactamente con "🚨 EL PUNTO CLAVE:" y contenga UNA sola cosa que el trader debería recordar.
+- why → EL POR QUÉ: 2 a 4 frases explicando por qué el sistema llegó a ese estado, conectando score interno vs. umbral, gates cumplidos/incumplidos, reglas duras, setup, riesgo y R:R. Nombra números reales. No repitas el summary.
+- contradictions → las contradicciones que realmente encuentres, en viñetas con "- ", cada una abierta con "OJO CON ESTO" y explicada en una frase. Si no hay ninguna, escribe exactamente "No detecto contradicciones con los datos disponibles."
 - what_worked → máximo 3 puntos en viñetas con "- ", explicando específicamente por qué cada uno estuvo bien. Si no hubo nada sólido, dilo sin adornos.
-- what_failed → máximo 3 puntos en viñetas con "- ", priorizados por importancia, distinguiendo error crítico, debilidad y elemento que necesitaba confirmación. Si detectas una contradicción o una regla crítica, va aquí y primero.
+- what_failed → máximo 3 puntos en viñetas con "- ", priorizados por importancia, distinguiendo error crítico, debilidad y elemento que necesitaba confirmación. Si detectas una regla crítica, va aquí y primero.
 - what_learned → la enseñanza concreta que deja esta operación, en 1 o 2 frases.
 - next_time → 1 a 3 acciones concretas en viñetas con "- ", derivadas de lo que falló.
 
-LONGITUD: entre 250 y 450 palabras en total. Si el caso es simple, 100-250. Solo si hay muchos conflictos importantes, hasta 500. No escribas ensayos.`;
+LONGITUD: entre 300 y 550 palabras en total. Si el caso es simple, 150-300. No escribas ensayos.`;
 
 const SCHEMA = {
   type: "object",
@@ -74,6 +90,16 @@ const SCHEMA = {
       description:
         "TU LECTURA: 2-4 frases interpretando el score y la calidad del proceso, cerrando con una línea que empiece con '🚨 EL PUNTO CLAVE:'.",
     },
+    why: {
+      type: "string",
+      description:
+        "EL POR QUÉ del estado del sistema: score interno vs umbral, gates, reglas duras, setup, riesgo y R:R con números reales.",
+    },
+    contradictions: {
+      type: "string",
+      description:
+        "Contradicciones reales en viñetas abiertas con 'OJO CON ESTO', o la frase exacta 'No detecto contradicciones con los datos disponibles.'",
+    },
     what_worked: {
       type: "string",
       description: "Máximo 3 viñetas con lo que estuvo bien y por qué.",
@@ -81,13 +107,22 @@ const SCHEMA = {
     what_failed: {
       type: "string",
       description:
-        "Máximo 3 viñetas priorizadas con lo que no convence: contradicciones, reglas críticas, debilidades.",
+        "Máximo 3 viñetas priorizadas con lo que no convence: reglas críticas, debilidades, elementos sin confirmar.",
     },
     what_learned: { type: "string", description: "Enseñanza concreta de esta operación." },
     next_time: { type: "string", description: "1 a 3 acciones concretas en viñetas." },
   },
-  required: ["summary", "what_worked", "what_failed", "what_learned", "next_time"],
+  required: [
+    "summary",
+    "why",
+    "contradictions",
+    "what_worked",
+    "what_failed",
+    "what_learned",
+    "next_time",
+  ],
 } as const;
+
 
 export class AiUnavailableError extends Error {
   constructor(message = "ai_unavailable") {
@@ -95,29 +130,38 @@ export class AiUnavailableError extends Error {
   }
 }
 
+/**
+ * Llamada al modelo. Se hace en streaming y se consume en el servidor: los
+ * análisis de razonamiento pueden tardar minutos y una petición sin bytes se
+ * cortaría por tiempo. El navegador nunca ve la clave ni la respuesta cruda.
+ */
 export async function runAnikeAi(userPrompt: string): Promise<AiResult> {
   const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) throw new AiUnavailableError("ai_not_configured");
 
   let res: Response;
   try {
-    res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    res = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+        "Lovable-API-Key": apiKey,
         "X-Lovable-AIG-SDK": "fetch",
       },
       body: JSON.stringify({
         model: MODEL,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.85,
-        response_format: {
-          type: "json_schema",
-          json_schema: { name: "anike_review", strict: true, schema: SCHEMA },
+        instructions: SYSTEM_PROMPT,
+        input: [{ role: "user", content: [{ type: "input_text", text: userPrompt }] }],
+        stream: true,
+        store: false,
+        reasoning: { effort: "low" },
+        text: {
+          format: {
+            type: "json_schema",
+            name: "anike_review",
+            strict: true,
+            schema: SCHEMA,
+          },
         },
       }),
     });
@@ -129,14 +173,12 @@ export async function runAnikeAi(userPrompt: string): Promise<AiResult> {
     const body = await res.text().catch(() => "");
     if (res.status === 429) throw new AiUnavailableError("ai_rate_limited");
     if (res.status === 402) throw new AiUnavailableError("ai_no_credits");
+    if (res.status === 403) throw new AiUnavailableError("ai_blocked");
     console.error("[anike-ia] gateway error", res.status, body.slice(0, 500));
     throw new AiUnavailableError();
   }
 
-  const json = (await res.json().catch(() => null)) as {
-    choices?: { message?: { content?: string } }[];
-  } | null;
-  const content = json?.choices?.[0]?.message?.content;
+  const content = await readResponsesStream(res);
   if (!content) throw new AiUnavailableError();
 
   let parsed: Partial<AiResult>;
@@ -148,12 +190,68 @@ export async function runAnikeAi(userPrompt: string): Promise<AiResult> {
 
   return {
     summary: (parsed.summary ?? "").trim(),
+    why: (parsed.why ?? "").trim(),
+    contradictions: (parsed.contradictions ?? "").trim(),
     what_worked: (parsed.what_worked ?? "").trim(),
     what_failed: (parsed.what_failed ?? "").trim(),
     what_learned: (parsed.what_learned ?? "").trim(),
     next_time: (parsed.next_time ?? "").trim(),
   };
 }
+
+/** Acumula el texto final de un stream SSE de la API de respuestas. */
+export async function readResponsesStream(res: Response): Promise<string> {
+  if (!res.body) return "";
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let text = "";
+  let completed: string | null = null;
+
+  const handle = (payload: string) => {
+    if (payload === "[DONE]") return;
+    let event: unknown;
+    try {
+      event = JSON.parse(payload);
+    } catch {
+      return;
+    }
+    const e = event as {
+      type?: string;
+      delta?: string;
+      response?: { output_text?: string; output?: { content?: { text?: string }[] }[] };
+    };
+    if (e.type === "response.output_text.delta" && typeof e.delta === "string") text += e.delta;
+    if (e.type === "response.completed") {
+      const direct = e.response?.output_text;
+      if (typeof direct === "string" && direct.length > 0) completed = direct;
+      else {
+        const joined = (e.response?.output ?? [])
+          .flatMap((o) => o.content ?? [])
+          .map((c) => c.text ?? "")
+          .join("");
+        if (joined.length > 0) completed = joined;
+      }
+    }
+  };
+
+  for (;;) {
+    const chunk = await reader.read();
+    if (chunk.done) break;
+    buffer += decoder.decode(chunk.value, { stream: true });
+    const parts = buffer.split("\n\n");
+    buffer = parts.pop() ?? "";
+    for (const part of parts) {
+      for (const raw of part.split("\n")) {
+        const trimmed = raw.trim();
+        if (trimmed.startsWith("data:")) handle(trimmed.slice(5).trim());
+      }
+    }
+  }
+
+  return (completed ?? text).trim();
+}
+
 
 /* ------------------------------ Prompts ------------------------------ */
 
@@ -172,7 +270,10 @@ type EvalRow = {
   followed_plan: string | null;
   answers: Record<string, unknown> | null;
   risk: Record<string, unknown> | null;
-  breakdown: Record<string, { earned?: number; weight?: number }> | null;
+  breakdown:
+    | Record<string, { earned?: number; weight?: number; percent?: number }>
+    | null;
+
   review: Record<string, string> | null;
   notes: string | null;
   market?: string | null;
@@ -281,11 +382,14 @@ function answerLines(a: EvalRow["answers"]) {
  */
 function finalStateBlock(e: EvalRow): string[] {
   const answers = (e.answers ?? {}) as Record<string, string>;
+  const metrics = computeRisk((e.risk ?? {}) as RiskData, e.direction, {
+    market: e.market ?? e.market_type ?? null,
+    contractSize: numOrNull(e.risk?.["contractSize"]),
+    pointValue: numOrNull(e.risk?.["pointValue"]),
+  });
   const warnings = checkConditional({
     a: answers,
-    risk: computeRisk((e.risk ?? {}) as RiskData, e.direction, {
-      market: e.market ?? e.market_type ?? null,
-    }),
+    risk: metrics,
     maxRiskPct: Number.POSITIVE_INFINITY,
     setup: e.setup,
     preferredSetups: [],
@@ -302,10 +406,17 @@ function finalStateBlock(e: EvalRow): string[] {
           ? "CONDICIONAL"
           : "APROBADA";
   const fibo = e.risk?.["slFibo"];
+  const sizing = sizingStatus(metrics);
   return [
     "",
     "ESTADO FINAL DEL SISTEMA (decisión que ya tomó ANIKE EJEPIKA; no la contradigas):",
     line("Estado", `${FINAL_STATE_UI[finalState].dot} ${finalState}`),
+    line(
+      "Origen del estado",
+      stored === null || stored === undefined || stored === ""
+        ? "evaluación histórica: reconstruido con reglas duras y avisos"
+        : "estado guardado por el servidor",
+    ),
     line(
       "Avisos condicionales (no descartan, exigen esperar)",
       warnings.length > 0 ? warnings.join(" | ") : "ninguno",
@@ -316,11 +427,59 @@ function finalStateBlock(e: EvalRow): string[] {
     ),
     line("Extremo alto del impulso declarado", e.risk?.["swingHigh"]),
     line("Extremo bajo del impulso declarado", e.risk?.["swingLow"]),
+    "",
+    "MOTOR CORE — CÓMO SE LLEGÓ A ESE ESTADO (úsalo para explicar el por qué):",
+    line(
+      "Score interno vs umbral de aprobación",
+      e.score === null || e.score === undefined
+        ? null
+        : `${e.score} sobre un mínimo de ${APPROVAL_MIN_SCORE} (visible ${Math.floor(Number(e.score))})`,
+    ),
+    line("Setup oficial seleccionado", e.setup ? setupLabel(e.setup) : null),
+    "GATES OBLIGATORIOS (todos deben cumplirse para APROBADA):",
+    gatesLines(e.breakdown),
+    line(
+      "Tamaño de posición",
+      `${sizing.label}${metrics.positionSize === null ? "" : ` — ${metrics.positionSize} ${metrics.sizingUnit ?? ""}`}`,
+    ),
+    line(
+      "Datos que faltan para un lotaje exacto",
+      metrics.sizingMissing.length > 0 ? metrics.sizingMissing.join(", ") : "ninguno",
+    ),
+    line("Riesgo monetario calculado", metrics.riskMoney),
+    line("R:R recalculado (mínimo del sistema 1:2)", metrics.rr),
   ];
 }
 
+function numOrNull(v: unknown): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Gates obligatorios con su valor real, para que la IA nombre el que decidió. */
+function gatesLines(b: EvalRow["breakdown"]): string {
+  if (!b) return "- Gates: no registrados (evaluación sin desglose)";
+  return APPROVAL_GATES.map((g) => {
+    const block = b[g.id];
+    const weight = Number(block?.weight ?? 0);
+    const percent =
+      block?.percent !== undefined && block.percent !== null
+        ? Number(block.percent)
+        : weight > 0
+          ? Number(((Number(block?.earned ?? 0) / weight) * 100).toFixed(2))
+          : null;
+    if (percent === null) return `- ${g.label}: no registrado (mínimo ${g.min}%)`;
+    return `- ${g.label}: ${percent}% (mínimo ${g.min}%) → ${percent >= g.min ? "CUMPLE" : "NO CUMPLE"}`;
+  }).join("\n");
+}
+
+
 export type TraderHistoryInput = {
   sample: number;
+  /** Operaciones cerradas (con R) dentro de la muestra. */
+  closed?: number;
+
   avgScore: number | null;
   winRate: number | null;
   avgR: number | null;
@@ -342,7 +501,7 @@ function historyBlock(h: TraderHistoryInput | null): string[] {
   }
   return [
     "",
-    `HISTORIAL RECIENTE DEL TRADER (${h.sample} operaciones registradas — úsalo solo para detectar patrones, con la prudencia que corresponde a esta cantidad de muestras):`,
+    `HISTORIAL RECIENTE DEL TRADER (${h.sample} evaluaciones, ${h.closed ?? 0} operaciones cerradas con resultado en R — úsalo solo para detectar patrones, con la prudencia que corresponde a esta cantidad de muestras; el mejor/peor setup sólo aparece con al menos 3 operaciones cerradas):`,
     line("Score promedio", h.avgScore),
     line("Win rate", h.winRate === null ? null : `${h.winRate}%`),
     line("Promedio R", h.avgR),
@@ -363,13 +522,16 @@ export function buildEvaluationPrompt(
   e: EvalRow,
   type: AiReviewType,
   history: TraderHistoryInput | null = null,
+  /** Análisis post-trade ya calculado (sólo operaciones cerradas). */
+  postTrade: unknown = null,
 ): string {
   const rr = rrOf(e.risk);
   const base = [
     "DATOS DE LA EVALUACIÓN (sistema ANIKE EJEPIKA):",
     line("Activo", e.asset),
     line("Dirección", e.direction),
-    line("Setup", e.setup),
+    line("Setup", e.setup ? setupLabel(e.setup) : null),
+
     line("Score total", e.score === null ? null : `${e.score}/100`),
     line("Clasificación del sistema", e.classification),
     line("R:R", rr),
@@ -451,17 +613,25 @@ export function buildEvaluationPrompt(
       "Esta operación ya está cerrada. Compara el plan con la ejecución real: qué parte del proceso fue correcta, cuál fue el error real, la enseñanza y la acción concreta.",
       "En 'summary' juzga la coherencia entre resultado y calidad del proceso. Si ganó con proceso débil, no permitas que el resultado justifique la entrada. Si perdió con proceso sólido y riesgo controlado, dilo con claridad: es una pérdida que forma parte de un proceso válido.",
     );
+    if (postTrade !== null && postTrade !== undefined) {
+      base.push(
+        "",
+        "ANÁLISIS POST-TRADE YA CALCULADO POR EL SISTEMA (desviaciones plan vs real, MFE/MAE en R, eficiencia de captura, EMA50 y scorecard de gestión; datos ausentes vienen como null y no puedes inventarlos):",
+        JSON.stringify(postTrade),
+      );
+    }
   } else if (type === "NO_TRADE") {
     base.push(
       "",
-      "Esta operación fue DESCARTADA por el sistema. Explica con precisión por qué se descartó y qué habría hecho falta para que la idea llegara limpia, sin sugerir en ningún caso que podría entrarse igual.",
+      "Esta operación quedó en NO TRADE por decisión del sistema. Explica con precisión por qué no cumple y qué habría hecho falta para que la idea llegara limpia, sin sugerir en ningún caso que podría entrarse igual.",
     );
   } else {
     base.push(
       "",
-      "Esta evaluación fue aprobada por el sistema y todavía no tiene resultado. Explica qué elementos sostienen esa clasificación y cuáles dejan la entrada menos limpia de lo que podría estar, sin recomendar ejecutar ni anticipar el resultado.",
+      "Esta evaluación todavía no tiene resultado. Explica qué elementos sostienen el estado que decidió el sistema y cuáles dejan la entrada menos limpia de lo que podría estar. Si el estado es CONDICIONAL, deja claro que no es ejecutable como operación ANIKE EJEPIKA. No recomiendes ejecutar ni anticipes el resultado.",
     );
   }
+
 
   return base.join("\n");
 }

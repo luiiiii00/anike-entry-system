@@ -66,10 +66,13 @@ export function AnikeAiPanel(props: Props) {
     onError: (error) => toast.error(aiErrorMessage(error)),
   });
 
-  const latest = (reviewsQuery.data ?? [])[0] as AiReview | undefined;
+  const reviews = (reviewsQuery.data ?? []) as AiReview[];
+  const latest = reviews[0];
+  const previous = reviews.slice(1, 6);
   const remaining = usageQuery.data?.remaining ?? null;
   const limit = usageQuery.data?.limit ?? null;
   const noCredits = remaining !== null && remaining <= 0;
+
 
   return (
     <section className="panel mt-4 overflow-hidden">
@@ -88,10 +91,11 @@ export function AnikeAiPanel(props: Props) {
           {limit !== null && (
             <p className="label-mono mt-2">
               {noCredits
-                ? "Has alcanzado tu límite diario de análisis IA."
-                : `Análisis IA disponibles: ${remaining}/${limit}`}
+                ? "Has usado todos tus análisis de las últimas 24 horas."
+                : `Análisis IA disponibles: ${remaining}/${limit} en las últimas 24 horas`}
             </p>
           )}
+
         </div>
 
         <div className="flex w-full flex-col gap-2 sm:w-auto">
@@ -171,6 +175,8 @@ export function AiReviewBody({ review }: { review: AiReview }) {
         </p>
       </div>
       <Block title="🎯 MI LECTURA" text={review.summary} highlightKeyPoint />
+      <Block title="🧩 POR QUÉ EL SISTEMA DECIDIÓ ESTO" text={review.why ?? ""} />
+      <Block title="⚡ CONTRADICCIONES" text={review.contradictions ?? ""} />
       <Block title="✅ LO QUE HICISTE BIEN" text={review.what_worked} />
       <Block title="⚠️ LO QUE NO ME CONVENCE" text={review.what_failed} />
       <Block title="🧠 ¿QUÉ APRENDÍ?" text={review.what_learned} />
@@ -182,6 +188,7 @@ export function AiReviewBody({ review }: { review: AiReview }) {
     </div>
   );
 }
+
 
 function Block({
   title,

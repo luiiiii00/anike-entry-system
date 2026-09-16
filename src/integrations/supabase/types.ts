@@ -43,6 +43,7 @@ export type Database = {
       }
       ai_reviews: {
         Row: {
+          contradictions: string
           created_at: string
           evaluation_id: string | null
           id: string
@@ -54,8 +55,10 @@ export type Database = {
           what_failed: string
           what_learned: string
           what_worked: string
+          why: string
         }
         Insert: {
+          contradictions?: string
           created_at?: string
           evaluation_id?: string | null
           id?: string
@@ -67,8 +70,10 @@ export type Database = {
           what_failed?: string
           what_learned?: string
           what_worked?: string
+          why?: string
         }
         Update: {
+          contradictions?: string
           created_at?: string
           evaluation_id?: string | null
           id?: string
@@ -80,6 +85,7 @@ export type Database = {
           what_failed?: string
           what_learned?: string
           what_worked?: string
+          why?: string
         }
         Relationships: [
           {

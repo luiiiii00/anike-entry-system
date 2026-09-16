@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { setupLabel } from "@/lib/checklist";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
 
 const idSchema = z.string().uuid();
 
@@ -86,10 +88,33 @@ export const analyzeEvaluationFn = createServerFn({ method: "POST" })
       .limit(30);
     const history = buildHistory(recent ?? []);
 
-    const isNoTrade = row.classification === "NO TRADE" || row.decision === "no_trade";
+    const isNoTrade =
+      row.final_state === "NO TRADE" ||
+      row.final_state === "DESCARTADA" ||
+      row.classification === "NO TRADE" ||
+      row.decision === "no_trade";
     const hasResult = row.result_r !== null && row.result_r !== undefined;
     const reviewType =
       data.reviewType ?? (hasResult ? "POST_TRADE" : isNoTrade ? "NO_TRADE" : "PRE_TRADE");
+
+    // Contexto post-trade: sólo si la operación está cerrada. Se calcula en
+    // servidor a partir de los campos ya guardados; el cliente no lo envía.
+    let postTradeContext: unknown = null;
+    if (reviewType === "POST_TRADE") {
+      const { analyzePostTradeAll, buildAiPostTradeContext, refsFromRow } = await import(
+        "@/lib/posttrade-analytics"
+      );
+      const { data: settings } = await db
+        .from("settings")
+        .select("account_capital")
+        .eq("user_id", context.userId)
+        .maybeSingle();
+      const refs = refsFromRow(
+        row as unknown as Record<string, unknown>,
+        Number(settings?.account_capital ?? null),
+      );
+      postTradeContext = buildAiPostTradeContext(analyzePostTradeAll(refs.planned, refs.real));
+    }
 
     const prompt = buildEvaluationPrompt(
       {
@@ -102,8 +127,10 @@ export const analyzeEvaluationFn = createServerFn({ method: "POST" })
         hard_rules: row.hard_rules,
         emotional_stop: row.emotional_stop,
         decision: row.decision,
+        final_state: row.final_state,
         result_r: row.result_r,
         followed_plan: row.followed_plan,
+
         answers: row.answers as Record<string, unknown> | null,
         risk: row.risk as Record<string, unknown> | null,
         breakdown: row.breakdown as Record<string, { earned?: number; weight?: number }> | null,
@@ -133,7 +160,9 @@ export const analyzeEvaluationFn = createServerFn({ method: "POST" })
       },
       reviewType,
       history,
+      postTradeContext,
     );
+
 
     let result;
     try {
@@ -232,15 +261,24 @@ function buildHistory(rows: HistoryRow[]) {
     .slice(0, 3)
     .map(([k, n]) => `${k} (${n}x)`);
 
-  const setupR = new Map<string, number>();
+  // Mejor/peor setup: R medio, con nombre oficial y mínimo de 3 operaciones
+  // cerradas. Con menos muestras no se afirma nada.
+  const perSetup = new Map<string, { sum: number; n: number }>();
   for (const r of closed) {
     const key = r.setup ?? "sin setup";
-    setupR.set(key, Number(((setupR.get(key) ?? 0) + Number(r.result_r)).toFixed(2)));
+    const cur = perSetup.get(key) ?? { sum: 0, n: 0 };
+    perSetup.set(key, { sum: cur.sum + Number(r.result_r), n: cur.n + 1 });
   }
-  const ranked = [...setupR.entries()].sort((a, b) => b[1] - a[1]);
+  const ranked = [...perSetup.entries()]
+    .filter(([, v]) => v.n >= 3)
+    .map(([k, v]) => ({ key: k, avgR: Number((v.sum / v.n).toFixed(2)), n: v.n }))
+    .sort((a, b) => b.avgR - a.avgR);
+  const nameOf = (s: { key: string; avgR: number; n: number } | undefined) =>
+    s === undefined ? null : `${setupLabel(s.key)} (${s.avgR}R en ${s.n} operaciones)`;
 
   return {
     sample: rows.length,
+    closed: closed.length,
     avgScore: avg(scores),
     winRate:
       closed.length === 0 ? null : Number(((winners.length / closed.length) * 100).toFixed(1)),
@@ -250,7 +288,8 @@ function buildHistory(rows: HistoryRow[]) {
     impulsive: rows.filter((r) => r.emotional_stop).length,
     offPlan: rows.filter((r) => r.followed_plan === "no").length,
     topRules,
-    bestSetup: ranked[0]?.[0] ?? null,
-    worstSetup: ranked.length > 1 ? (ranked[ranked.length - 1]?.[0] ?? null) : null,
+    bestSetup: nameOf(ranked[0]),
+    worstSetup: ranked.length > 1 ? nameOf(ranked[ranked.length - 1]) : null,
   };
+
 }
