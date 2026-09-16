@@ -2249,7 +2249,8 @@ export function normalizeOverlay(value: unknown): ChecklistOverlay {
     .filter(
       (q) =>
         SECTION_IDS.includes(q.sectionId) &&
-        (q.owner === "COMMON" || OFFICIAL_SETUP_IDS.includes(q.owner as OfficialSetupId)) &&
+        (q.owner === "COMMON" ||
+          EVALUATION_SETUP_IDS.includes(q.owner as EvaluationSetupId)) &&
         q.options.length >= 2,
     ) as OverlayAddedQuestion[];
   return { version: 1, edits, disabled, added };
