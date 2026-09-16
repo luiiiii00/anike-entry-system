@@ -6,8 +6,10 @@ import {
   analyzePostTradeAll,
   finite,
   refsFromRow,
+  type PlannedRef,
   type Verdict,
 } from "@/lib/posttrade-analytics";
+
 
 import { CURRENCIES, fmtMoney, fmtNumber, fmtPercent, fmtR, type Currency } from "@/lib/posttrade";
 import { computeRisk } from "@/lib/scoring";
