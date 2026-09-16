@@ -756,7 +756,8 @@ export function RiskPanel({
         )}
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <p className="label-mono mt-6 text-primary">2 · CÁLCULOS</p>
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Metric label={`Riesgo (${currency})`} value={m.riskMoney} />
         <Metric label="Distancia al stop" value={m.stopDistance} digits={5} />
         <Metric label="R:R" value={m.rr} tone={underRR ? "stop" : m.rr ? "ok" : "none"} />
@@ -772,21 +773,42 @@ export function RiskPanel({
 
       <SizingStatus metrics={m} className="mt-2" />
 
-      {(overRisk || underRR) && (
-        <div className="mt-3 space-y-1.5 text-xs">
-          {overRisk && (
-            <p className="text-stop">
-              El riesgo ({m.riskPctUsed}%) supera tu límite configurado ({maxRiskPct}%).
-            </p>
-          )}
-          {underRR && (
-            <p className="text-warn">
-              El R:R ({m.rr}) está por debajo de tu mínimo configurado ({minRR}). Por debajo de 1:2
-              la operación queda descartada.
-            </p>
-          )}
-        </div>
+      {(overRisk || underRR || slDiverges) && (
+        <>
+          <p className="label-mono mt-6 text-warn">3 · ADVERTENCIAS</p>
+          <div className="mt-2 space-y-1.5 text-xs">
+            {overRisk && (
+              <p className="text-stop">
+                El riesgo ({m.riskPctUsed}%) supera tu límite configurado ({maxRiskPct}%).
+              </p>
+            )}
+            {underRR && (
+              <p className="text-warn">
+                El R:R ({m.rr}) está por debajo de tu mínimo configurado ({minRR}). Por debajo de 1:2
+                la operación queda descartada.
+              </p>
+            )}
+            {slDiverges && (
+              <p className="text-warn">
+                Tu Stop ({risk.stop}) no coincide con el nivel 0,75 de Fibonacci ({fibo.sl}):
+                diferencia de {slDivergence}. Revisa cuál de los dos representa tu invalidación real.
+              </p>
+            )}
+          </div>
+        </>
       )}
+
+      {m.sizingMissing.length > 0 && (
+        <>
+          <p className="label-mono mt-6">4 · QUÉ FALTA PARA UN CÁLCULO EXACTO</p>
+          <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+            {m.sizingMissing.map((x) => (
+              <li key={x}>• {x}</li>
+            ))}
+          </ul>
+        </>
+      )}
+
       <p className="mt-3 text-[11px] text-muted-foreground">
         Los cálculos usan únicamente los valores que introduces. La herramienta no consulta precios
         reales ni se conecta a brokers.
