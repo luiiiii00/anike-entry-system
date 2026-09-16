@@ -736,6 +736,52 @@ export const HISTORICAL_NA_VALUE = "na";
  * Elimina las opciones "No aplica" del cuestionario activo. No borra datos:
  * las respuestas históricas con valor "na" siguen leyéndose tal cual.
  */
+/**
+ * TIMEFRAME DE ANÁLISIS (multi-temporalidad ANIKE EJEPIKA: 1D → 1H → 5M).
+ * El timeframe es un ATRIBUTO/CONTEXTO de la pregunta: no duplica preguntas, no
+ * cambia pesos, factores, fórmula, gates, HARD rules ni estados. Se determina por
+ * el bloque CORE al que pertenece la pregunta (flujo oficial) y puede afinarse
+ * por pregunta concreta mediante `QUESTION_TIMEFRAME`.
+ */
+export const SECTION_TIMEFRAME: Partial<Record<SectionId, Timeframe>> = {
+  contexto: "1D",
+  estructura: "1H",
+  zona: "1H",
+  confirmacion: "5M",
+  riesgo: "1H",
+  recorrido: "1H",
+  ejecucion: "5M",
+};
+
+/** Excepciones explícitas pregunta → timeframe (prioridad sobre el bloque). */
+export const QUESTION_TIMEFRAME: Record<string, Timeframe> = {
+  h1_zone: "1H",
+  h1_react: "1H",
+  m5_signal: "5M",
+  m5_break: "5M",
+};
+
+/** Timeframe asociado a una pregunta dentro de su bloque CORE. */
+export function questionTimeframe(
+  questionId: string,
+  sectionId: SectionId,
+): Timeframe | undefined {
+  return QUESTION_TIMEFRAME[questionId] ?? SECTION_TIMEFRAME[sectionId];
+}
+
+function withTimeframes(sections: Section[]): Section[] {
+  return sections.map((section) => ({
+    ...section,
+    groups: section.groups.map((group) => ({
+      ...group,
+      questions: group.questions.map((question) => {
+        const timeframe = question.timeframe ?? questionTimeframe(question.id, section.id);
+        return timeframe ? { ...question, timeframe } : question;
+      }),
+    })),
+  }));
+}
+
 function withoutNaOptions(sections: Section[]): Section[] {
   return sections.map((section) => ({
     ...section,
