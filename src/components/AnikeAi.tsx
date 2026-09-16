@@ -3,7 +3,12 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Bot, Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { aiErrorMessage, fetchAiReviewsByType, fetchAiReviewsForEvaluation, type AiReview } from "@/lib/ai";
+import {
+  aiErrorMessage,
+  fetchAiReviewsByType,
+  fetchAiReviewsForEvaluation,
+  type AiReview,
+} from "@/lib/ai";
 import { aiUsageFn, analyzeEvaluationFn, analyzeWeekFn } from "@/lib/ai.functions";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -66,7 +71,9 @@ export function AnikeAiPanel(props: Props) {
     onError: (error) => toast.error(aiErrorMessage(error)),
   });
 
-  const latest = (reviewsQuery.data ?? [])[0] as AiReview | undefined;
+  const reviews = (reviewsQuery.data ?? []) as AiReview[];
+  const latest = reviews[0];
+  const previous = reviews.slice(1, 6);
   const remaining = usageQuery.data?.remaining ?? null;
   const limit = usageQuery.data?.limit ?? null;
   const noCredits = remaining !== null && remaining <= 0;
@@ -79,7 +86,9 @@ export function AnikeAiPanel(props: Props) {
         </div>
         <div className="min-w-[190px] flex-1">
           <p className="font-display text-base font-semibold">🤖 ANIKE IA</p>
-          <p className="text-xs text-muted-foreground">El mentor que te obliga a aprender de cada operación.</p>
+          <p className="text-xs text-muted-foreground">
+            El mentor que te obliga a aprender de cada operación.
+          </p>
           <p className="mt-2 text-sm text-muted-foreground">
             {isEvaluation && props.noTrade
               ? "¿Quieres entender por qué esta operación fue descartada?"
@@ -88,8 +97,8 @@ export function AnikeAiPanel(props: Props) {
           {limit !== null && (
             <p className="label-mono mt-2">
               {noCredits
-                ? "Has alcanzado tu límite diario de análisis IA."
-                : `Análisis IA disponibles: ${remaining}/${limit}`}
+                ? "Has usado todos tus análisis de las últimas 24 horas."
+                : `Análisis IA disponibles: ${remaining}/${limit} en las últimas 24 horas`}
             </p>
           )}
         </div>
@@ -157,6 +166,22 @@ export function AnikeAiPanel(props: Props) {
       )}
 
       {open && latest && !analyze.isPending && <AiReviewBody review={latest} />}
+
+      {open && previous.length > 0 && !analyze.isPending && (
+        <div className="border-t border-border p-5">
+          <p className="label-mono">ANÁLISIS ANTERIORES</p>
+          <div className="mt-2 space-y-2">
+            {previous.map((r) => (
+              <details key={r.id} className="rounded-xl border border-border bg-surface-2">
+                <summary className="cursor-pointer px-4 py-3 text-sm">
+                  {new Date(r.created_at).toLocaleString("es-PY")} · {r.review_type}
+                </summary>
+                <AiReviewBody review={r} />
+              </details>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -171,6 +196,8 @@ export function AiReviewBody({ review }: { review: AiReview }) {
         </p>
       </div>
       <Block title="🎯 MI LECTURA" text={review.summary} highlightKeyPoint />
+      <Block title="🧩 POR QUÉ EL SISTEMA DECIDIÓ ESTO" text={review.why ?? ""} />
+      <Block title="⚡ CONTRADICCIONES" text={review.contradictions ?? ""} />
       <Block title="✅ LO QUE HICISTE BIEN" text={review.what_worked} />
       <Block title="⚠️ LO QUE NO ME CONVENCE" text={review.what_failed} />
       <Block title="🧠 ¿QUÉ APRENDÍ?" text={review.what_learned} />
@@ -195,7 +222,12 @@ function Block({
   if (!text) return null;
   const lines = text
     .split("\n")
-    .map((l) => l.replace(/^[*#>]+\s*/, "").replace(/\*\*/g, "").trim())
+    .map((l) =>
+      l
+        .replace(/^[*#>]+\s*/, "")
+        .replace(/\*\*/g, "")
+        .trim(),
+    )
     .filter(Boolean);
 
   return (
@@ -218,10 +250,7 @@ function Block({
           return (
             <p
               key={i}
-              className={cn(
-                l.startsWith("- ") && "pl-3",
-                isAlert && "font-medium text-stop",
-              )}
+              className={cn(l.startsWith("- ") && "pl-3", isAlert && "font-medium text-stop")}
             >
               {l.startsWith("- ") ? `• ${l.slice(2)}` : l}
             </p>

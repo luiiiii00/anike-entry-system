@@ -87,8 +87,7 @@ const dirOf = (d: string | null | undefined): Direction | null =>
   d === "LONG" || d === "SHORT" ? d : null;
 
 /** Tolerancia relativa (0,05 % del precio de referencia) para comparar precios. */
-const tolerance = (ref: number | null) =>
-  ref === null || ref === 0 ? 0 : Math.abs(ref) * 0.0005;
+const tolerance = (ref: number | null) => (ref === null || ref === 0 ? 0 : Math.abs(ref) * 0.0005);
 
 const near = (a: number, b: number, ref: number | null) => Math.abs(a - b) <= tolerance(ref);
 
@@ -132,7 +131,10 @@ export function analyzeResult(real: RealRef, planned: PlannedRef = {}): ResultAn
 
   const riskFromTrade = finite(real.riskAmount);
   const plannedRiskFromPct =
-    capital !== null && capital > 0 && finite(planned.riskPct) !== null && finite(planned.riskPct)! > 0
+    capital !== null &&
+    capital > 0 &&
+    finite(planned.riskPct) !== null &&
+    finite(planned.riskPct)! > 0
       ? (capital * finite(planned.riskPct)!) / 100
       : null;
   const plannedRiskMoney =
@@ -151,8 +153,7 @@ export function analyzeResult(real: RealRef, planned: PlannedRef = {}): ResultAn
     finite(real.grossPnl) ??
     (closeDistance !== null && qty !== null && qty > 0 ? closeDistance * qty : null);
   const costs = finite(real.fees);
-  const netPnl =
-    finite(real.netPnl) ?? (grossPnl !== null ? grossPnl - (costs ?? 0) : null);
+  const netPnl = finite(real.netPnl) ?? (grossPnl !== null ? grossPnl - (costs ?? 0) : null);
 
   const percentOnCapital =
     netPnl !== null && capital !== null && capital > 0 ? (netPnl / capital) * 100 : null;
@@ -222,7 +223,9 @@ export function analyzeLeverage(input: {
         : null;
 
   const exposureRatio =
-    notional !== null && notional > 0 && capital !== null && capital > 0 ? notional / capital : null;
+    notional !== null && notional > 0 && capital !== null && capital > 0
+      ? notional / capital
+      : null;
 
   return {
     capital,
@@ -457,7 +460,9 @@ export function analyzeEma50(real: RealRef, planned: PlannedRef = {}): Ema50Anal
 
   const emaClose = finite(real.ema50Close);
   const remaining =
-    potential !== null && captured !== null && potential - captured > 0 ? potential - captured : null;
+    potential !== null && captured !== null && potential - captured > 0
+      ? potential - captured
+      : null;
 
   return {
     ema50: ema,
@@ -471,7 +476,9 @@ export function analyzeEma50(real: RealRef, planned: PlannedRef = {}): Ema50Anal
     potentialMove: potential,
     remainingMove: remaining,
     capturedPercentOfPotential:
-      captured !== null && potential !== null && potential > 0 ? (captured / potential) * 100 : null,
+      captured !== null && potential !== null && potential > 0
+        ? (captured / potential) * 100
+        : null,
   };
 }
 
@@ -512,8 +519,7 @@ export function analyzeExcursions(real: RealRef, result: ResultAnalysis): Excurs
 
   const signed = (price: number | null, favorable: boolean) => {
     if (price === null || entry === null || dir === null) return null;
-    const move =
-      favorable === (dir === "LONG") ? price - entry : entry - price;
+    const move = favorable === (dir === "LONG") ? price - entry : entry - price;
     // Geometría inválida (p. ej. "máximo favorable" peor que la entrada): no se asume 0.
     return move >= 0 ? move : null;
   };
@@ -547,7 +553,6 @@ export function analyzeExcursions(real: RealRef, result: ResultAnalysis): Excurs
     missing,
   };
 }
-
 
 /* --------------------------- MÓDULO 6: SCORECARD -------------------------- */
 
@@ -780,6 +785,55 @@ export type PostTradeAnalytics = {
   scorecard: ScorecardItem[];
   diagnosis: { text: string; verdict: Verdict };
 };
+
+/**
+ * Fuente ÚNICA de las referencias plan/real a partir de una fila de evaluación
+ * ya guardada en el servidor. La usan la interfaz post-trade y ANIKE IA para no
+ * duplicar el mapeo de campos. No calcula nada: sólo normaliza a número finito.
+ */
+export function refsFromRow(
+  row: Record<string, unknown>,
+  capitalFallback?: number | null,
+): { planned: PlannedRef; real: RealRef } {
+  const risk = (row["risk"] ?? {}) as Record<string, unknown>;
+  const saved = (row["post_trade_inputs"] ?? {}) as Record<string, unknown>;
+  const direction = row["direction"];
+  return {
+    planned: {
+      entry: finite(risk["entry"]),
+      stopLoss: finite(risk["stop"]) ?? finite(risk["slFibo"]),
+      takeProfit: finite(risk["target"]),
+      riskPct: finite(risk["riskPct"]),
+      capital: finite(risk["capital"]),
+    },
+    real: {
+      direction: direction === "SHORT" ? "SHORT" : direction === "LONG" ? "LONG" : null,
+      entry: finite(row["entry_price"]),
+      exit: finite(row["exit_price"]),
+      stopLoss: finite(row["stop_loss"]),
+      takeProfit: finite(row["take_profit"]),
+      quantity: finite(row["quantity"]),
+      netPnl: finite(row["net_pnl"]),
+      grossPnl: finite(row["gross_pnl"]),
+      fees: finite(row["fees"]),
+      riskAmount: finite(row["risk_amount"]),
+      riskPercent: finite(row["risk_percent"]),
+      plannedRr: finite(row["planned_rr"]),
+      resultR: finite(row["result_r"]),
+      capital: finite(saved["capital"]) ?? finite(capitalFallback),
+      leverage: finite(row["leverage"]),
+      margin: finite(row["margin"]),
+      notionalValue: finite(row["notional_value"]),
+      ema50: finite(saved["ema50"]),
+      ema50Close: finite(saved["ema50Close"]),
+      maxFavorablePrice: finite(saved["maxFavorablePrice"]),
+      maxAdversePrice: finite(saved["maxAdversePrice"]),
+      followedPlan: (row["followed_plan"] ?? null) as string | null,
+      emotionalStop: (row["emotional_stop"] ?? null) as boolean | null,
+      hardRules: (row["hard_rules"] ?? null) as string[] | null,
+    },
+  };
+}
 
 export function analyzePostTradeAll(planned: PlannedRef, real: RealRef): PostTradeAnalytics {
   const result = analyzeResult(real, planned);

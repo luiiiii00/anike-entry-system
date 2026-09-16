@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import {
   analyzeEma50,
@@ -7,6 +7,7 @@ import {
   analyzeResult,
   buildAiPostTradeContext,
   finite,
+  refsFromRow,
   type PlannedRef,
   type RealRef,
 } from "@/lib/posttrade-analytics";
@@ -17,7 +18,13 @@ import { computeRisk, evaluate, sizingStatus } from "@/lib/scoring";
  * respecto al motor de aprobación de entrada (score, gates, HARD, estados).
  */
 
-const planned: PlannedRef = { entry: 100, stopLoss: 95, takeProfit: 110, riskPct: 1, capital: 1000 };
+const planned: PlannedRef = {
+  entry: 100,
+  stopLoss: 95,
+  takeProfit: 110,
+  riskPct: 1,
+  capital: 1000,
+};
 
 const real = (over: Partial<RealRef> = {}): RealRef => ({
   direction: "LONG",
@@ -164,7 +171,9 @@ describe("precisión del lotaje", () => {
 
 describe("EMA 50", () => {
   it("16. EMA 50 disponible calcula distancias y captura", () => {
-    const e = analyzeEma50(real({ exit: 105, ema50: 110, ema50Close: 108, maxFavorablePrice: 106 }));
+    const e = analyzeEma50(
+      real({ exit: 105, ema50: 110, ema50Close: 108, maxFavorablePrice: 106 }),
+    );
     expect(e.ema50).toBe(110);
     expect(e.ema50AtClose).toBe(108);
     expect(e.entryDistance).toBe(10);
@@ -259,5 +268,56 @@ describe("aislamiento del motor de entrada", () => {
     expect(json).not.toContain("classification");
     expect(json).not.toContain("hard");
     expect(ctx.diagnosis.length).toBeGreaterThan(0);
+  });
+});
+
+describe("refsFromRow — mapeo único plan/real", () => {
+  const row = {
+    direction: "SHORT",
+    risk: { entry: 100, stop: 110, target: 80, riskPct: 1, capital: 5000 },
+    post_trade_inputs: { ema50: 105, ema50Close: 99, maxFavorablePrice: 78, capital: 4800 },
+    entry_price: 100,
+    exit_price: 85,
+    stop_loss: 110,
+    take_profit: 80,
+    quantity: 2,
+    net_pnl: 28,
+    result_r: 1.4,
+    followed_plan: "si",
+    emotional_stop: false,
+    hard_rules: [],
+  };
+
+  test("mapea plan y real sin inventar datos", () => {
+    const { planned, real } = refsFromRow(row, 1000);
+    expect(planned.entry).toBe(100);
+    expect(planned.stopLoss).toBe(110);
+    expect(real.direction).toBe("SHORT");
+    expect(real.capital).toBe(4800);
+    expect(real.ema50Close).toBe(99);
+    expect(real.maxAdversePrice).toBeNull();
+  });
+
+  test("usa el capital de respaldo si no hay capital guardado", () => {
+    const { real } = refsFromRow({ ...row, post_trade_inputs: {} }, 1234);
+    expect(real.capital).toBe(1234);
+  });
+
+  test("nunca produce NaN a partir de valores basura", () => {
+    const { planned, real } = refsFromRow(
+      { risk: { entry: "abc" }, post_trade_inputs: { ema50: Infinity }, exit_price: NaN },
+      NaN,
+    );
+    expect(planned.entry).toBeNull();
+    expect(real.ema50).toBeNull();
+    expect(real.exit).toBeNull();
+    expect(real.capital).toBeNull();
+  });
+
+  test("el análisis completo funciona con las referencias mapeadas", () => {
+    const { planned, real } = refsFromRow(row, 5000);
+    const a = analyzePostTradeAll(planned, real);
+    expect(a.result.status).toBe("GANANCIA");
+    expect(Number.isFinite(a.result.netPnl ?? 0)).toBe(true);
   });
 });

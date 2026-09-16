@@ -627,7 +627,11 @@ export function RiskPanel({
   direction?: string | undefined;
   market?: string | undefined;
 }) {
-  const m = computeRisk(risk, direction, { market: market ?? null });
+  const m = computeRisk(risk, direction, {
+    market: market ?? null,
+    contractSize: risk.contractSize ?? null,
+    pointValue: risk.pointValue ?? null,
+  });
   const set = (k: keyof RiskData, v: string) =>
     setRisk((r) => ({ ...r, [k]: v === "" ? undefined : Number(v) }));
 
@@ -635,10 +639,17 @@ export function RiskPanel({
   const underRR = m.rr !== null && m.rr < minRR;
 
   const fibo = fiboProjection(risk, direction);
+  // Divergencia entre el SL manual y el nivel 0,75: sólo se avisa, no se corrige.
+  const slDivergence =
+    fibo.sl !== null && risk.stop !== undefined && Number.isFinite(risk.stop)
+      ? Math.abs(Number(risk.stop) - fibo.sl)
+      : null;
+  const slDiverges = slDivergence !== null && slDivergence > 0;
 
   return (
     <div className="panel p-4">
       <p className="label-mono">Calculadora de riesgo</p>
+      <p className="label-mono mt-4 text-primary">1 · DATOS QUE INTRODUCES</p>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <TextField
           label={`Capital de cuenta (${currency})`}
@@ -670,7 +681,23 @@ export function RiskPanel({
           onChange={(v) => set("target", v)}
           type="number"
         />
+        <TextField
+          label="Tamaño de contrato del instrumento (opcional)"
+          value={str(risk.contractSize)}
+          onChange={(v) => set("contractSize", v)}
+          type="number"
+        />
+        <TextField
+          label="Valor por punto / tick (opcional)"
+          value={str(risk.pointValue)}
+          onChange={(v) => set("pointValue", v)}
+          type="number"
+        />
       </div>
+      <p className="mt-2 text-[11px] text-muted-foreground">
+        El tamaño de contrato y el valor por punto los tomamos sólo de lo que escribas: nunca
+        inventamos la especificación de un instrumento.
+      </p>
 
       <div className="mt-5 rounded-xl border border-border bg-surface-2 p-3">
         <p className="label-mono">Fibonacci del impulso</p>
@@ -727,7 +754,8 @@ export function RiskPanel({
         )}
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <p className="label-mono mt-6 text-primary">2 · CÁLCULOS</p>
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Metric label={`Riesgo (${currency})`} value={m.riskMoney} />
         <Metric label="Distancia al stop" value={m.stopDistance} digits={5} />
         <Metric label="R:R" value={m.rr} tone={underRR ? "stop" : m.rr ? "ok" : "none"} />
@@ -743,21 +771,43 @@ export function RiskPanel({
 
       <SizingStatus metrics={m} className="mt-2" />
 
-      {(overRisk || underRR) && (
-        <div className="mt-3 space-y-1.5 text-xs">
-          {overRisk && (
-            <p className="text-stop">
-              El riesgo ({m.riskPctUsed}%) supera tu límite configurado ({maxRiskPct}%).
-            </p>
-          )}
-          {underRR && (
-            <p className="text-warn">
-              El R:R ({m.rr}) está por debajo de tu mínimo configurado ({minRR}). Por debajo de 1:2
-              la operación queda descartada.
-            </p>
-          )}
-        </div>
+      {(overRisk || underRR || slDiverges) && (
+        <>
+          <p className="label-mono mt-6 text-warn">3 · ADVERTENCIAS</p>
+          <div className="mt-2 space-y-1.5 text-xs">
+            {overRisk && (
+              <p className="text-stop">
+                El riesgo ({m.riskPctUsed}%) supera tu límite configurado ({maxRiskPct}%).
+              </p>
+            )}
+            {underRR && (
+              <p className="text-warn">
+                El R:R ({m.rr}) está por debajo de tu mínimo configurado ({minRR}). Por debajo de
+                1:2 la operación queda descartada.
+              </p>
+            )}
+            {slDiverges && (
+              <p className="text-warn">
+                Tu Stop ({risk.stop}) no coincide con el nivel 0,75 de Fibonacci ({fibo.sl}):
+                diferencia de {slDivergence}. Revisa cuál de los dos representa tu invalidación
+                real.
+              </p>
+            )}
+          </div>
+        </>
       )}
+
+      {m.sizingMissing.length > 0 && (
+        <>
+          <p className="label-mono mt-6">4 · QUÉ FALTA PARA UN CÁLCULO EXACTO</p>
+          <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+            {m.sizingMissing.map((x) => (
+              <li key={x}>• {x}</li>
+            ))}
+          </ul>
+        </>
+      )}
+
       <p className="mt-3 text-[11px] text-muted-foreground">
         Los cálculos usan únicamente los valores que introduces. La herramienta no consulta precios
         reales ni se conecta a brokers.

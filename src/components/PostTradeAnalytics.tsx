@@ -5,10 +5,11 @@ import {
   analyzeLeverage,
   analyzePostTradeAll,
   finite,
+  refsFromRow,
   type PlannedRef,
-  type RealRef,
   type Verdict,
 } from "@/lib/posttrade-analytics";
+
 import { CURRENCIES, fmtMoney, fmtNumber, fmtPercent, fmtR, type Currency } from "@/lib/posttrade";
 import { computeRisk } from "@/lib/scoring";
 import { SizingStatus } from "@/components/SizingStatus";
@@ -24,7 +25,13 @@ import { cn } from "@/lib/utils";
  */
 
 const toneClass = (v: Verdict) =>
-  v === "ok" ? "text-ok" : v === "warn" ? "text-warn" : v === "bad" ? "text-stop" : "text-muted-foreground";
+  v === "ok"
+    ? "text-ok"
+    : v === "warn"
+      ? "text-warn"
+      : v === "bad"
+        ? "text-stop"
+        : "text-muted-foreground";
 
 const borderClass = (v: Verdict) =>
   v === "ok"
@@ -36,48 +43,6 @@ const borderClass = (v: Verdict) =>
         : "border-border";
 
 const NA = "No disponible";
-
-function plannedFrom(e: Evaluation): PlannedRef {
-  const risk = (e.risk ?? {}) as Record<string, unknown>;
-  return {
-    entry: finite(risk["entry"]),
-    stopLoss: finite(risk["stop"]) ?? finite(risk["slFibo"]),
-    takeProfit: finite(risk["target"]),
-    riskPct: finite(risk["riskPct"]),
-    capital: finite(risk["capital"]),
-  };
-}
-
-function realFrom(e: Evaluation, capital: number): RealRef {
-  const saved = (e.post_trade_inputs ?? {}) as Record<string, unknown>;
-  return {
-    direction: e.direction === "SHORT" ? "SHORT" : e.direction === "LONG" ? "LONG" : null,
-    entry: finite(e.entry_price),
-    exit: finite(e.exit_price),
-    stopLoss: finite(e.stop_loss),
-    takeProfit: finite(e.take_profit),
-    quantity: finite(e.quantity),
-    netPnl: finite(e.net_pnl),
-    grossPnl: finite(e.gross_pnl),
-    fees: finite(e.fees),
-    riskAmount: finite(e.risk_amount),
-    riskPercent: finite(e.risk_percent),
-    plannedRr: finite(e.planned_rr),
-    resultR: finite(e.result_r),
-    capital: finite(saved["capital"]) ?? finite(capital),
-    leverage: finite(e.leverage),
-    margin: finite(e.margin),
-    notionalValue: finite(e.notional_value),
-    ema50: finite(saved["ema50"]),
-    ema50Close: finite(saved["ema50Close"]),
-    maxFavorablePrice: finite(saved["maxFavorablePrice"]),
-    maxAdversePrice: finite(saved["maxAdversePrice"]),
-
-    followedPlan: e.followed_plan,
-    emotionalStop: e.emotional_stop,
-    hardRules: e.hard_rules,
-  };
-}
 
 export function PostTradeAnalytics({
   evaluation,
@@ -94,8 +59,13 @@ export function PostTradeAnalytics({
       ? (currency as Currency)
       : "USD";
 
-  const planned = useMemo(() => plannedFrom(evaluation), [evaluation]);
-  const real = useMemo(() => realFrom(evaluation, capital), [evaluation, capital]);
+  // Mapeo único de plan/real (compartido con ANIKE IA): no duplicamos campos.
+  const refs = useMemo(
+    () => refsFromRow(evaluation as unknown as Record<string, unknown>, capital),
+    [evaluation, capital],
+  );
+  const planned = refs.planned;
+  const real = refs.real;
   const a = useMemo(() => analyzePostTradeAll(planned, real), [planned, real]);
 
   const closed = !!evaluation.calculated_at && a.result.netPnl !== null;
@@ -104,12 +74,10 @@ export function PostTradeAnalytics({
     <section className="mt-8 space-y-3">
       <div>
         <p className="label-mono">POST-TRADE ANALYTICS</p>
-        <p className="font-display text-lg font-semibold">
-          Cerrar operación → analizar resultado
-        </p>
+        <p className="font-display text-lg font-semibold">Cerrar operación → analizar resultado</p>
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          Analítica de una operación ya cerrada. Mide lo registrado; no predice resultados
-          futuros ni modifica la evaluación de entrada.
+          Analítica de una operación ya cerrada. Mide lo registrado; no predice resultados futuros
+          ni modifica la evaluación de entrada.
         </p>
       </div>
 
@@ -160,17 +128,26 @@ export function PostTradeAnalytics({
             {/* MÓDULO 6 — Scorecard */}
             <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {a.scorecard.map((s) => (
-                <div key={s.area} className={cn("rounded-xl border bg-surface-2 p-3", borderClass(s.verdict))}>
+                <div
+                  key={s.area}
+                  className={cn("rounded-xl border bg-surface-2 p-3", borderClass(s.verdict))}
+                >
                   <p className="label-mono">{s.area}</p>
                   <p className={cn("mt-1 text-sm font-medium", toneClass(s.verdict))}>{s.label}</p>
-                  <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{s.detail}</p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                    {s.detail}
+                  </p>
                 </div>
               ))}
             </div>
 
-
             {/* MÓDULO 7 — Diagnóstico */}
-            <div className={cn("mt-4 rounded-xl border bg-surface p-3", borderClass(a.diagnosis.verdict))}>
+            <div
+              className={cn(
+                "mt-4 rounded-xl border bg-surface p-3",
+                borderClass(a.diagnosis.verdict),
+              )}
+            >
               <p className="label-mono">DIAGNÓSTICO POST-TRADE</p>
               <p className={cn("mt-1 text-sm leading-relaxed", toneClass(a.diagnosis.verdict))}>
                 {a.diagnosis.text}
@@ -186,7 +163,10 @@ export function PostTradeAnalytics({
               <Cell label="Riesgo planificado" value={fmtMoney(a.result.plannedRiskMoney, cur)} />
               <Cell label="Reward planificado" value={fmtMoney(a.result.plannedRewardMoney, cur)} />
               <Cell label="P/L bruto" value={fmtMoney(a.result.grossPnl, cur)} />
-              <Cell label="Costes" value={fmtMoney(a.result.costs === null ? null : -Math.abs(a.result.costs), cur)} />
+              <Cell
+                label="Costes"
+                value={fmtMoney(a.result.costs === null ? null : -Math.abs(a.result.costs), cur)}
+              />
               <Cell label="P/L neto" value={fmtMoney(a.result.netPnl, cur)} />
               <Cell label="R real" value={fmtR(a.result.resultR)} />
               <Cell
@@ -199,8 +179,8 @@ export function PostTradeAnalytics({
               />
             </div>
             <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-              R real = P/L neto ÷ riesgo monetario planificado, sólo cuando el riesgo es mayor
-              que cero. LONG: cierre − entrada. SHORT: entrada − cierre.
+              R real = P/L neto ÷ riesgo monetario planificado, sólo cuando el riesgo es mayor que
+              cero. LONG: cierre − entrada. SHORT: entrada − cierre.
             </p>
           </Expandable>
 
@@ -237,7 +217,10 @@ export function PostTradeAnalytics({
                 </p>
               ) : (
                 a.deviations.map((d) => (
-                  <div key={d.kind} className={cn("rounded-xl border bg-surface p-3", borderClass(d.verdict))}>
+                  <div
+                    key={d.kind}
+                    className={cn("rounded-xl border bg-surface p-3", borderClass(d.verdict))}
+                  >
                     <p className={cn("text-sm font-medium", toneClass(d.verdict))}>{d.label}</p>
                     <p className="text-xs text-muted-foreground">{d.detail}</p>
                   </div>
@@ -247,7 +230,10 @@ export function PostTradeAnalytics({
           </Expandable>
 
           {/* MÓDULO 5 — EMA 50 */}
-          <Expandable title="EMA 50 como objetivo dinámico" hint="Analítica histórica, no cambia el motor.">
+          <Expandable
+            title="EMA 50 como objetivo dinámico"
+            hint="Analítica histórica, no cambia el motor."
+          >
             {a.ema50.ema50 === null ? (
               <p className="text-sm text-muted-foreground">
                 {NA}: registra la EMA 50 del momento de la operación en el cierre para ver este
@@ -279,13 +265,19 @@ export function PostTradeAnalytics({
                 />
                 <Cell label="EMA 50 en el cierre" value={fmtNumber(a.ema50.ema50AtClose, 6)} />
                 <Cell label="TP vs EMA 50" value={fmtNumber(a.ema50.targetVsEma, 6)} />
-                <Cell label="Recorrido restante hasta EMA 50" value={fmtNumber(a.ema50.remainingMove, 6)} />
+                <Cell
+                  label="Recorrido restante hasta EMA 50"
+                  value={fmtNumber(a.ema50.remainingMove, 6)}
+                />
               </div>
             )}
           </Expandable>
 
           {/* MÓDULO 5b — MFE / MAE */}
-          <Expandable title="MFE / MAE y eficiencia de captura" hint="Recorrido favorable y adverso registrados.">
+          <Expandable
+            title="MFE / MAE y eficiencia de captura"
+            hint="Recorrido favorable y adverso registrados."
+          >
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Cell label="MFE (precio)" value={fmtNumber(a.excursions.mfeMove, 6)} />
               <Cell label="MAE (precio)" value={fmtNumber(a.excursions.maeMove, 6)} />
@@ -312,12 +304,22 @@ export function PostTradeAnalytics({
         </>
       )}
 
-
       {/* MÓDULO 2 — Riesgo y lotaje (auxiliar, no se persiste) */}
-      <RiskSizingCard defaultCapital={capital} currency={cur} planned={planned} market={evaluation.market_type ?? evaluation.market ?? ""} direction={real.direction ?? "LONG"} />
+      <RiskSizingCard
+        defaultCapital={capital}
+        currency={cur}
+        planned={planned}
+        market={evaluation.market_type ?? evaluation.market ?? ""}
+        direction={real.direction ?? "LONG"}
+      />
 
       {/* MÓDULO 3 — Apalancamiento (auxiliar, educativo) */}
-      <LeverageCard defaultCapital={capital} currency={cur} notional={real.notionalValue} leverage={real.leverage} />
+      <LeverageCard
+        defaultCapital={capital}
+        currency={cur}
+        notional={real.notionalValue}
+        leverage={real.leverage}
+      />
     </section>
   );
 }
@@ -360,7 +362,11 @@ function RiskSizingCard({
   );
 
   return (
-    <Expandable title="Riesgo y lotaje" hint="Calcula tu riesgo y el tamaño de posición." defaultOpen>
+    <Expandable
+      title="Riesgo y lotaje"
+      hint="Calcula tu riesgo y el tamaño de posición."
+      defaultOpen
+    >
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <NumField label="Capital" value={capital} onChange={setCapital} />
         <NumField label="Riesgo %" value={riskPct} onChange={setRiskPct} />
@@ -389,7 +395,10 @@ function RiskSizingCard({
         />
       </div>
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Cell label="Tu riesgo planificado" value={m.riskPctUsed === null ? NA : `${m.riskPctUsed}%`} />
+        <Cell
+          label="Tu riesgo planificado"
+          value={m.riskPctUsed === null ? NA : `${m.riskPctUsed}%`}
+        />
         <Cell label="Pérdida máxima estimada" value={fmtMoney(m.riskMoney, currency)} />
         <Cell label="Distancia del SL" value={fmtNumber(m.stopDistance, 6)} />
         <Cell
@@ -474,7 +483,9 @@ function Expandable({
           <span className="block text-sm font-semibold">{title}</span>
           {hint && <span className="block text-[11px] text-muted-foreground">{hint}</span>}
         </span>
-        <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", open && "rotate-180")} />
+        <ChevronDown
+          className={cn("h-4 w-4 shrink-0 transition-transform", open && "rotate-180")}
+        />
       </button>
       {open && <div className="border-t border-border p-4">{children}</div>}
     </div>

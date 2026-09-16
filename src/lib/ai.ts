@@ -7,10 +7,15 @@ export type AiReview = {
   evaluation_id: string | null;
   review_type: "PRE_TRADE" | "NO_TRADE" | "POST_TRADE" | "WEEKLY_REVIEW";
   summary: string;
+  /** Por qué el sistema llegó a ese estado (puede estar vacío en análisis antiguos). */
+  why?: string | null;
+  /** Contradicciones detectadas (puede estar vacío en análisis antiguos). */
+  contradictions?: string | null;
   what_worked: string;
   what_failed: string;
   what_learned: string;
   next_time: string;
+
   created_at: string;
 };
 
@@ -42,7 +47,10 @@ export async function fetchAnalyzedEvaluationIds(): Promise<Set<string>> {
 }
 
 const MESSAGES: Record<string, string> = {
-  ai_daily_limit_reached: "Has alcanzado tu límite diario de análisis IA.",
+  ai_daily_limit_reached: "Has alcanzado tu límite de análisis IA de las últimas 24 horas.",
+  ai_rate_limited: "ANIKE IA está recibiendo muchas peticiones. Prueba de nuevo en un momento.",
+  ai_no_credits: "ANIKE IA no tiene créditos disponibles en este momento.",
+  ai_blocked: "ANIKE IA está desactivada o limitada en este espacio de trabajo.",
   evaluation_not_found: "No encontramos esta evaluación.",
 };
 

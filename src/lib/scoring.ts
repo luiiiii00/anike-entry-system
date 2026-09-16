@@ -13,6 +13,10 @@ export type RiskData = {
   swingLow?: number;
   /** SL predeterminado sugerido por Fibonacci 0,75 (nunca se ejecuta automáticamente). */
   slFibo?: number;
+  /** Especificación real del instrumento (la introduce el usuario; no se inventa). */
+  contractSize?: number;
+  /** Valor por punto / tick del instrumento (la introduce el usuario; no se inventa). */
+  pointValue?: number;
 };
 
 /** Exactitud del tamaño de posición: depende de la especificación del instrumento. */
