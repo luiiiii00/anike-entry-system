@@ -21,7 +21,6 @@ import { ContentProtection } from "./ContentProtection";
 import { useProfile } from "@/hooks/useProfile";
 import { cn } from "@/lib/utils";
 
-
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/nueva", label: "Evaluación", icon: PlusCircle },
@@ -35,7 +34,6 @@ const DESKTOP_EXTRA = [
   { to: "/weekly", label: "Weekly Review", icon: CalendarRange },
   { to: "/perfil", label: "Configuración", icon: Settings },
 ] as const;
-
 
 export function AppShell({
   children,
@@ -67,14 +65,12 @@ export function AppShell({
     "/trade",
   ].some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
-
   async function signOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
     await supabase.auth.signOut();
     router.navigate({ to: "/login", replace: true });
   }
-
 
   return (
     <div className="min-h-screen bg-background">
@@ -90,8 +86,9 @@ export function AppShell({
             <SideLink key={item.label} {...item} />
           ))}
           {isAdmin && <SideLink to="/admin" label="Administración" icon={Shield} />}
-          {isAdmin && <SideLink to="/admin-preguntas" label="Editor de preguntas" icon={BookOpen} />}
-
+          {isAdmin && (
+            <SideLink to="/admin-preguntas" label="Editor de preguntas" icon={BookOpen} />
+          )}
         </nav>
         <button
           onClick={signOut}
@@ -125,27 +122,26 @@ export function AppShell({
           <AccessBanner />
           {children}
         </main>
-
       </div>
 
       <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden">
         <div className="flex items-stretch justify-between px-2">
-          {[...NAV, ...(isAdmin ? [{ to: "/admin", label: "Admin", icon: Shield } as const] : [])].map(
-            ({ to, label, icon: Icon }) => (
-              <Link
-                key={to}
-                to={to}
-                className="flex flex-1 flex-col items-center gap-1 px-1 py-2.5 text-[11px] text-muted-foreground transition-colors"
-                activeProps={{ className: "text-primary" }}
-              >
-                <Icon className="h-5 w-5" />
-                {label}
-              </Link>
-            ),
-          )}
+          {[
+            ...NAV,
+            ...(isAdmin ? [{ to: "/admin", label: "Admin", icon: Shield } as const] : []),
+          ].map(({ to, label, icon: Icon }) => (
+            <Link
+              key={to}
+              to={to}
+              className="flex flex-1 flex-col items-center gap-1 px-1 py-2.5 text-[11px] text-muted-foreground transition-colors"
+              activeProps={{ className: "text-primary" }}
+            >
+              <Icon className="h-5 w-5" />
+              {label}
+            </Link>
+          ))}
         </div>
       </nav>
-
     </div>
   );
 }
