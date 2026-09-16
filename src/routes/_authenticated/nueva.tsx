@@ -924,7 +924,8 @@ function ResultStep({
       )}
 
       <div className="panel divide-y divide-border">
-        <Row label="Score" value={`${decision.score} / 100`} />
+        {/* Score visible = floor del interno; la decisión usa el interno con decimales. */}
+        <Row label="Score" value={`${decision.scoreVisible} / 100`} />
         <Row label="Clasificación" value={decision.classification} />
         <Row
           label="Estado final"
