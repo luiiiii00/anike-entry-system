@@ -156,7 +156,11 @@ export const saveEvaluationFn = createServerFn({ method: "POST" })
 
     let id = current?.id;
     if (id) {
-      const { error } = await supabase.from("evaluations").update(source).eq("id", id).eq("user_id", userId);
+      const { error } = await supabase
+        .from("evaluations")
+        .update(source)
+        .eq("id", id)
+        .eq("user_id", userId);
       if (error) throw dbError(error.message);
     } else {
       const { data: inserted, error } = await supabase

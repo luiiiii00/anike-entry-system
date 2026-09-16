@@ -1,5 +1,13 @@
 import { describe, expect, it } from "bun:test";
-import { computeRisk, computeScore, evaluate, sizingStatus, APPROVAL_GATES, APPROVAL_MIN_SCORE, PRE_TRADE_WEIGHT } from "@/lib/scoring";
+import {
+  computeRisk,
+  computeScore,
+  evaluate,
+  sizingStatus,
+  APPROVAL_GATES,
+  APPROVAL_MIN_SCORE,
+  PRE_TRADE_WEIGHT,
+} from "@/lib/scoring";
 import { SECTIONS } from "@/lib/checklist";
 import { readFileSync } from "node:fs";
 import { calculatePostTrade } from "@/lib/posttrade";
@@ -671,7 +679,10 @@ describe("CORE — score interno vs score visible", () => {
     const { decision } = degradeBlock("comercio", 100);
     const byInternal = decision.score >= APPROVAL_MIN_SCORE;
     expect(decision.finalState === "APROBADA").toBe(
-      byInternal && decision.complete && decision.gatesFailed.length === 0 && decision.warnings.length === 0,
+      byInternal &&
+        decision.complete &&
+        decision.gatesFailed.length === 0 &&
+        decision.warnings.length === 0,
     );
   });
 });
@@ -778,7 +789,10 @@ describe("CORE — HARD, completitud y estados oficiales", () => {
 });
 
 describe("CORE — servidor: CONDICIONAL no registrable (J/K)", () => {
-  const source = readFileSync(new URL("../src/lib/evaluations.functions.ts", import.meta.url), "utf8");
+  const source = readFileSync(
+    new URL("../src/lib/evaluations.functions.ts", import.meta.url),
+    "utf8",
+  );
 
   it("el servidor exige APROBADA para decision='registrado' (J)", () => {
     expect(source).toContain('decision.finalState !== "APROBADA"');

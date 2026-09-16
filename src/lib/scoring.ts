@@ -286,7 +286,8 @@ export function computeScore(answers: Answers, activeIds?: Set<string>): ScoreRe
     let answered = 0;
     for (const q of questions) {
       const value = answers[q.id];
-      const opt = value === undefined || value === "" ? undefined : q.options.find((o) => o.v === value);
+      const opt =
+        value === undefined || value === "" ? undefined : q.options.find((o) => o.v === value);
       if (opt !== undefined) answered += 1;
       else if (!section.postTrade) missing.push(q.id);
       // Compatibilidad histórica: una opción "No aplica" guardada no penaliza ni suma.
@@ -622,10 +623,7 @@ export function evaluate(input: {
 
   // 2) COMPLETITUD → 3) GATES/PENDIENTES → 4) SCORE interno.
   const approved =
-    complete &&
-    score >= APPROVAL_MIN_SCORE &&
-    gatesFailed.length === 0 &&
-    warnings.length === 0;
+    complete && score >= APPROVAL_MIN_SCORE && gatesFailed.length === 0 && warnings.length === 0;
 
   return {
     ...common,

@@ -52,7 +52,9 @@ export const savePostTradeFn = createServerFn({ method: "POST" })
     // Lectura como el usuario: RLS garantiza propiedad y acceso activo.
     const { data: current, error: readError } = await context.supabase
       .from("evaluations")
-      .select("classification, hard_rules, emotional_stop, status, decision, final_state, direction")
+      .select(
+        "classification, hard_rules, emotional_stop, status, decision, final_state, direction",
+      )
       .eq("id", evaluationId)
       .eq("user_id", context.userId)
       .maybeSingle();
@@ -67,7 +69,8 @@ export const savePostTradeFn = createServerFn({ method: "POST" })
       current.final_state === "NO TRADE" ||
       (current.hard_rules?.length ?? 0) > 0 ||
       current.emotional_stop === true;
-    if (rejected) throw new Error("La operación es NO TRADE por el sistema: no puede cerrarse con resultado.");
+    if (rejected)
+      throw new Error("La operación es NO TRADE por el sistema: no puede cerrarse con resultado.");
     if (current.status !== "completed" || current.decision !== "registrado") {
       throw new Error("Sólo una operación registrada puede cerrarse con resultado.");
     }
