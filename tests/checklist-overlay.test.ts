@@ -23,7 +23,7 @@ describe("editor de preguntas (capa de edición)", () => {
     const catalog = buildChecklistCatalog(
       overlay({
         edits: {
-          ds_why: {
+          s01_plan_respect: {
             label: "¿Por qué entras realmente?",
             hint: "Sé honesto",
             options: [
@@ -34,21 +34,21 @@ describe("editor de preguntas (capa de edición)", () => {
         },
       }),
     );
-    const q = catalog.setupQuestions.REVERSION.find((x) => x.id === "ds_why")!;
+    const q = catalog.setupQuestions.REVERSION.find((x) => x.id === "s01_plan_respect")!;
     expect(q.label).toBe("¿Por qué entras realmente?");
     expect(q.hint).toBe("Sé honesto");
     expect(q.options.map((o) => o.pts)).toEqual([1, 0]);
   });
 
-  test("retirar una pregunta la saca de los 5 setups y la deja como histórica", () => {
-    const catalog = buildChecklistCatalog(overlay({ disabled: ["ds_why"] }));
-    for (const setup of ["REVERSION", "CONTINUACION", "RUPTURA_RETESTEO"] as const) {
-      expect(catalog.setupQuestions[setup].some((q) => q.id === "ds_why")).toBe(false);
+  test("retirar una pregunta la saca de todas las matrices y la deja como histórica", () => {
+    const catalog = buildChecklistCatalog(overlay({ disabled: ["rs_process"] }));
+    for (const setup of ["FREE", "REVERSION", "CONTINUACION", "RUPTURA_RETESTEO"] as const) {
+      expect(catalog.setupQuestions[setup].some((q) => q.id === "rs_process")).toBe(false);
     }
-    expect(catalog.unused).toContain("ds_why");
+    expect(catalog.unused).toContain("rs_process");
   });
 
-  test("una pregunta nueva común aparece en los 5 setups", () => {
+  test("una pregunta nueva común aparece en las 6 matrices", () => {
     const catalog = buildChecklistCatalog(
       overlay({
         added: [
@@ -96,7 +96,7 @@ describe("editor de preguntas (capa de edición)", () => {
   test("activar la capa cambia el cuestionario activo y la matriz sigue siendo válida", () => {
     applyChecklistOverlay(
       overlay({
-        disabled: ["ds_why"],
+        disabled: ["s01_plan_respect"],
         added: [
           {
             id: "x_extra",
@@ -112,7 +112,7 @@ describe("editor de preguntas (capa de edición)", () => {
       }),
     );
     const ids = getQuestionsForSetup("REVERSION").map((q) => q.id);
-    expect(ids).not.toContain("ds_why");
+    expect(ids).not.toContain("s01_plan_respect");
     expect(ids).toContain("x_extra");
     expect(validateSetupQuestionMatrix()).toEqual([]);
     // Los pesos y la fórmula del CORE no cambian.

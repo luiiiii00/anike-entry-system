@@ -580,7 +580,11 @@ describe("numeración con huecos permitidos", () => {
 /* ================= CORE definitivo: fórmula, gates y estados ================= */
 
 const PRE_SECTIONS = SECTIONS.filter((s) => !s.postTrade);
-const PRE_QUESTIONS = PRE_SECTIONS.flatMap((s) => s.groups.flatMap((g) => g.questions));
+// Las preguntas de METADATA (patrón, nivel Fibonacci) son descriptivas: no puntúan
+// ni cuentan como pendientes del cálculo.
+const PRE_QUESTIONS = PRE_SECTIONS.flatMap((s) =>
+  s.groups.flatMap((g) => g.questions.filter((q) => q.meta !== true)),
+);
 
 /** Mejor respuesta posible de cada pregunta pre-trade (nunca "No aplica"). */
 function bestAnswers(): Record<string, string> {
