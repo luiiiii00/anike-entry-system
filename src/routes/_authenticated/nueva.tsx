@@ -838,7 +838,7 @@ function ResultStep({
     <div className="space-y-5">
       <p className="label-mono">Análisis completado</p>
       <div className="panel flex flex-col items-center gap-6 p-6 sm:flex-row sm:items-start">
-        <ScoreDial score={decision.score} light={decision.light} size={190} />
+        <ScoreDial score={decision.scoreVisible} light={decision.light} size={190} />
         <div className="w-full space-y-4">
           <div>
             <p className="font-display text-2xl font-semibold">{trade.asset || "—"}</p>
@@ -995,10 +995,11 @@ function ResultStep({
             NO TRADE
           </button>
         </div>
-        {(decision.blocked || decision.finalState === "DESCARTADA") && (
+        {decision.finalState !== "APROBADA" && (
           <p className="mt-3 text-xs text-stop">
-            El registro como entrada aprobada está desactivado: la operación está DESCARTADA por
-            reglas críticas, score insuficiente o señales impulsivas.
+            El registro como entrada ANIKE EJEPIKA está desactivado: sólo una evaluación APROBADA
+            (completa, sin reglas críticas, score ≥ 80 y todos los gates obligatorios cumplidos)
+            puede registrarse.
           </p>
         )}
       </div>
