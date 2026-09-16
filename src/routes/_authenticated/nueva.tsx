@@ -814,6 +814,7 @@ export function RiskPanel({
         inventamos la especificación de un instrumento.
       </p>
 
+      {fiboRelevant && (
       <div className="mt-5 rounded-xl border border-border bg-surface-2 p-3">
         <p className="label-mono">Fibonacci del impulso</p>
         <p className="mt-1 text-[11px] text-muted-foreground">
