@@ -449,7 +449,8 @@ function NuevaEvaluacion() {
                   {currentBlock.title.toUpperCase()}
                 </h2>
                 <span className="ml-auto font-mono text-[11px] text-muted-foreground">
-                  {currentBlock.questions.length - missingInBlock(answers, trade.setup, currentBlock.id).length}
+                  {currentBlock.questions.length -
+                    missingInBlock(answers, trade.setup, currentBlock.id).length}
                   /{currentBlock.questions.length}
                 </span>
               </div>
@@ -613,9 +614,7 @@ function SetupStep({ selected, onSelect }: { selected: string; onSelect: (id: st
       </div>
 
       {!selected && (
-        <p className="text-xs text-warn">
-          Debes seleccionar un tipo de evaluación para continuar.
-        </p>
+        <p className="text-xs text-warn">Debes seleccionar un tipo de evaluación para continuar.</p>
       )}
     </div>
   );

@@ -879,7 +879,8 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
       },
       {
         id: "s01_key_level",
-        label: "R3 · ¿Existe un máximo/mínimo relevante que defina la zona crítica de la reversión?",
+        label:
+          "R3 · ¿Existe un máximo/mínimo relevante que defina la zona crítica de la reversión?",
         options: f5(
           "Nivel claramente definido",
           "Nivel relevante",
@@ -1163,8 +1164,7 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
     questions: [
       {
         id: "s03_structure_defined",
-        label:
-          "RR1 · ¿Existe una estructura o zona claramente delimitada susceptible de ruptura?",
+        label: "RR1 · ¿Existe una estructura o zona claramente delimitada susceptible de ruptura?",
         options: f5(
           "Claramente definida",
           "Bien definida",
@@ -1346,8 +1346,7 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
     questions: [
       {
         id: "s04_zone_fibo_match",
-        label:
-          "ZF4 · ¿Existe una zona técnica relevante coincidente con el retroceso Fibonacci?",
+        label: "ZF4 · ¿Existe una zona técnica relevante coincidente con el retroceso Fibonacci?",
         options: f5(
           "Coincidencia exacta",
           "Coincidencia clara",
@@ -2159,7 +2158,6 @@ export function missingActiveAnswers(
     .map((q) => q.id);
 }
 
-
 /* ===========================================================================
  * CAPA DE EDICIÓN DEL CUESTIONARIO (editor de administración)
  * ---------------------------------------------------------------------------
@@ -2248,8 +2246,7 @@ export function normalizeOverlay(value: unknown): ChecklistOverlay {
     .filter(
       (q) =>
         SECTION_IDS.includes(q.sectionId) &&
-        (q.owner === "COMMON" ||
-          EVALUATION_SETUP_IDS.includes(q.owner as EvaluationSetupId)) &&
+        (q.owner === "COMMON" || EVALUATION_SETUP_IDS.includes(q.owner as EvaluationSetupId)) &&
         q.options.length >= 2,
     ) as OverlayAddedQuestion[];
   return { version: 1, edits, disabled, added };
