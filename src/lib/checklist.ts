@@ -1464,6 +1464,9 @@ const BASE_COMMON_QUESTION_IDS: string[] = [
   "rs_process",
 ];
 
+/** Preguntas comunes ACTIVAS (base ± ediciones publicadas). Binding vivo. */
+export let COMMON_QUESTION_IDS: string[] = [...BASE_COMMON_QUESTION_IDS];
+
 /**
  * Criterios de la biblioteca ANIKE EJEPIKA reutilizados por un único setup
  * (mantienen su `questionId` histórico para no perder evaluaciones antiguas).
