@@ -728,6 +728,7 @@ export function RiskPanel({
   minRR,
   direction,
   market,
+  setup,
 }: {
   risk: RiskData;
   setRisk: (fn: (r: RiskData) => RiskData) => void;
@@ -736,6 +737,8 @@ export function RiskPanel({
   minRR: number;
   direction?: string | undefined;
   market?: string | undefined;
+  /** Fibonacci sólo es relevante en S04 (ZONA + FIBONACCI) y en la matriz original (SETUP LIBRE). */
+  setup?: string | null | undefined;
 }) {
   const m = computeRisk(risk, direction, {
     market: market ?? null,
