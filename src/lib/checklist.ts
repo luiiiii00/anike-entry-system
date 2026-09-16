@@ -1547,9 +1547,7 @@ export let UNUSED_QUESTION_IDS: string[] = [...BASE_UNUSED_QUESTION_IDS];
 /** Pregunta ya resuelta para un setup concreto: `setupId` es explícito. */
 export type SetupQuestion = Question & { setupId: OfficialSetupId; sectionId: SectionId };
 
-function collectCoreQuestions(
-  sections: Section[],
-): { question: Question; sectionId: SectionId }[] {
+function collectCoreQuestions(sections: Section[]): { question: Question; sectionId: SectionId }[] {
   return sections.flatMap((s) =>
     s.groups.flatMap((g) => g.questions.map((question) => ({ question, sectionId: s.id }))),
   );
@@ -1683,4 +1681,226 @@ export function missingActiveAnswers(
       return value === undefined || value === "";
     })
     .map((q) => q.id);
+}
+
+/* ===========================================================================
+ * CAPA DE EDICIÓN DEL CUESTIONARIO (editor de administración)
+ * ---------------------------------------------------------------------------
+ * Permite corregir el texto de una pregunta, sus opciones y sus factores,
+ * añadir criterios nuevos y retirar criterios de un setup SIN tocar código.
+ * NO cambia pesos CORE, gates, HARD rules, umbral 80, estados ni la fórmula:
+ * sólo determina QUÉ preguntas presenta cada setup y con qué factores.
+ * =========================================================================== */
+
+export type OverlayOption = { v: string; label: string; pts: number };
+
+export type OverlayEdit = {
+  label?: string;
+  hint?: string;
+  options?: OverlayOption[];
+};
+
+export type OverlayAddedQuestion = {
+  id: string;
+  sectionId: SectionId;
+  /** `COMMON` = presente en los 5 setups; si no, exclusiva de ese setup. */
+  owner: OfficialSetupId | "COMMON";
+  label: string;
+  hint?: string;
+  options: OverlayOption[];
+};
+
+export type ChecklistOverlay = {
+  version: 1;
+  /** Ediciones de preguntas existentes, por questionId. */
+  edits: Record<string, OverlayEdit>;
+  /** Preguntas retiradas del cuestionario activo (se conservan como histórico). */
+  disabled: string[];
+  /** Preguntas nuevas creadas desde el editor. */
+  added: OverlayAddedQuestion[];
+};
+
+export const EMPTY_OVERLAY: ChecklistOverlay = {
+  version: 1,
+  edits: {},
+  disabled: [],
+  added: [],
+};
+
+export const SECTION_IDS: SectionId[] = BASE_SECTIONS.map((s) => s.id);
+
+/** Bloques donde el editor puede crear criterios nuevos (los del cuestionario activo). */
+export const EDITABLE_SECTION_IDS: SectionId[] = BASE_SECTIONS.filter(
+  (s) => s.id !== "comercio",
+).map((s) => s.id);
+
+export const ADDED_GROUP_TITLE = "Criterios añadidos desde el editor";
+
+/** Normaliza una capa leída de la base de datos (tolerante a datos incompletos). */
+export function normalizeOverlay(value: unknown): ChecklistOverlay {
+  const raw = (value ?? {}) as Partial<ChecklistOverlay>;
+  const edits: Record<string, OverlayEdit> = {};
+  for (const [id, edit] of Object.entries(raw.edits ?? {})) {
+    if (!edit || typeof edit !== "object") continue;
+    const next: OverlayEdit = {};
+    if (typeof edit.label === "string" && edit.label.trim()) next.label = edit.label.trim();
+    if (typeof edit.hint === "string") next.hint = edit.hint;
+    if (Array.isArray(edit.options) && edit.options.length > 0) {
+      next.options = edit.options
+        .filter((o) => o && typeof o.v === "string" && typeof o.label === "string")
+        .map((o) => ({ v: o.v, label: o.label, pts: Number(o.pts) }))
+        .filter((o) => Number.isFinite(o.pts));
+    }
+    edits[id] = next;
+  }
+  const disabled = (Array.isArray(raw.disabled) ? raw.disabled : []).filter(
+    (id): id is string => typeof id === "string",
+  );
+  const added = (Array.isArray(raw.added) ? raw.added : [])
+    .filter((q) => q && typeof q.id === "string" && typeof q.label === "string")
+    .map((q) => ({
+      id: q.id,
+      sectionId: q.sectionId,
+      owner: q.owner,
+      label: q.label,
+      ...(typeof q.hint === "string" && q.hint ? { hint: q.hint } : {}),
+      options: (Array.isArray(q.options) ? q.options : [])
+        .map((o) => ({ v: String(o.v), label: String(o.label), pts: Number(o.pts) }))
+        .filter((o) => o.v && o.label && Number.isFinite(o.pts)),
+    }))
+    .filter(
+      (q) =>
+        SECTION_IDS.includes(q.sectionId) &&
+        (q.owner === "COMMON" || OFFICIAL_SETUP_IDS.includes(q.owner as OfficialSetupId)) &&
+        q.options.length >= 2,
+    ) as OverlayAddedQuestion[];
+  return { version: 1, edits, disabled, added };
+}
+
+export type ChecklistCatalog = {
+  sections: Section[];
+  sectionById: Record<SectionId, Section>;
+  common: string[];
+  exclusive: Record<OfficialSetupId, string[]>;
+  unused: string[];
+  setupQuestions: Record<OfficialSetupId, SetupQuestion[]>;
+};
+
+/** Construye el catálogo resultante de aplicar una capa de edición. Función pura. */
+export function buildChecklistCatalog(overlayInput?: ChecklistOverlay | null): ChecklistCatalog {
+  const overlay = normalizeOverlay(overlayInput ?? EMPTY_OVERLAY);
+  const baseIds = new Set(collectCoreQuestions(BASE_SECTIONS).map(({ question }) => question.id));
+  const added = overlay.added.filter((q) => !baseIds.has(q.id));
+
+  const sections: Section[] = BASE_SECTIONS.map((section) => {
+    const extra = added.filter((q) => q.sectionId === section.id);
+    return {
+      ...section,
+      groups: [
+        ...section.groups.map((group) => ({
+          ...group,
+          questions: group.questions.map((question) => {
+            const edit = overlay.edits[question.id];
+            if (!edit) return question;
+            return {
+              ...question,
+              ...(edit.label ? { label: edit.label } : {}),
+              ...(edit.hint !== undefined ? { hint: edit.hint } : {}),
+              ...(edit.options && edit.options.length > 0 ? { options: edit.options } : {}),
+            };
+          }),
+        })),
+        ...(extra.length > 0
+          ? [
+              {
+                title: ADDED_GROUP_TITLE,
+                questions: extra.map((q) => ({
+                  id: q.id,
+                  label: q.label,
+                  ...(q.hint ? { hint: q.hint } : {}),
+                  options: q.options,
+                })),
+              },
+            ]
+          : []),
+      ],
+    };
+  });
+
+  const disabled = new Set(overlay.disabled);
+  const common = [
+    ...BASE_COMMON_QUESTION_IDS.filter((id) => !disabled.has(id)),
+    ...added.filter((q) => q.owner === "COMMON").map((q) => q.id),
+  ];
+  const exclusive = Object.fromEntries(
+    OFFICIAL_SETUP_IDS.map((setupId) => [
+      setupId,
+      [
+        ...BASE_SETUP_EXCLUSIVE_QUESTIONS[setupId].filter((id) => !disabled.has(id)),
+        ...added.filter((q) => q.owner === setupId).map((q) => q.id),
+      ],
+    ]),
+  ) as Record<OfficialSetupId, string[]>;
+  const unused = [
+    ...BASE_UNUSED_QUESTION_IDS,
+    ...[...disabled].filter((id) => baseIds.has(id) && !BASE_UNUSED_QUESTION_IDS.includes(id)),
+  ];
+
+  const core = collectCoreQuestions(sections);
+  return {
+    sections,
+    sectionById: sectionsById(sections),
+    common,
+    exclusive,
+    unused,
+    setupQuestions: buildSetupQuestions(core, common, exclusive),
+  };
+}
+
+/**
+ * Activa una capa de edición (o vuelve al cuestionario base con `null`).
+ * A partir de esta llamada, el wizard y el cálculo usan el catálogo resultante.
+ */
+export function applyChecklistOverlay(overlay?: ChecklistOverlay | null): ChecklistCatalog {
+  const catalog = buildChecklistCatalog(overlay);
+  SECTIONS = catalog.sections;
+  SECTION_BY_ID = catalog.sectionById;
+  COMMON_QUESTION_IDS = catalog.common;
+  SETUP_EXCLUSIVE_QUESTIONS = catalog.exclusive;
+  UNUSED_QUESTION_IDS = catalog.unused;
+  ALL_CORE_QUESTIONS = collectCoreQuestions(catalog.sections);
+  SETUP_QUESTIONS = catalog.setupQuestions;
+  return catalog;
+}
+
+/**
+ * Revisión de una capa antes de publicarla. Bloquea publicaciones que dejarían
+ * el motor sin criterios evaluables en un bloque con gate obligatorio.
+ */
+export function checklistOverlayIssues(overlay: ChecklistOverlay): string[] {
+  const problems: string[] = [];
+  const normalized = normalizeOverlay(overlay);
+  const baseIds = new Set(collectCoreQuestions(BASE_SECTIONS).map(({ question }) => question.id));
+
+  const seen = new Set<string>();
+  for (const q of normalized.added) {
+    if (baseIds.has(q.id)) problems.push(`El identificador ${q.id} ya existe en el cuestionario.`);
+    if (seen.has(q.id)) problems.push(`El identificador ${q.id} está repetido.`);
+    seen.add(q.id);
+    if (!q.label.trim()) problems.push("Hay una pregunta nueva sin enunciado.");
+    if (q.options.length < 2) problems.push(`La pregunta ${q.id} necesita al menos dos opciones.`);
+  }
+
+  const catalog = buildChecklistCatalog(normalized);
+  const GATED: SectionId[] = ["estructura", "zona", "confirmacion", "riesgo", "recorrido"];
+  for (const setupId of OFFICIAL_SETUP_IDS) {
+    const questions = catalog.setupQuestions[setupId];
+    if (questions.length === 0) problems.push(`El setup ${setupId} se quedaría sin preguntas.`);
+    for (const sectionId of GATED) {
+      if (!questions.some((q) => q.sectionId === sectionId)) {
+        problems.push(`El setup ${setupId} se quedaría sin criterios en el bloque ${sectionId}.`);
+      }
+    }
+  }
+  return [...new Set(problems)];
 }
