@@ -1906,7 +1906,6 @@ export const UNUSED_QUESTION_IDS: string[] = [
   "h1_rsi_div",
   "h1_rsi_div_fibo",
   "h1_macd",
-  "h1_pattern_cont",
   "cf5_retest",
   "cf5_retest_ok",
   "cf5_macd",
