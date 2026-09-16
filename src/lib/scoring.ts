@@ -283,7 +283,12 @@ export function computeScore(answers: Answers, activeIds?: Set<string>): ScoreRe
   let preTradePoints = 0;
 
   for (const section of SECTIONS) {
-    const questions = section.groups.flatMap((g) => g.questions).filter((q) => inScope(q.id));
+    // Las preguntas de METADATA (patrón, nivel Fibonacci) son descriptivas: no
+    // entran en el cálculo, no suman ni restan puntos.
+    const questions = section.groups
+      .flatMap((g) => g.questions)
+      .filter((q) => q.meta !== true)
+      .filter((q) => inScope(q.id));
     const weight = section.weight;
     let got = 0;
     let max = 0;
