@@ -651,7 +651,6 @@ export function RiskPanel({
       <p className="label-mono">Calculadora de riesgo</p>
       <p className="label-mono mt-4 text-primary">1 · DATOS QUE INTRODUCES</p>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
-
         <TextField
           label={`Capital de cuenta (${currency})`}
           value={str(risk.capital)}
@@ -699,7 +698,6 @@ export function RiskPanel({
         El tamaño de contrato y el valor por punto los tomamos sólo de lo que escribas: nunca
         inventamos la especificación de un instrumento.
       </p>
-
 
       <div className="mt-5 rounded-xl border border-border bg-surface-2 p-3">
         <p className="label-mono">Fibonacci del impulso</p>
@@ -784,14 +782,15 @@ export function RiskPanel({
             )}
             {underRR && (
               <p className="text-warn">
-                El R:R ({m.rr}) está por debajo de tu mínimo configurado ({minRR}). Por debajo de 1:2
-                la operación queda descartada.
+                El R:R ({m.rr}) está por debajo de tu mínimo configurado ({minRR}). Por debajo de
+                1:2 la operación queda descartada.
               </p>
             )}
             {slDiverges && (
               <p className="text-warn">
                 Tu Stop ({risk.stop}) no coincide con el nivel 0,75 de Fibonacci ({fibo.sl}):
-                diferencia de {slDivergence}. Revisa cuál de los dos representa tu invalidación real.
+                diferencia de {slDivergence}. Revisa cuál de los dos representa tu invalidación
+                real.
               </p>
             )}
           </div>

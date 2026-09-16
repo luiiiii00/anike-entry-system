@@ -18,7 +18,13 @@ import { computeRisk, evaluate, sizingStatus } from "@/lib/scoring";
  * respecto al motor de aprobación de entrada (score, gates, HARD, estados).
  */
 
-const planned: PlannedRef = { entry: 100, stopLoss: 95, takeProfit: 110, riskPct: 1, capital: 1000 };
+const planned: PlannedRef = {
+  entry: 100,
+  stopLoss: 95,
+  takeProfit: 110,
+  riskPct: 1,
+  capital: 1000,
+};
 
 const real = (over: Partial<RealRef> = {}): RealRef => ({
   direction: "LONG",
@@ -165,7 +171,9 @@ describe("precisión del lotaje", () => {
 
 describe("EMA 50", () => {
   it("16. EMA 50 disponible calcula distancias y captura", () => {
-    const e = analyzeEma50(real({ exit: 105, ema50: 110, ema50Close: 108, maxFavorablePrice: 106 }));
+    const e = analyzeEma50(
+      real({ exit: 105, ema50: 110, ema50Close: 108, maxFavorablePrice: 106 }),
+    );
     expect(e.ema50).toBe(110);
     expect(e.ema50AtClose).toBe(108);
     expect(e.entryDistance).toBe(10);

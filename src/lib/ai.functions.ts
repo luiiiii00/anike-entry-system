@@ -3,7 +3,6 @@ import { z } from "zod";
 import { setupLabel } from "@/lib/checklist";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-
 const idSchema = z.string().uuid();
 
 const reviewTypeSchema = z.enum(["PRE_TRADE", "NO_TRADE", "POST_TRADE", "WEEKLY_REVIEW"]);
@@ -101,9 +100,8 @@ export const analyzeEvaluationFn = createServerFn({ method: "POST" })
     // servidor a partir de los campos ya guardados; el cliente no lo envía.
     let postTradeContext: unknown = null;
     if (reviewType === "POST_TRADE") {
-      const { analyzePostTradeAll, buildAiPostTradeContext, refsFromRow } = await import(
-        "@/lib/posttrade-analytics"
-      );
+      const { analyzePostTradeAll, buildAiPostTradeContext, refsFromRow } =
+        await import("@/lib/posttrade-analytics");
       const { data: settings } = await db
         .from("settings")
         .select("account_capital")
@@ -162,7 +160,6 @@ export const analyzeEvaluationFn = createServerFn({ method: "POST" })
       history,
       postTradeContext,
     );
-
 
     let result;
     try {
@@ -291,5 +288,4 @@ function buildHistory(rows: HistoryRow[]) {
     bestSetup: nameOf(ranked[0]),
     worstSetup: ranked.length > 1 ? nameOf(ranked[ranked.length - 1]) : null,
   };
-
 }

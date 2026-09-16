@@ -3,7 +3,12 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Bot, Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { aiErrorMessage, fetchAiReviewsByType, fetchAiReviewsForEvaluation, type AiReview } from "@/lib/ai";
+import {
+  aiErrorMessage,
+  fetchAiReviewsByType,
+  fetchAiReviewsForEvaluation,
+  type AiReview,
+} from "@/lib/ai";
 import { aiUsageFn, analyzeEvaluationFn, analyzeWeekFn } from "@/lib/ai.functions";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -73,7 +78,6 @@ export function AnikeAiPanel(props: Props) {
   const limit = usageQuery.data?.limit ?? null;
   const noCredits = remaining !== null && remaining <= 0;
 
-
   return (
     <section className="panel mt-4 overflow-hidden">
       <div className="flex flex-wrap items-start gap-4 p-5">
@@ -82,7 +86,9 @@ export function AnikeAiPanel(props: Props) {
         </div>
         <div className="min-w-[190px] flex-1">
           <p className="font-display text-base font-semibold">🤖 ANIKE IA</p>
-          <p className="text-xs text-muted-foreground">El mentor que te obliga a aprender de cada operación.</p>
+          <p className="text-xs text-muted-foreground">
+            El mentor que te obliga a aprender de cada operación.
+          </p>
           <p className="mt-2 text-sm text-muted-foreground">
             {isEvaluation && props.noTrade
               ? "¿Quieres entender por qué esta operación fue descartada?"
@@ -95,7 +101,6 @@ export function AnikeAiPanel(props: Props) {
                 : `Análisis IA disponibles: ${remaining}/${limit} en las últimas 24 horas`}
             </p>
           )}
-
         </div>
 
         <div className="flex w-full flex-col gap-2 sm:w-auto">
@@ -177,7 +182,6 @@ export function AnikeAiPanel(props: Props) {
           </div>
         </div>
       )}
-
     </section>
   );
 }
@@ -206,7 +210,6 @@ export function AiReviewBody({ review }: { review: AiReview }) {
   );
 }
 
-
 function Block({
   title,
   text,
@@ -219,7 +222,12 @@ function Block({
   if (!text) return null;
   const lines = text
     .split("\n")
-    .map((l) => l.replace(/^[*#>]+\s*/, "").replace(/\*\*/g, "").trim())
+    .map((l) =>
+      l
+        .replace(/^[*#>]+\s*/, "")
+        .replace(/\*\*/g, "")
+        .trim(),
+    )
     .filter(Boolean);
 
   return (
@@ -242,10 +250,7 @@ function Block({
           return (
             <p
               key={i}
-              className={cn(
-                l.startsWith("- ") && "pl-3",
-                isAlert && "font-medium text-stop",
-              )}
+              className={cn(l.startsWith("- ") && "pl-3", isAlert && "font-medium text-stop")}
             >
               {l.startsWith("- ") ? `• ${l.slice(2)}` : l}
             </p>

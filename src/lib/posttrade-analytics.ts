@@ -87,8 +87,7 @@ const dirOf = (d: string | null | undefined): Direction | null =>
   d === "LONG" || d === "SHORT" ? d : null;
 
 /** Tolerancia relativa (0,05 % del precio de referencia) para comparar precios. */
-const tolerance = (ref: number | null) =>
-  ref === null || ref === 0 ? 0 : Math.abs(ref) * 0.0005;
+const tolerance = (ref: number | null) => (ref === null || ref === 0 ? 0 : Math.abs(ref) * 0.0005);
 
 const near = (a: number, b: number, ref: number | null) => Math.abs(a - b) <= tolerance(ref);
 
@@ -132,7 +131,10 @@ export function analyzeResult(real: RealRef, planned: PlannedRef = {}): ResultAn
 
   const riskFromTrade = finite(real.riskAmount);
   const plannedRiskFromPct =
-    capital !== null && capital > 0 && finite(planned.riskPct) !== null && finite(planned.riskPct)! > 0
+    capital !== null &&
+    capital > 0 &&
+    finite(planned.riskPct) !== null &&
+    finite(planned.riskPct)! > 0
       ? (capital * finite(planned.riskPct)!) / 100
       : null;
   const plannedRiskMoney =
@@ -151,8 +153,7 @@ export function analyzeResult(real: RealRef, planned: PlannedRef = {}): ResultAn
     finite(real.grossPnl) ??
     (closeDistance !== null && qty !== null && qty > 0 ? closeDistance * qty : null);
   const costs = finite(real.fees);
-  const netPnl =
-    finite(real.netPnl) ?? (grossPnl !== null ? grossPnl - (costs ?? 0) : null);
+  const netPnl = finite(real.netPnl) ?? (grossPnl !== null ? grossPnl - (costs ?? 0) : null);
 
   const percentOnCapital =
     netPnl !== null && capital !== null && capital > 0 ? (netPnl / capital) * 100 : null;
@@ -222,7 +223,9 @@ export function analyzeLeverage(input: {
         : null;
 
   const exposureRatio =
-    notional !== null && notional > 0 && capital !== null && capital > 0 ? notional / capital : null;
+    notional !== null && notional > 0 && capital !== null && capital > 0
+      ? notional / capital
+      : null;
 
   return {
     capital,
@@ -457,7 +460,9 @@ export function analyzeEma50(real: RealRef, planned: PlannedRef = {}): Ema50Anal
 
   const emaClose = finite(real.ema50Close);
   const remaining =
-    potential !== null && captured !== null && potential - captured > 0 ? potential - captured : null;
+    potential !== null && captured !== null && potential - captured > 0
+      ? potential - captured
+      : null;
 
   return {
     ema50: ema,
@@ -471,7 +476,9 @@ export function analyzeEma50(real: RealRef, planned: PlannedRef = {}): Ema50Anal
     potentialMove: potential,
     remainingMove: remaining,
     capturedPercentOfPotential:
-      captured !== null && potential !== null && potential > 0 ? (captured / potential) * 100 : null,
+      captured !== null && potential !== null && potential > 0
+        ? (captured / potential) * 100
+        : null,
   };
 }
 
@@ -512,8 +519,7 @@ export function analyzeExcursions(real: RealRef, result: ResultAnalysis): Excurs
 
   const signed = (price: number | null, favorable: boolean) => {
     if (price === null || entry === null || dir === null) return null;
-    const move =
-      favorable === (dir === "LONG") ? price - entry : entry - price;
+    const move = favorable === (dir === "LONG") ? price - entry : entry - price;
     // Geometría inválida (p. ej. "máximo favorable" peor que la entrada): no se asume 0.
     return move >= 0 ? move : null;
   };
@@ -547,7 +553,6 @@ export function analyzeExcursions(real: RealRef, result: ResultAnalysis): Excurs
     missing,
   };
 }
-
 
 /* --------------------------- MÓDULO 6: SCORECARD -------------------------- */
 
@@ -831,7 +836,6 @@ export function refsFromRow(
 }
 
 export function analyzePostTradeAll(planned: PlannedRef, real: RealRef): PostTradeAnalytics {
-
   const result = analyzeResult(real, planned);
   const deviations = analyzeDeviations(planned, real);
   const excursions = analyzeExcursions(real, result);

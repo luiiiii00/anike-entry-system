@@ -54,7 +54,6 @@ const MESSAGES: Record<string, string> = {
   evaluation_not_found: "No encontramos esta evaluación.",
 };
 
-
 export function aiErrorMessage(error: unknown): string {
   const raw = error instanceof Error ? error.message : "";
   const key = Object.keys(MESSAGES).find((k) => raw.includes(k));

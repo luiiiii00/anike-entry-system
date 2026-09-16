@@ -32,7 +32,6 @@ export type AiResult = {
 
 const MODEL = "openai/gpt-6-astra";
 
-
 const SYSTEM_PROMPT = `Eres ANIKE IA, el mentor de trading del sistema ANIKE EJEPIKA.
 
 QUIÉN ERES
@@ -122,7 +121,6 @@ const SCHEMA = {
     "next_time",
   ],
 } as const;
-
 
 export class AiUnavailableError extends Error {
   constructor(message = "ai_unavailable") {
@@ -252,7 +250,6 @@ export async function readResponsesStream(res: Response): Promise<string> {
   return (completed ?? text).trim();
 }
 
-
 /* ------------------------------ Prompts ------------------------------ */
 
 type EvalRow = {
@@ -270,9 +267,7 @@ type EvalRow = {
   followed_plan: string | null;
   answers: Record<string, unknown> | null;
   risk: Record<string, unknown> | null;
-  breakdown:
-    | Record<string, { earned?: number; weight?: number; percent?: number }>
-    | null;
+  breakdown: Record<string, { earned?: number; weight?: number; percent?: number }> | null;
 
   review: Record<string, string> | null;
   notes: string | null;
@@ -474,7 +469,6 @@ function gatesLines(b: EvalRow["breakdown"]): string {
   }).join("\n");
 }
 
-
 export type TraderHistoryInput = {
   sample: number;
   /** Operaciones cerradas (con R) dentro de la muestra. */
@@ -631,7 +625,6 @@ export function buildEvaluationPrompt(
       "Esta evaluación todavía no tiene resultado. Explica qué elementos sostienen el estado que decidió el sistema y cuáles dejan la entrada menos limpia de lo que podría estar. Si el estado es CONDICIONAL, deja claro que no es ejecutable como operación ANIKE EJEPIKA. No recomiendes ejecutar ni anticipes el resultado.",
     );
   }
-
 
   return base.join("\n");
 }

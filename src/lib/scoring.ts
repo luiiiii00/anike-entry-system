@@ -19,7 +19,6 @@ export type RiskData = {
   pointValue?: number;
 };
 
-
 /** Exactitud del tamaño de posición: depende de la especificación del instrumento. */
 export type SizingPrecision = "exact" | "orientative" | "unavailable";
 
