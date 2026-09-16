@@ -982,7 +982,7 @@ function ResultStep({
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           <button
             onClick={onRegister}
-            disabled={saving || decision.blocked || decision.finalState === "DESCARTADA"}
+            disabled={saving || decision.finalState !== "APROBADA"}
             className="min-h-13 rounded-xl bg-primary text-sm font-semibold tracking-wide text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-40"
           >
             REGISTRAR TRADE
