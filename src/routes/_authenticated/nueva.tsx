@@ -467,6 +467,7 @@ function NuevaEvaluacion() {
                     minRR={Number(settings?.min_rr ?? 2)}
                     direction={trade.direction}
                     market={trade.market}
+                    setup={trade.setup}
                   />
                 )}
 
@@ -727,6 +728,7 @@ export function RiskPanel({
   minRR,
   direction,
   market,
+  setup,
 }: {
   risk: RiskData;
   setRisk: (fn: (r: RiskData) => RiskData) => void;
@@ -735,6 +737,8 @@ export function RiskPanel({
   minRR: number;
   direction?: string | undefined;
   market?: string | undefined;
+  /** Fibonacci sólo es relevante en S04 (ZONA + FIBONACCI) y en la matriz original (SETUP LIBRE). */
+  setup?: string | null | undefined;
 }) {
   const m = computeRisk(risk, direction, {
     market: market ?? null,
@@ -747,10 +751,12 @@ export function RiskPanel({
   const overRisk = m.riskPctUsed !== null && m.riskPctUsed > maxRiskPct;
   const underRR = m.rr !== null && m.rr < minRR;
 
+  // Fibonacci es irrelevante en S01, S02, S03 y S05: sólo se muestra en S04 y SETUP LIBRE.
+  const fiboRelevant = setup === "ZONA_FIBONACCI" || setup === "FREE" || !setup;
   const fibo = fiboProjection(risk, direction);
   // Divergencia entre el SL manual y el nivel 0,75: sólo se avisa, no se corrige.
   const slDivergence =
-    fibo.sl !== null && risk.stop !== undefined && Number.isFinite(risk.stop)
+    fiboRelevant && fibo.sl !== null && risk.stop !== undefined && Number.isFinite(risk.stop)
       ? Math.abs(Number(risk.stop) - fibo.sl)
       : null;
   const slDiverges = slDivergence !== null && slDivergence > 0;
@@ -808,60 +814,64 @@ export function RiskPanel({
         inventamos la especificación de un instrumento.
       </p>
 
-      <div className="mt-5 rounded-xl border border-border bg-surface-2 p-3">
-        <p className="label-mono">Fibonacci del impulso</p>
-        <p className="mt-1 text-[11px] text-muted-foreground">
-          Introduce los extremos del impulso. El nivel 0,75 es el Stop Loss PREDETERMINADO sugerido:
-          nunca se envía ninguna orden.
-        </p>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <TextField
-            label="Máximo del impulso"
-            value={str(risk.swingHigh)}
-            onChange={(v) => set("swingHigh", v)}
-            type="number"
-          />
-          <TextField
-            label="Mínimo del impulso"
-            value={str(risk.swingLow)}
-            onChange={(v) => set("swingLow", v)}
-            type="number"
-          />
-        </div>
-        {fibo.levels.length > 0 && (
-          <>
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {fibo.levels.map((l) => (
-                <div
-                  key={l.ratio}
-                  className={cn(
-                    "rounded-lg border p-2.5",
-                    l.ratio === FIBO_SL_RATIO
-                      ? "border-stop/50 bg-stop-soft/25"
-                      : "border-border bg-surface",
-                  )}
+      {fiboRelevant && (
+        <div className="mt-5 rounded-xl border border-border bg-surface-2 p-3">
+          <p className="label-mono">Fibonacci del impulso</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Introduce los extremos del impulso. El nivel 0,75 es el Stop Loss PREDETERMINADO
+            sugerido: nunca se envía ninguna orden.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <TextField
+              label="Máximo del impulso"
+              value={str(risk.swingHigh)}
+              onChange={(v) => set("swingHigh", v)}
+              type="number"
+            />
+            <TextField
+              label="Mínimo del impulso"
+              value={str(risk.swingLow)}
+              onChange={(v) => set("swingLow", v)}
+              type="number"
+            />
+          </div>
+          {fibo.levels.length > 0 && (
+            <>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {fibo.levels.map((l) => (
+                  <div
+                    key={l.ratio}
+                    className={cn(
+                      "rounded-lg border p-2.5",
+                      l.ratio === FIBO_SL_RATIO
+                        ? "border-stop/50 bg-stop-soft/25"
+                        : "border-border bg-surface",
+                    )}
+                  >
+                    <p className="label-mono">
+                      {l.ratio === FIBO_SL_RATIO ? "0,75 · SL" : String(l.ratio).replace(".", ",")}
+                    </p>
+                    <p className="mt-1 font-mono text-sm tabular-nums">{l.price}</p>
+                  </div>
+                ))}
+              </div>
+              {fibo.sl !== null && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setRisk((r) =>
+                      fibo.sl === null ? r : { ...r, slFibo: fibo.sl, stop: fibo.sl },
+                    )
+                  }
+                  className="mt-3 min-h-11 w-full rounded-xl border border-border bg-surface text-sm"
                 >
-                  <p className="label-mono">
-                    {l.ratio === FIBO_SL_RATIO ? "0,75 · SL" : String(l.ratio).replace(".", ",")}
-                  </p>
-                  <p className="mt-1 font-mono text-sm tabular-nums">{l.price}</p>
-                </div>
-              ))}
-            </div>
-            {fibo.sl !== null && (
-              <button
-                type="button"
-                onClick={() =>
-                  setRisk((r) => (fibo.sl === null ? r : { ...r, slFibo: fibo.sl, stop: fibo.sl }))
-                }
-                className="mt-3 min-h-11 w-full rounded-xl border border-border bg-surface text-sm"
-              >
-                Usar 0,75 ({fibo.sl}) como Stop Loss
-              </button>
-            )}
-          </>
-        )}
-      </div>
+                  Usar 0,75 ({fibo.sl}) como Stop Loss
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       <p className="label-mono mt-6 text-primary">2 · CÁLCULOS</p>
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
