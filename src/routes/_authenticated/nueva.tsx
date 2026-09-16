@@ -627,7 +627,11 @@ export function RiskPanel({
   direction?: string | undefined;
   market?: string | undefined;
 }) {
-  const m = computeRisk(risk, direction, { market: market ?? null });
+  const m = computeRisk(risk, direction, {
+    market: market ?? null,
+    contractSize: risk.contractSize ?? null,
+    pointValue: risk.pointValue ?? null,
+  });
   const set = (k: keyof RiskData, v: string) =>
     setRisk((r) => ({ ...r, [k]: v === "" ? undefined : Number(v) }));
 
@@ -635,11 +639,19 @@ export function RiskPanel({
   const underRR = m.rr !== null && m.rr < minRR;
 
   const fibo = fiboProjection(risk, direction);
+  // Divergencia entre el SL manual y el nivel 0,75: sólo se avisa, no se corrige.
+  const slDivergence =
+    fibo.sl !== null && risk.stop !== undefined && Number.isFinite(risk.stop)
+      ? Math.abs(Number(risk.stop) - fibo.sl)
+      : null;
+  const slDiverges = slDivergence !== null && slDivergence > 0;
 
   return (
     <div className="panel p-4">
       <p className="label-mono">Calculadora de riesgo</p>
+      <p className="label-mono mt-4 text-primary">1 · DATOS QUE INTRODUCES</p>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
+
         <TextField
           label={`Capital de cuenta (${currency})`}
           value={str(risk.capital)}
