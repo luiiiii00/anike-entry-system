@@ -2259,10 +2259,13 @@ export function normalizeOverlay(value: unknown): ChecklistOverlay {
 export type ChecklistCatalog = {
   sections: Section[];
   sectionById: Record<SectionId, Section>;
+  /** Matriz resultante: setup → questionIds. */
+  matrix: Record<EvaluationSetupId, string[]>;
   common: string[];
-  exclusive: Record<OfficialSetupId, string[]>;
+  exclusive: Record<EvaluationSetupId, string[]>;
   unused: string[];
-  setupQuestions: Record<OfficialSetupId, SetupQuestion[]>;
+  metadata: string[];
+  setupQuestions: Record<EvaluationSetupId, SetupQuestion[]>;
 };
 
 /** Construye el catálogo resultante de aplicar una capa de edición. Función pura. */
@@ -2307,32 +2310,32 @@ export function buildChecklistCatalog(overlayInput?: ChecklistOverlay | null): C
   });
 
   const disabled = new Set(overlay.disabled);
-  const common = [
-    ...BASE_COMMON_QUESTION_IDS.filter((id) => !disabled.has(id)),
-    ...added.filter((q) => q.owner === "COMMON").map((q) => q.id),
-  ];
-  const exclusive = Object.fromEntries(
-    OFFICIAL_SETUP_IDS.map((setupId) => [
+  const matrix = Object.fromEntries(
+    EVALUATION_SETUP_IDS.map((setupId) => [
       setupId,
       [
-        ...BASE_SETUP_EXCLUSIVE_QUESTIONS[setupId].filter((id) => !disabled.has(id)),
-        ...added.filter((q) => q.owner === setupId).map((q) => q.id),
+        ...(BASE_SETUP_MATRIX[setupId] ?? []).filter((id) => !disabled.has(id)),
+        ...added.filter((q) => q.owner === "COMMON" || q.owner === setupId).map((q) => q.id),
       ],
     ]),
-  ) as Record<OfficialSetupId, string[]>;
-  const unused = [
-    ...BASE_UNUSED_QUESTION_IDS,
-    ...[...disabled].filter((id) => baseIds.has(id) && !BASE_UNUSED_QUESTION_IDS.includes(id)),
-  ];
+  ) as Record<EvaluationSetupId, string[]>;
 
   const core = collectCoreQuestions(sections);
+  const declared = new Set(EVALUATION_SETUP_IDS.flatMap((s) => matrix[s]));
+  const unused = core.map(({ question }) => question.id).filter((id) => !declared.has(id));
+  const metadata = core
+    .filter(({ question }) => question.meta === true)
+    .map(({ question }) => question.id);
+
   return {
     sections,
     sectionById: sectionsById(sections),
-    common,
-    exclusive,
+    matrix,
+    common: commonOf(matrix),
+    exclusive: exclusiveOf(matrix),
     unused,
-    setupQuestions: buildSetupQuestions(core, common, exclusive),
+    metadata,
+    setupQuestions: buildSetupQuestions(core, matrix),
   };
 }
 
@@ -2344,9 +2347,11 @@ export function applyChecklistOverlay(overlay?: ChecklistOverlay | null): Checkl
   const catalog = buildChecklistCatalog(overlay);
   SECTIONS = catalog.sections;
   SECTION_BY_ID = catalog.sectionById;
+  SETUP_MATRIX = catalog.matrix;
   COMMON_QUESTION_IDS = catalog.common;
   SETUP_EXCLUSIVE_QUESTIONS = catalog.exclusive;
   UNUSED_QUESTION_IDS = catalog.unused;
+  METADATA_QUESTION_IDS = catalog.metadata;
   ALL_CORE_QUESTIONS = collectCoreQuestions(catalog.sections);
   SETUP_QUESTIONS = catalog.setupQuestions;
   return catalog;
@@ -2372,11 +2377,11 @@ export function checklistOverlayIssues(overlay: ChecklistOverlay): string[] {
 
   const catalog = buildChecklistCatalog(normalized);
   const GATED: SectionId[] = ["estructura", "zona", "confirmacion", "riesgo", "recorrido"];
-  for (const setupId of OFFICIAL_SETUP_IDS) {
+  for (const setupId of EVALUATION_SETUP_IDS) {
     const questions = catalog.setupQuestions[setupId];
     if (questions.length === 0) problems.push(`El setup ${setupId} se quedaría sin preguntas.`);
     for (const sectionId of GATED) {
-      if (!questions.some((q) => q.sectionId === sectionId)) {
+      if (!questions.some((q) => q.sectionId === sectionId && q.meta !== true)) {
         problems.push(`El setup ${setupId} se quedaría sin criterios en el bloque ${sectionId}.`);
       }
     }
