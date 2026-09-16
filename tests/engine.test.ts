@@ -310,14 +310,14 @@ describe("evaluate — fuente única de verdad", () => {
     const d = evaluate({ answers: { ...passing, ds_motive: "revancha" }, risk: {}, maxRiskPct: 1 });
     expect(d.emotional).toBe(true);
     expect(d.blocked).toBe(true);
-    expect(d.finalState).toBe("DESCARTADA");
+    expect(d.finalState).toBe("NO TRADE");
     expect(d.classification).toBe("NO TRADE");
   });
 
   it("una regla crítica descarta la operación", () => {
     const d = evaluate({ answers: { ...passing, cf5_close: "no" }, risk: {}, maxRiskPct: 1 });
     expect(d.hardRules.length).toBeGreaterThan(0);
-    expect(d.finalState).toBe("DESCARTADA");
+    expect(d.finalState).toBe("NO TRADE");
   });
 
   it("expone las métricas de riesgo recalculadas con la precisión del lotaje", () => {
@@ -406,7 +406,9 @@ describe("estados de operación", () => {
     expect(s.netPnl).toBe(0);
   });
 
-  it("una CONDICIONAL sí puede registrarse y cerrarse si el trader la ejecutó", () => {
+  // Con el CORE actual una CONDICIONAL NO puede registrarse (el servidor lo rechaza).
+  // Las estadísticas deben seguir leyendo filas históricas que sí quedaron registradas.
+  it("una CONDICIONAL histórica ya registrada sigue contando en las estadísticas", () => {
     const s = computeStats([
       ev({ final_state: "CONDICIONAL", decision: "registrado", result_r: 1, net_pnl: 50 }),
     ]);
