@@ -35,6 +35,7 @@ import { fetchEvaluation, fetchSettings, nextTradeNumber } from "@/lib/db";
 import { saveEvaluationFn } from "@/lib/evaluations.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/hooks/useAuth";
+import { useChecklistCatalog } from "@/hooks/useChecklistCatalog";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/nueva")({
@@ -163,7 +164,7 @@ function NuevaEvaluacion() {
         direction: trade.direction,
         market: trade.market ?? null,
       }),
-    [answers, risk, settings, trade.setup, trade.direction, trade.market],
+    [answers, risk, settings, trade.setup, trade.direction, trade.market, catalog.stamp],
   );
   const metrics = useMemo(
     () => computeRisk(risk, trade.direction, { market: trade.market ?? null }),
