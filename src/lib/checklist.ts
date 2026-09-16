@@ -1871,146 +1871,84 @@ export const MARKETS = ["Crypto", "Forex", "Índices", "Acciones", "Futuros", "O
 export const SESSIONS = ["Asia", "Londres", "Nueva York", "Overlap", "Fuera de sesión"];
 
 /* ===========================================================================
- * MATRIZ OFICIAL SETUP → PREGUNTAS (única fuente de verdad)
+ * MATRIZ MAESTRA SETUP → PREGUNTAS (única fuente de verdad)
  * ---------------------------------------------------------------------------
- * Toda pregunta del cuestionario debe estar declarada EXPLÍCITAMENTE en una de
- * estas tres listas:
- *   1. COMMON_QUESTION_IDS        → común, intencionalmente, a los 5 setups
- *   2. SETUP_EXCLUSIVE_QUESTIONS  → exclusiva de UN setup oficial
- *   3. UNUSED_QUESTION_IDS        → declarada fuera de los 5 setups
- * NO existe fallback: una pregunta sin declarar NO entra en ningún cuestionario
- * y `validateSetupQuestionMatrix()` la reporta como error de configuración.
- * La matriz NO modifica pesos, fórmula del score, gates, HARD rules ni estados.
+ * Existen 6 matrices independientes:
+ *   FREE              → MATRIZ ORIGINAL ANIKE EJEPIKA (todas las preguntas base)
+ *   REVERSION … S05   → exclusivamente los criterios de su matriz maestra
+ * NO existe fallback: una pregunta que no figure en la matriz de un setup no se
+ * muestra ni se calcula en ese setup. La matriz NO modifica pesos, fórmula del
+ * score, gates, HARD rules, umbral 80 ni estados.
  * =========================================================================== */
 
+/** Setup de evaluación: SETUP LIBRE (matriz original) o uno de los 5 oficiales. */
+export type EvaluationSetupId = "FREE" | OfficialSetupId;
+
+export const EVALUATION_SETUP_IDS: EvaluationSetupId[] = [
+  "FREE",
+  ...OFFICIAL_SETUP_IDS,
+] as EvaluationSetupId[];
+
+function idsOf(sections: Section[]): string[] {
+  return sections.flatMap((s) => s.groups.flatMap((g) => g.questions.map((q) => q.id)));
+}
+
+/** MATRIZ ORIGINAL: todas las preguntas del cuestionario base ANIKE EJEPIKA. */
+const BASE_FREE_QUESTION_IDS: string[] = idsOf(SECTIONS_SOURCE);
+
 /**
- * CORE COMÚN MÍNIMO: sólo los criterios que los 5 setups comparten de verdad
- * (identificación de la operación, contexto, estructura base, riesgo del CORE,
- * recorrido, ejecución, disciplina y resultados post-cierre). Todo criterio
- * técnico propio de un setup vive en `SETUP_EXCLUSIVE_QUESTIONS`.
+ * Criterios presentes en las 6 matrices: identificación de la operación
+ * (bloque 00) y resultados post-cierre (bloque 09, fuera del score pre-trade).
  */
-const BASE_COMMON_QUESTION_IDS: string[] = [
-  // Comercio
+const BASE_SHARED_QUESTION_IDS: string[] = [
   "co_instrument",
   "co_conditions",
-  // Contexto
-  "ctx_direction",
-  "ctx_swings",
-  "ctx_aligned",
-  // Estructura base (criterios de HARD rules del CORE)
-  "h1_structure",
-  "h1_struct",
-  // Zona base
-  "z_relevance",
-  "z_space",
-  // Confirmación base (criterios de HARD rules del CORE)
-  "cf5_diag_break",
-  "cf5_close",
-  "cf_basis",
-  // Riesgo
-  "r_invalidation",
-  "r_stop_logic",
-  "r_limit",
-  "r_rr",
-  "r_loss_ok",
-  // Recorrido
-  "rc_room",
-  "rc_rr2",
-  // Ejecución
-  "ex_conditions",
-  "m5_timing",
-  // Disciplina
-  "ds_why",
-  "ds_revenge",
-  "ds_rules",
-  "ds_plan",
-  // Resultados (post-cierre)
   "rs_result",
   "rs_process",
 ];
 
-/** Preguntas comunes ACTIVAS (base ± ediciones publicadas). Binding vivo. */
-export let COMMON_QUESTION_IDS: string[] = [...BASE_COMMON_QUESTION_IDS];
-
-/**
- * Criterios de la biblioteca ANIKE EJEPIKA reutilizados por un único setup
- * (mantienen su `questionId` histórico para no perder evaluaciones antiguas).
- */
-const SETUP_REUSED_QUESTIONS: Record<OfficialSetupId, string[]> = {
-  REVERSION: ["h1_pattern_change", "h1_pattern_change_state"],
-  CONTINUACION: ["h1_pattern_cont", "h1_pattern_cont_state"],
-  RUPTURA_RETESTEO: [],
-  ZONA_FIBONACCI: ["h1_fibo"],
-  IMPULSO_PULLBACK: [],
+/** Matriz maestra explícita: setup → questionIds. Sin `if/else` ni fallback. */
+const BASE_SETUP_MATRIX: Record<EvaluationSetupId, string[]> = {
+  FREE: [...BASE_FREE_QUESTION_IDS],
+  ...(Object.fromEntries(
+    OFFICIAL_SETUP_IDS.map((setup) => [
+      setup,
+      [
+        ...BASE_SHARED_QUESTION_IDS,
+        ...SETUP_SPECIFIC.filter((b) => b.setup === setup).flatMap((b) =>
+          b.questions.map((q) => q.id),
+        ),
+      ],
+    ]),
+  ) as Record<OfficialSetupId, string[]>),
 };
 
-/**
- * Preguntas EXCLUSIVAS de cada setup oficial: los criterios específicos
- * declarados en `SETUP_SPECIFIC` más los criterios reutilizados de la
- * biblioteca. Una pregunta sólo puede figurar en un setup.
- */
-const BASE_SETUP_EXCLUSIVE_QUESTIONS: Record<OfficialSetupId, string[]> = Object.fromEntries(
-  (
-    [
-      "REVERSION",
-      "CONTINUACION",
-      "RUPTURA_RETESTEO",
-      "ZONA_FIBONACCI",
-      "IMPULSO_PULLBACK",
-    ] as OfficialSetupId[]
-  ).map((setup) => [
-    setup,
-    [
-      ...SETUP_SPECIFIC.filter((b) => b.setup === setup).flatMap((b) =>
-        b.questions.map((q) => q.id),
-      ),
-      ...SETUP_REUSED_QUESTIONS[setup],
-    ],
-  ]),
-) as Record<OfficialSetupId, string[]>;
+/** Matriz ACTIVA (base ± ediciones publicadas del editor). Binding vivo. */
+export let SETUP_MATRIX: Record<EvaluationSetupId, string[]> = { ...BASE_SETUP_MATRIX };
 
-/** Preguntas exclusivas ACTIVAS por setup (base ± ediciones publicadas). Binding vivo. */
-export let SETUP_EXCLUSIVE_QUESTIONS: Record<OfficialSetupId, string[]> = {
-  ...BASE_SETUP_EXCLUSIVE_QUESTIONS,
-};
+function commonOf(matrix: Record<EvaluationSetupId, string[]>): string[] {
+  const first = matrix["FREE"] ?? [];
+  return first.filter((id) => EVALUATION_SETUP_IDS.every((s) => matrix[s].includes(id)));
+}
 
-/**
- * Preguntas del CORE declaradas FUERA de los 5 setups oficiales: se conservan
- * únicamente para leer evaluaciones antiguas. No entran en ningún cuestionario
- * activo ni en el cálculo del score de una evaluación nueva.
- */
-const BASE_UNUSED_QUESTION_IDS: string[] = [
-  "ctx_levels",
-  "ctx_near_zone",
-  "z_type",
-  "z_reacted",
-  "z_clear",
-  "z_mid",
-  "h1_fibo_react",
-  "h1_fibo_weak",
-  "h1_rsi_div",
-  "h1_rsi_div_fibo",
-  "h1_macd",
-  "cf5_retest",
-  "cf5_retest_ok",
-  "cf5_macd",
-  "cf5_macd_cross",
-  "cf5_rsi",
-  "cf5_rsi_extended",
-  "cf5_volume",
-  "cf_price_action",
-  "cf_signal",
-  "r_sl_fibo_ok",
-  "rc_target",
-  "ex_plan",
-  "ex_respect",
-];
+function exclusiveOf(
+  matrix: Record<EvaluationSetupId, string[]>,
+): Record<EvaluationSetupId, string[]> {
+  const common = new Set(commonOf(matrix));
+  return Object.fromEntries(
+    EVALUATION_SETUP_IDS.map((s) => [s, matrix[s].filter((id) => !common.has(id))]),
+  ) as Record<EvaluationSetupId, string[]>;
+}
 
-/** Preguntas fuera de los setups ACTIVOS (histórico + retiradas desde el editor). */
-export let UNUSED_QUESTION_IDS: string[] = [...BASE_UNUSED_QUESTION_IDS];
+/** Preguntas presentes en TODAS las matrices. Binding vivo. */
+export let COMMON_QUESTION_IDS: string[] = commonOf(BASE_SETUP_MATRIX);
+
+/** Preguntas propias de cada matriz (todo lo que no es común). Binding vivo. */
+export let SETUP_EXCLUSIVE_QUESTIONS: Record<EvaluationSetupId, string[]> =
+  exclusiveOf(BASE_SETUP_MATRIX);
 
 /** Pregunta ya resuelta para un setup concreto: `setupId` es explícito. */
-export type SetupQuestion = Question & { setupId: OfficialSetupId; sectionId: SectionId };
+export type SetupQuestion = Question & { setupId: EvaluationSetupId; sectionId: SectionId };
 
 function collectCoreQuestions(sections: Section[]): { question: Question; sectionId: SectionId }[] {
   return sections.flatMap((s) =>
@@ -2021,71 +1959,97 @@ function collectCoreQuestions(sections: Section[]): { question: Question; sectio
 let ALL_CORE_QUESTIONS = collectCoreQuestions(BASE_SECTIONS);
 
 /**
- * Pertenencia EXPLÍCITA: la pregunta debe estar en la lista de comunes o en la
- * lista exclusiva del setup. No hay ningún `return true` por defecto.
+ * Preguntas del CORE que no pertenecen a ninguna matriz activa: sólo se
+ * conservan para LEER evaluaciones históricas. Binding vivo.
+ */
+export let UNUSED_QUESTION_IDS: string[] = [];
+
+/** IDs de preguntas de METADATA (descriptivas): nunca puntúan. Binding vivo. */
+export let METADATA_QUESTION_IDS: string[] = ALL_CORE_QUESTIONS.filter(
+  ({ question }) => question.meta === true,
+).map(({ question }) => question.id);
+
+export function isMetadataQuestion(questionId: string): boolean {
+  return METADATA_QUESTION_IDS.includes(questionId);
+}
+
+/**
+ * Pertenencia EXPLÍCITA a la matriz del setup. No hay ningún `return true`
+ * por defecto: una pregunta sin declarar no pertenece a ningún setup.
  */
 export function belongsExplicitlyToSetup(questionId: string, setupId: string): boolean {
-  const exclusive = SETUP_EXCLUSIVE_QUESTIONS[setupId as OfficialSetupId];
-  if (!exclusive) return false;
-  return COMMON_QUESTION_IDS.includes(questionId) || exclusive.includes(questionId);
+  const matrix = SETUP_MATRIX[setupId as EvaluationSetupId];
+  return matrix === undefined ? false : matrix.includes(questionId);
 }
 
 function buildSetupQuestions(
   core: { question: Question; sectionId: SectionId }[],
-  common: string[],
-  exclusive: Record<OfficialSetupId, string[]>,
-): Record<OfficialSetupId, SetupQuestion[]> {
+  matrix: Record<EvaluationSetupId, string[]>,
+): Record<EvaluationSetupId, SetupQuestion[]> {
   return Object.fromEntries(
-    OFFICIAL_SETUP_IDS.map((setupId) => [
-      setupId,
-      core
-        .filter(
-          ({ question }) =>
-            common.includes(question.id) || (exclusive[setupId] ?? []).includes(question.id),
-        )
-        .map(({ question, sectionId }) => ({ ...question, setupId, sectionId })),
-    ]),
-  ) as Record<OfficialSetupId, SetupQuestion[]>;
+    EVALUATION_SETUP_IDS.map((setupId) => {
+      const allowed = new Set(matrix[setupId] ?? []);
+      const seen = new Set<string>();
+      return [
+        setupId,
+        core.flatMap(({ question, sectionId }) => {
+          if (!allowed.has(question.id) || seen.has(question.id)) return [];
+          seen.add(question.id);
+          return [{ ...question, setupId, sectionId }];
+        }),
+      ];
+    }),
+  ) as Record<EvaluationSetupId, SetupQuestion[]>;
 }
 
-let SETUP_QUESTIONS = buildSetupQuestions(
-  ALL_CORE_QUESTIONS,
-  BASE_COMMON_QUESTION_IDS,
-  BASE_SETUP_EXCLUSIVE_QUESTIONS,
-);
+let SETUP_QUESTIONS = buildSetupQuestions(ALL_CORE_QUESTIONS, BASE_SETUP_MATRIX);
 
 /**
- * Auditoría de la matriz: detecta preguntas sin declarar, declaradas dos veces o
- * inexistentes. Los tests exigen que devuelva una lista vacía.
+ * Auditoría de la matriz: detecta duplicados dentro de un setup y declaraciones
+ * que no existen en el cuestionario. Los tests exigen una lista vacía.
  */
 export function validateSetupQuestionMatrix(): string[] {
   const problems: string[] = [];
-  const all = ALL_CORE_QUESTIONS.map(({ question }) => question.id);
-  const exclusiveAll = OFFICIAL_SETUP_IDS.flatMap((id) => SETUP_EXCLUSIVE_QUESTIONS[id]);
-
-  for (const id of all) {
-    const declarations =
-      (COMMON_QUESTION_IDS.includes(id) ? 1 : 0) +
-      exclusiveAll.filter((q) => q === id).length +
-      (UNUSED_QUESTION_IDS.includes(id) ? 1 : 0);
-    if (declarations === 0) problems.push(`sin declarar en la matriz: ${id}`);
-    if (declarations > 1) problems.push(`declarada más de una vez: ${id}`);
+  const all = new Set(ALL_CORE_QUESTIONS.map(({ question }) => question.id));
+  for (const setupId of EVALUATION_SETUP_IDS) {
+    const ids = SETUP_MATRIX[setupId] ?? [];
+    const seen = new Set<string>();
+    for (const id of ids) {
+      if (seen.has(id)) problems.push(`${setupId}: declarada más de una vez: ${id}`);
+      seen.add(id);
+      if (!all.has(id)) problems.push(`${setupId}: declarada pero inexistente en el CORE: ${id}`);
+    }
+    if (ids.length === 0) problems.push(`${setupId}: matriz vacía`);
   }
-  for (const id of [...COMMON_QUESTION_IDS, ...exclusiveAll, ...UNUSED_QUESTION_IDS]) {
-    if (!all.includes(id)) problems.push(`declarada pero inexistente en el CORE: ${id}`);
-  }
-  return problems;
+  return [...new Set(problems)];
 }
 
-/** Devuelve EXCLUSIVAMENTE las preguntas autorizadas del setup. Setup inválido → []. */
-export function getQuestionsForSetup(setupId: string | null | undefined): SetupQuestion[] {
+/**
+ * Función central de aislamiento: devuelve EXCLUSIVAMENTE las preguntas de la
+ * matriz del setup. Setup inválido o ausente → [] (nunca un fallback).
+ */
+export function getActiveQuestionsBySetup(setupId: string | null | undefined): SetupQuestion[] {
   if (!setupId) return [];
-  return SETUP_QUESTIONS[setupId as OfficialSetupId] ?? [];
+  return SETUP_QUESTIONS[setupId as EvaluationSetupId] ?? [];
+}
+
+/** Alias histórico de `getActiveQuestionsBySetup`. */
+export function getQuestionsForSetup(setupId: string | null | undefined): SetupQuestion[] {
+  return getActiveQuestionsBySetup(setupId);
 }
 
 /** IDs de preguntas activas del setup (usado por el wizard y por el cálculo). */
 export function activeQuestionIds(setupId: string | null | undefined): Set<string> {
-  return new Set(getQuestionsForSetup(setupId).map((q) => q.id));
+  return new Set(getActiveQuestionsBySetup(setupId).map((q) => q.id));
+}
+
+/** IDs PUNTUABLES del setup (sin metadata). */
+export function scorableQuestionIds(setupId: string | null | undefined): Set<string> {
+  return new Set(
+    getActiveQuestionsBySetup(setupId)
+      .filter((q) => q.meta !== true)
+      .map((q) => q.id),
+  );
 }
 
 /** Grupos de una sección ya filtrados por setup (el wizard sólo renderiza esto). */
@@ -2093,7 +2057,7 @@ export function sectionGroupsForSetup(
   section: Section,
   setupId: string | null | undefined,
 ): { title?: string; questions: SetupQuestion[] }[] {
-  const active = getQuestionsForSetup(setupId);
+  const active = getActiveQuestionsBySetup(setupId);
   const byId = new Map(active.map((q) => [q.id, q]));
   return section.groups
     .map((g) => ({
@@ -2106,9 +2070,57 @@ export function sectionGroupsForSetup(
     .filter((g) => g.questions.length > 0);
 }
 
+/** Bloque secuencial de la evaluación (00 → 08). Resultados queda fuera. */
+export type EvaluationBlock = {
+  id: SectionId;
+  step: string;
+  title: string;
+  groups: { title?: string; questions: SetupQuestion[] }[];
+  questions: SetupQuestion[];
+};
+
+/**
+ * Bloques del flujo secuencial, SIEMPRE en el orden del CORE
+ * 00 Comercio → 01 Contexto → … → 08 Disciplina. El bloque 09 Resultados es
+ * post-trade y no forma parte del flujo de entrada.
+ */
+export function evaluationBlocks(setupId: string | null | undefined): EvaluationBlock[] {
+  if (!setupId || getActiveQuestionsBySetup(setupId).length === 0) return [];
+  return SECTIONS.filter((s) => !s.postTrade).flatMap((section) => {
+    const groups = sectionGroupsForSetup(section, setupId);
+    const questions = groups.flatMap((g) => g.questions);
+    if (questions.length === 0) return [];
+    return [{ id: section.id, step: section.step, title: section.title, groups, questions }];
+  });
+}
+
+/** Preguntas del bloque sin responder (toda pregunta del bloque es obligatoria). */
+export function missingInBlock(
+  answers: Record<string, string>,
+  setupId: string | null | undefined,
+  sectionId: SectionId,
+): string[] {
+  return getActiveQuestionsBySetup(setupId)
+    .filter((q) => q.sectionId === sectionId)
+    .filter((q) => {
+      const value = answers[q.id];
+      return value === undefined || value === "";
+    })
+    .map((q) => q.id);
+}
+
+/** El bloque está completo: no se puede avanzar hasta que lo esté. */
+export function blockComplete(
+  answers: Record<string, string>,
+  setupId: string | null | undefined,
+  sectionId: SectionId,
+): boolean {
+  return missingInBlock(answers, setupId, sectionId).length === 0;
+}
+
 /**
  * Reconstruye las respuestas al cambiar de setup: conserva ÚNICAMENTE las
- * respuestas de preguntas autorizadas por el nuevo setup (asociación por
+ * respuestas de preguntas autorizadas por la nueva matriz (asociación por
  * questionId estable, nunca por índice). No inyecta ningún valor.
  */
 export function answersForSetup(
@@ -2139,7 +2151,7 @@ export function missingActiveAnswers(
       s.groups.flatMap((g) => g.questions.map((q) => q.id)),
     ),
   );
-  return getQuestionsForSetup(setupId)
+  return getActiveQuestionsBySetup(setupId)
     .filter((q) => options?.includePostTrade === true || !postTradeIds.has(q.id))
     .filter((q) => {
       const value = answers[q.id];
@@ -2147,6 +2159,7 @@ export function missingActiveAnswers(
     })
     .map((q) => q.id);
 }
+
 
 /* ===========================================================================
  * CAPA DE EDICIÓN DEL CUESTIONARIO (editor de administración)
