@@ -869,6 +869,7 @@ export function RiskPanel({
           </>
         )}
       </div>
+      )}
 
       <p className="label-mono mt-6 text-primary">2 · CÁLCULOS</p>
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
