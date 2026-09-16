@@ -1780,7 +1780,9 @@ export const OFFICIAL_SETUP_IDS = OFFICIAL_SETUPS.map((s) => s.id);
  * SETUP LIBRE: modalidad independiente que utiliza la MATRIZ ORIGINAL de ANIKE
  * EJEPIKA. No es "S01 sin setup": no comparte criterios exclusivos con S01–S05.
  */
-export const FREE_SETUP: OfficialSetup & { id: "FREE" } = {
+export type EvaluationSetup = Omit<OfficialSetup, "id"> & { id: "FREE" | OfficialSetupId };
+
+export const FREE_SETUP: EvaluationSetup = {
   id: "FREE",
   code: "LIBRE",
   name: "SETUP LIBRE",
@@ -1790,10 +1792,7 @@ export const FREE_SETUP: OfficialSetup & { id: "FREE" } = {
 };
 
 /** Las 6 opciones de evaluación: SETUP LIBRE + los 5 setups oficiales. */
-export const EVALUATION_SETUPS: (OfficialSetup | typeof FREE_SETUP)[] = [
-  FREE_SETUP,
-  ...OFFICIAL_SETUPS,
-];
+export const EVALUATION_SETUPS: EvaluationSetup[] = [FREE_SETUP, ...OFFICIAL_SETUPS];
 
 /** Etiqueta legible de un setup guardado. Compatible con evaluaciones históricas. */
 export function setupLabel(value: string | null | undefined): string {
