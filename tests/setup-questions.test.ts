@@ -339,12 +339,14 @@ describe("regla ANIKE: el cuestionario activo no admite No aplica", () => {
 });
 
 describe("matriz definitiva S01–S05 (documento maestro)", () => {
+  // Criterios específicos tras eliminar los redundantes con el CORE común
+  // (riesgo, recorrido, ejecución y disciplina ya se evalúan una sola vez).
   const EXPECTED_EXCLUSIVE: Record<OfficialSetupId, number> = {
-    REVERSION: 13,
-    CONTINUACION: 12,
-    RUPTURA_RETESTEO: 12,
-    ZONA_FIBONACCI: 13,
-    IMPULSO_PULLBACK: 12,
+    REVERSION: 8,
+    CONTINUACION: 5,
+    RUPTURA_RETESTEO: 8,
+    ZONA_FIBONACCI: 7,
+    IMPULSO_PULLBACK: 6,
   };
 
   test("cada setup declara exactamente sus criterios específicos", () => {
@@ -387,7 +389,7 @@ describe("matriz definitiva S01–S05 (documento maestro)", () => {
   test("los criterios nuevos usan la escala oficial 1 / 0,75 / 0,50 / 0,25 / 0", () => {
     const all = SECTIONS.flatMap((s) => s.groups.flatMap((g) => g.questions));
     const specific = all.filter((q) => /^s0[1-5]_/.test(q.id));
-    expect(specific.length).toBe(57);
+    expect(specific.length).toBe(29);
     for (const q of specific) {
       expect(q.options.map((o) => o.pts)).toEqual([1, 0.75, 0.5, 0.25, 0]);
       expect(q.options.some((o) => o.na)).toBe(false);
@@ -399,8 +401,19 @@ describe("matriz definitiva S01–S05 (documento maestro)", () => {
       for (const sectionId of ["estructura", "zona", "confirmacion", "riesgo", "recorrido"]) {
         const inSection = getQuestionsForSetup(id).filter((q) => q.sectionId === sectionId);
         expect(inSection.length).toBeGreaterThan(0);
-        expect(inSection.some((q) => q.id.startsWith(`s0`))).toBe(true);
       }
+      // Los criterios técnicos propios viven en estructura, zona y confirmación;
+      // riesgo, recorrido, ejecución y disciplina son del CORE común (sin duplicar).
+      for (const sectionId of ["estructura", "zona", "confirmacion"]) {
+        const inSection = getQuestionsForSetup(id).filter((q) => q.sectionId === sectionId);
+        expect(inSection.some((q) => q.id.startsWith("s0"))).toBe(true);
+      }
+      const duplicated = getQuestionsForSetup(id).filter(
+        (q) =>
+          q.id.startsWith("s0") &&
+          ["riesgo", "recorrido", "ejecucion", "disciplina"].includes(q.sectionId),
+      );
+      expect(duplicated).toEqual([]);
     }
   });
 
