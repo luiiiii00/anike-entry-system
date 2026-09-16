@@ -2322,7 +2322,7 @@ export function buildChecklistCatalog(overlayInput?: ChecklistOverlay | null): C
   const baseIds = new Set(collectCoreQuestions(BASE_SECTIONS).map(({ question }) => question.id));
   const added = overlay.added.filter((q) => !baseIds.has(q.id));
 
-  const sections: Section[] = BASE_SECTIONS.map((section) => {
+  const edited: Section[] = BASE_SECTIONS.map((section) => {
     const extra = added.filter((q) => q.sectionId === section.id);
     return {
       ...section,
