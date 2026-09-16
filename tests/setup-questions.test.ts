@@ -2,6 +2,11 @@ import { describe, expect, test } from "bun:test";
 import {
   activeQuestionIds,
   answersForSetup,
+  belongsExplicitlyToSetup,
+  COMMON_QUESTION_IDS,
+  SETUP_EXCLUSIVE_QUESTIONS,
+  UNUSED_QUESTION_IDS,
+  validateSetupQuestionMatrix,
   getQuestionsForSetup,
   OFFICIAL_SETUP_IDS,
   OFFICIAL_SETUPS,
@@ -110,17 +115,16 @@ describe("cambio de setup", () => {
   test("TEST 9 las respuestas de un setup no contaminan otro setup", () => {
     const s01 = { h1_pattern_change: "doble_techo", ctx_aligned: "si", h1_rsi_div: "si" };
     const s02 = answersForSetup(s01, "CONTINUACION");
-    expect(s02["h1_pattern_change"]).toBe("na");
-    expect(s02["h1_rsi_div"]).toBe("na");
+    expect("h1_pattern_change" in s02).toBe(false);
+    expect("h1_rsi_div" in s02).toBe(false);
     expect(s02["ctx_aligned"]).toBe("si");
   });
 
-  test("las respuestas excluidas quedan como No aplica y no penalizan", () => {
-    const s01 = answersForSetup({}, "REVERSION");
-    for (const id of Object.keys(s01)) {
-      expect(activeQuestionIds("REVERSION").has(id)).toBe(false);
-      expect(s01[id]).toBe("na");
-    }
+  test("la reconstrucción de respuestas no inyecta ningún valor", () => {
+    expect(answersForSetup({}, "REVERSION")).toEqual({});
+    const out = answersForSetup({ ctx_aligned: "si", cf5_retest: "si" }, "REVERSION");
+    expect(out).toEqual({ ctx_aligned: "si" });
+    expect(Object.values(out).includes("na")).toBe(false);
   });
 });
 
@@ -156,11 +160,16 @@ describe("integridad y compatibilidad", () => {
   });
 
   test("TEST 14 el cálculo utiliza solamente las preguntas activas", () => {
-    const answers = answersForSetup({ h1_pattern_change: "doble_techo" }, "RUPTURA_RETESTEO");
-    const used = Object.keys(answers).filter((k) => answers[k] !== "na");
-    expect(used.every((k) => activeQuestionIds("RUPTURA_RETESTEO").has(k))).toBe(true);
-    // La pregunta de otro setup no aporta valor: queda como No aplica.
-    expect(answers["h1_pattern_change"]).toBe("na");
+    // Todas las preguntas activas respondidas con la mejor opción → 100,
+    // aunque las preguntas de otros setups no existan en las respuestas.
+    for (const id of IDS) {
+      const answers: Record<string, string> = {};
+      for (const q of getQuestionsForSetup(id)) {
+        const best = [...q.options].sort((a, b) => b.pts - a.pts)[0];
+        if (best) answers[q.id] = best.v;
+      }
+      expect(computeScore(answers, activeQuestionIds(id)).score).toBe(100);
+    }
   });
 
   test("TEST 15 los pesos del CORE permanecen exactamente iguales", () => {
@@ -179,13 +188,59 @@ describe("integridad y compatibilidad", () => {
     expect(SECTIONS.reduce((a, s) => a + s.weight, 0)).toBe(100);
   });
 
-  test("las preguntas excluidas siempre admiten No aplica (no rompen el score)", () => {
-    const all = SECTIONS.flatMap((s) => s.groups.flatMap((g) => g.questions));
+  test("la solución no añade opciones No aplica / N/A / na a ninguna pregunta", () => {
+    // Ninguna pregunta exclusiva de un setup depende de una opción "na" para
+    // quedar fuera del cuestionario de otro setup: el filtrado es estructural.
+    const exclusive = IDS.flatMap((id) => SETUP_EXCLUSIVE_QUESTIONS[id]);
+    for (const id of exclusive) {
+      for (const other of IDS) {
+        if (SETUP_EXCLUSIVE_QUESTIONS[other].includes(id)) continue;
+        expect(activeQuestionIds(other).has(id)).toBe(false);
+        expect(answersForSetup({ [id]: "na" }, other)).toEqual({});
+      }
+    }
+  });
+
+  test("MATRIZ: cada pregunta del CORE está declarada exactamente una vez", () => {
+    expect(validateSetupQuestionMatrix()).toEqual([]);
+    const all = SECTIONS.flatMap((s) => s.groups.flatMap((g) => g.questions)).map((q) => q.id);
+    const exclusive = IDS.flatMap((id) => SETUP_EXCLUSIVE_QUESTIONS[id]);
+    expect(new Set(exclusive).size).toBe(exclusive.length);
+    expect(COMMON_QUESTION_IDS.length + exclusive.length + UNUSED_QUESTION_IDS.length).toBe(
+      all.length,
+    );
+  });
+
+  test("AUDITORÍA: una pregunta sin mapping NO entra por fallback en ningún setup", () => {
+    const orphan = "pregunta_no_mapeada";
     for (const id of IDS) {
-      const active = activeQuestionIds(id);
-      for (const q of all) {
-        if (active.has(q.id)) continue;
-        expect(q.options.some((o) => o.na)).toBe(true);
+      expect(belongsExplicitlyToSetup(orphan, id)).toBe(false);
+      expect(activeQuestionIds(id).has(orphan)).toBe(false);
+    }
+    // Simula quitar una pregunta del mapping: deja de pertenecer a todos.
+    const removed = COMMON_QUESTION_IDS[0]!;
+    const withoutIt = COMMON_QUESTION_IDS.filter((q) => q !== removed);
+    const belongs = (qid: string, setup: string) =>
+      withoutIt.includes(qid) ||
+      SETUP_EXCLUSIVE_QUESTIONS[setup as (typeof IDS)[number]].includes(qid);
+    for (const id of IDS) expect(belongs(removed, id)).toBe(false);
+  });
+
+  test("cada pregunta activa pertenece explícitamente al setup", () => {
+    for (const id of IDS) {
+      expect(getQuestionsForSetup(id).every((q) => belongsExplicitlyToSetup(q.id, id))).toBe(true);
+    }
+  });
+
+  test("las comunes están en los 5 setups y las exclusivas sólo en el suyo", () => {
+    for (const qid of COMMON_QUESTION_IDS) {
+      for (const id of IDS) expect(activeQuestionIds(id).has(qid)).toBe(true);
+    }
+    for (const id of IDS) {
+      for (const qid of SETUP_EXCLUSIVE_QUESTIONS[id]) {
+        expect(activeQuestionIds(id).has(qid)).toBe(true);
+        for (const other of IDS.filter((o) => o !== id))
+          expect(activeQuestionIds(other).has(qid)).toBe(false);
       }
     }
   });

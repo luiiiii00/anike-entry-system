@@ -1,4 +1,4 @@
-import { FIBO_SL_RATIO, SECTIONS, type SectionId } from "./checklist";
+import { activeQuestionIds, FIBO_SL_RATIO, SECTIONS, type SectionId } from "./checklist";
 
 export type Answers = Record<string, string>;
 
@@ -222,8 +222,18 @@ export type Breakdown = Record<
   { earned: number; weight: number; answered: number; total: number }
 >;
 
-export function computeScore(answers: Answers): { score: number; breakdown: Breakdown } {
+/**
+ * `activeIds` limita el cálculo a las preguntas del cuestionario ACTIVO (setup
+ * seleccionado). Los pesos, la fórmula y los umbrales no cambian: sólo se dejan
+ * de contar criterios que el setup no presenta. Sin `activeIds` se evalúa todo
+ * (evaluaciones históricas sin setup).
+ */
+export function computeScore(
+  answers: Answers,
+  activeIds?: Set<string>,
+): { score: number; breakdown: Breakdown } {
   const breakdown = {} as Breakdown;
+  const inScope = (id: string) => activeIds === undefined || activeIds.has(id);
 
   // Los bloques post-trade (Resultados) solo entran en el cálculo cuando ya se respondieron:
   // antes de tener resultado el peso se redistribuye para que el máximo siga siendo 100.
@@ -231,6 +241,7 @@ export function computeScore(answers: Answers): { score: number; breakdown: Brea
     if (!section.postTrade) return true;
     return section.groups
       .flatMap((g) => g.questions)
+      .filter((q) => inScope(q.id))
       .some((q) => answers[q.id] !== undefined && answers[q.id] !== "");
   });
   const activeWeight = active.reduce((sum, s) => sum + s.weight, 0);
@@ -239,7 +250,7 @@ export function computeScore(answers: Answers): { score: number; breakdown: Brea
   let total = 0;
 
   for (const section of SECTIONS) {
-    const questions = section.groups.flatMap((g) => g.questions);
+    const questions = section.groups.flatMap((g) => g.questions).filter((q) => inScope(q.id));
     const isActive = active.includes(section);
     const weight = round(section.weight * (isActive ? factor : 0), 2);
     let got = 0;
@@ -470,7 +481,9 @@ export function evaluate(input: {
   contractSize?: number | null;
   pointValue?: number | null;
 }): Decision {
-  const { score, breakdown } = computeScore(input.answers);
+  // El cuestionario activo lo define el setup oficial seleccionado (matriz explícita).
+  const active = input.setup ? activeQuestionIds(input.setup) : undefined;
+  const { score, breakdown } = computeScore(input.answers, active?.size ? active : undefined);
   const metrics = computeRisk(input.risk, input.direction, {
     market: input.market ?? null,
     contractSize: input.contractSize ?? null,

@@ -952,68 +952,147 @@ export const MARKETS = ["Crypto", "Forex", "Índices", "Acciones", "Futuros", "O
 export const SESSIONS = ["Asia", "Londres", "Nueva York", "Overlap", "Fuera de sesión"];
 
 /* ===========================================================================
- * FUENTE ÚNICA DE VERDAD: SETUP → PREGUNTAS
+ * MATRIZ OFICIAL SETUP → PREGUNTAS (única fuente de verdad)
  * ---------------------------------------------------------------------------
- * Cada pregunta del CORE queda asignada explícitamente a uno o varios setups
- * oficiales. `getQuestionsForSetup(setupId)` devuelve EXCLUSIVAMENTE las
- * preguntas de ese setup, ya etiquetadas con `setupId`.
- *
- * Restricción de integridad del CORE: una pregunta sólo puede excluirse de un
- * setup si ofrece la opción "No aplica" (na). Así el cálculo del score usa el
- * mecanismo ya existente (los criterios no evaluables se excluyen sin penalizar)
- * y NO se modifican pesos, fórmula, gates, HARD, estados ni clasificación.
+ * Toda pregunta del cuestionario debe estar declarada EXPLÍCITAMENTE en una de
+ * estas tres listas:
+ *   1. COMMON_QUESTION_IDS        → común, intencionalmente, a los 5 setups
+ *   2. SETUP_EXCLUSIVE_QUESTIONS  → exclusiva de UN setup oficial
+ *   3. UNUSED_QUESTION_IDS        → declarada fuera de los 5 setups
+ * NO existe fallback: una pregunta sin declarar NO entra en ningún cuestionario
+ * y `validateSetupQuestionMatrix()` la reporta como error de configuración.
+ * La matriz NO modifica pesos, fórmula del score, gates, HARD rules ni estados.
  * =========================================================================== */
 
-/** Preguntas exclusivas de ciertos setups. Todas tienen opción "No aplica". */
-export const SETUP_QUESTION_SCOPE: Record<string, OfficialSetupId[]> = {
-  h1_pattern_change: ["REVERSION"],
-  h1_pattern_change_state: ["REVERSION"],
-  h1_rsi_div: ["REVERSION"],
-  h1_rsi_div_fibo: ["REVERSION"],
-  cf_price_action: ["REVERSION", "ZONA_FIBONACCI"],
-  h1_pattern_cont: ["CONTINUACION", "IMPULSO_PULLBACK"],
-  h1_pattern_cont_state: ["CONTINUACION", "IMPULSO_PULLBACK"],
-  h1_macd: ["CONTINUACION", "IMPULSO_PULLBACK"],
-  cf5_macd: ["CONTINUACION", "IMPULSO_PULLBACK"],
-  cf5_macd_cross: ["CONTINUACION", "IMPULSO_PULLBACK"],
-  cf5_retest: ["RUPTURA_RETESTEO"],
-  cf5_retest_ok: ["RUPTURA_RETESTEO"],
-  cf5_volume: ["RUPTURA_RETESTEO", "CONTINUACION", "IMPULSO_PULLBACK"],
-  h1_fibo: ["ZONA_FIBONACCI", "IMPULSO_PULLBACK"],
-  h1_fibo_react: ["ZONA_FIBONACCI", "IMPULSO_PULLBACK"],
-  h1_fibo_weak: ["ZONA_FIBONACCI", "IMPULSO_PULLBACK"],
-  z_type: ["REVERSION", "ZONA_FIBONACCI", "RUPTURA_RETESTEO"],
-  cf_signal: ["REVERSION", "CONTINUACION", "ZONA_FIBONACCI", "IMPULSO_PULLBACK"],
+/** Preguntas comunes a los 5 setups, declaradas de forma intencional. */
+export const COMMON_QUESTION_IDS: string[] = [
+  // Comercio
+  "co_instrument",
+  "co_conditions",
+  // Contexto
+  "ctx_direction",
+  "ctx_swings",
+  "ctx_aligned",
+  "ctx_levels",
+  "ctx_near_zone",
+  // Estructura base
+  "h1_structure",
+  "h1_struct",
+  // Zona
+  "z_relevance",
+  "z_reacted",
+  "z_space",
+  "z_clear",
+  "z_mid",
+  // Confirmación base (incluye los criterios de HARD rules del CORE)
+  "cf5_diag_break",
+  "cf5_close",
+  "cf_signal",
+  "cf_basis",
+  // Riesgo
+  "r_sl_fibo_ok",
+  "r_invalidation",
+  "r_stop_logic",
+  "r_limit",
+  "r_rr",
+  "r_loss_ok",
+  // Recorrido
+  "rc_target",
+  "rc_room",
+  "rc_rr2",
+  // Ejecución
+  "ex_conditions",
+  "m5_timing",
+  "ex_plan",
+  "ex_respect",
+  // Disciplina
+  "ds_why",
+  "ds_revenge",
+  "ds_rules",
+  "ds_plan",
+  // Resultados (post-cierre)
+  "rs_result",
+  "rs_process",
+];
+
+/** Preguntas EXCLUSIVAS de cada setup oficial. Una pregunta sólo puede figurar en uno. */
+export const SETUP_EXCLUSIVE_QUESTIONS: Record<OfficialSetupId, string[]> = {
+  REVERSION: [
+    "h1_pattern_change",
+    "h1_pattern_change_state",
+    "h1_rsi_div",
+    "h1_rsi_div_fibo",
+    "cf_price_action",
+  ],
+  CONTINUACION: ["h1_pattern_cont", "h1_pattern_cont_state", "h1_macd", "cf5_macd_cross"],
+  RUPTURA_RETESTEO: ["cf5_retest", "cf5_retest_ok", "cf5_volume"],
+  ZONA_FIBONACCI: ["h1_fibo", "h1_fibo_react", "h1_fibo_weak", "z_type"],
+  IMPULSO_PULLBACK: ["cf5_rsi", "cf5_rsi_extended", "cf5_macd"],
 };
+
+/**
+ * Preguntas del CORE declaradas fuera de los 5 setups oficiales (categoría G).
+ * Hoy no existe ninguna: la lista queda explícita para que cualquier alta futura
+ * sea una decisión consciente y no un efecto de la ausencia de mapeo.
+ */
+export const UNUSED_QUESTION_IDS: string[] = [];
 
 /** Pregunta ya resuelta para un setup concreto: `setupId` es explícito. */
 export type SetupQuestion = Question & { setupId: OfficialSetupId; sectionId: SectionId };
-
-function questionBelongsToSetup(questionId: string, setupId: OfficialSetupId): boolean {
-  const scope = SETUP_QUESTION_SCOPE[questionId];
-  return scope === undefined ? true : scope.includes(setupId);
-}
 
 const ALL_CORE_QUESTIONS: { question: Question; sectionId: SectionId }[] = SECTIONS.flatMap((s) =>
   s.groups.flatMap((g) => g.questions.map((question) => ({ question, sectionId: s.id }))),
 );
 
+/**
+ * Pertenencia EXPLÍCITA: la pregunta debe estar en la lista de comunes o en la
+ * lista exclusiva del setup. No hay ningún `return true` por defecto.
+ */
+export function belongsExplicitlyToSetup(questionId: string, setupId: string): boolean {
+  const exclusive = SETUP_EXCLUSIVE_QUESTIONS[setupId as OfficialSetupId];
+  if (!exclusive) return false;
+  return COMMON_QUESTION_IDS.includes(questionId) || exclusive.includes(questionId);
+}
+
 const SETUP_QUESTIONS: Record<OfficialSetupId, SetupQuestion[]> = Object.fromEntries(
   OFFICIAL_SETUP_IDS.map((setupId) => [
     setupId,
-    ALL_CORE_QUESTIONS.filter(({ question }) => questionBelongsToSetup(question.id, setupId)).map(
+    ALL_CORE_QUESTIONS.filter(({ question }) => belongsExplicitlyToSetup(question.id, setupId)).map(
       ({ question, sectionId }) => ({ ...question, setupId, sectionId }),
     ),
   ]),
 ) as Record<OfficialSetupId, SetupQuestion[]>;
 
-/** Devuelve EXCLUSIVAMENTE las preguntas del setup indicado. Setup inválido → []. */
+/**
+ * Auditoría de la matriz: detecta preguntas sin declarar, declaradas dos veces o
+ * inexistentes. Los tests exigen que devuelva una lista vacía.
+ */
+export function validateSetupQuestionMatrix(): string[] {
+  const problems: string[] = [];
+  const all = ALL_CORE_QUESTIONS.map(({ question }) => question.id);
+  const exclusiveAll = OFFICIAL_SETUP_IDS.flatMap((id) => SETUP_EXCLUSIVE_QUESTIONS[id]);
+
+  for (const id of all) {
+    const declarations =
+      (COMMON_QUESTION_IDS.includes(id) ? 1 : 0) +
+      exclusiveAll.filter((q) => q === id).length +
+      (UNUSED_QUESTION_IDS.includes(id) ? 1 : 0);
+    if (declarations === 0) problems.push(`sin declarar en la matriz: ${id}`);
+    if (declarations > 1) problems.push(`declarada más de una vez: ${id}`);
+  }
+  for (const id of [...COMMON_QUESTION_IDS, ...exclusiveAll, ...UNUSED_QUESTION_IDS]) {
+    if (!all.includes(id)) problems.push(`declarada pero inexistente en el CORE: ${id}`);
+  }
+  return problems;
+}
+
+/** Devuelve EXCLUSIVAMENTE las preguntas autorizadas del setup. Setup inválido → []. */
 export function getQuestionsForSetup(setupId: string | null | undefined): SetupQuestion[] {
   if (!setupId) return [];
   return SETUP_QUESTIONS[setupId as OfficialSetupId] ?? [];
 }
 
-/** IDs de preguntas activas del setup (para aislar respuestas). */
+/** IDs de preguntas activas del setup (usado por el wizard y por el cálculo). */
 export function activeQuestionIds(setupId: string | null | undefined): Set<string> {
   return new Set(getQuestionsForSetup(setupId).map((q) => q.id));
 }
@@ -1037,24 +1116,19 @@ export function sectionGroupsForSetup(
 }
 
 /**
- * Reconstruye las respuestas al cambiar de setup:
- * 1. descarta toda respuesta de preguntas que no pertenecen al nuevo setup;
- * 2. marca "No aplica" las preguntas excluidas para que el score no penalice
- *    criterios que el setup no evalúa (mecanismo `na` ya existente del CORE).
+ * Reconstruye las respuestas al cambiar de setup: conserva ÚNICAMENTE las
+ * respuestas de preguntas autorizadas por el nuevo setup (asociación por
+ * questionId estable, nunca por índice). No inyecta ningún valor.
  */
 export function answersForSetup(
   answers: Record<string, string>,
   setupId: string | null | undefined,
 ): Record<string, string> {
-  if (!setupId || !SETUP_QUESTIONS[setupId as OfficialSetupId]) return {};
   const active = activeQuestionIds(setupId);
+  if (active.size === 0) return {};
   const next: Record<string, string> = {};
   for (const [id, value] of Object.entries(answers)) {
     if (active.has(id)) next[id] = value;
-  }
-  for (const { question } of ALL_CORE_QUESTIONS) {
-    if (active.has(question.id)) continue;
-    if (question.options.some((o) => o.na)) next[question.id] = "na";
   }
   return next;
 }
