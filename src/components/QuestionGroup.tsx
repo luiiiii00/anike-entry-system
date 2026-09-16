@@ -44,6 +44,14 @@ export function QuestionList({
         const best = Math.max(0, ...q.options.filter((o) => !o.na).map((o) => o.pts));
         return (
           <div key={q.id} className="panel p-4">
+            {q.timeframe && (
+              <div className="mb-2 flex items-center gap-2">
+                <span className="label-mono">Timeframe de análisis</span>
+                <span className="rounded-lg border border-primary/40 bg-primary/10 px-2 py-0.5 font-mono text-[11px] tabular-nums text-primary">
+                  {q.timeframe}
+                </span>
+              </div>
+            )}
             <p className="text-sm font-medium leading-snug">{q.label}</p>
             {q.hint && (
               <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{q.hint}</p>
