@@ -756,6 +756,83 @@ type SetupSpecificBlock = {
   questions: Question[];
 };
 
+/**
+ * Opciones de METADATA (descripción). No producen puntos: `meta: true` excluye la
+ * pregunta del cálculo del score. Seleccionar un patrón identifica el patrón, no
+ * confirma nada por sí mismo.
+ */
+const metaOptions = (items: { v: string; label: string }[]): Option[] =>
+  items.map((i) => ({ v: i.v, label: i.label, pts: 0 }));
+
+const REVERSAL_PATTERNS = metaOptions([
+  { v: "doble_techo", label: "Doble techo" },
+  { v: "doble_suelo", label: "Doble suelo" },
+  { v: "triple_techo", label: "Triple techo" },
+  { v: "triple_suelo", label: "Triple suelo" },
+  { v: "hch", label: "HCH" },
+  { v: "hch_invertido", label: "HCH invertido" },
+  { v: "cuna_ascendente", label: "Cuña ascendente" },
+  { v: "cuna_descendente", label: "Cuña descendente" },
+  { v: "techo_redondeado", label: "Techo redondeado" },
+  { v: "suelo_redondeado", label: "Suelo redondeado" },
+  { v: "pua_alcista", label: "Púa alcista" },
+  { v: "pua_bajista", label: "Púa bajista" },
+]);
+
+const CONTINUATION_PATTERNS = metaOptions([
+  { v: "triangulo_simetrico", label: "Triángulo simétrico" },
+  { v: "triangulo_ascendente", label: "Triángulo ascendente" },
+  { v: "triangulo_descendente", label: "Triángulo descendente" },
+  { v: "banderin_alcista", label: "Banderín alcista" },
+  { v: "banderin_bajista", label: "Banderín bajista" },
+  { v: "bandera_alcista", label: "Bandera rectangular alcista" },
+  { v: "bandera_bajista", label: "Bandera rectangular bajista" },
+  { v: "rectangulo", label: "Rectángulo" },
+]);
+
+const FIBO_META_OPTIONS = metaOptions([
+  { v: "0_618", label: "0,618" },
+  { v: "0_50", label: "0,50" },
+  { v: "0_38", label: "0,38" },
+  { v: "0_75", label: "0,75" },
+]);
+
+/** Escalas reutilizadas por los criterios comunes a los cinco setups. */
+const STOP_SCALE = f5(
+  "Detrás de la invalidación, con margen correcto",
+  "Detrás de la invalidación",
+  "Justo en el límite",
+  "Demasiado ajustado",
+  "No respeta la invalidación",
+);
+const ROOM_SCALE = f5(
+  "Recorrido amplio y libre",
+  "Recorrido suficiente",
+  "Recorrido justo",
+  "Recorrido escaso",
+  "No hay recorrido",
+);
+const ENTRY_SCALE = f5(
+  "Entrada tras confirmación, sin perseguir",
+  "Entrada correcta con leve retraso",
+  "Entrada parcialmente anticipada",
+  "Entrada persiguiendo el precio",
+  "Entrada anticipada sin confirmación",
+);
+const PLAN_SCALE = f5(
+  "Cumple el plan por completo",
+  "Cumple el plan con desviación mínima",
+  "Cumple parcialmente",
+  "Se desvía del plan",
+  "No respeta el plan",
+);
+const CONFIRM_SCALE = f5("Claramente", "Mayormente", "Parcialmente", "Débilmente", "No confirma");
+
+/**
+ * MATRICES MAESTRAS DE LOS SETUPS OFICIALES (S01–S05).
+ * Cada criterio declara su setup y su bloque CORE (00–08). Ninguna pregunta
+ * pertenece a dos setups. No hay fallback ni mezcla entre matrices.
+ */
 const SETUP_SPECIFIC: SetupSpecificBlock[] = [
   // ---------------------------------------------------------------- S01
   {
@@ -766,7 +843,7 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
       {
         id: "s01_prev_trend",
         label:
-          "¿Existe una tendencia o estructura previa claramente identificable que pueda ser revertida?",
+          "R1 · ¿Existe una tendencia o estructura previa claramente identificable que pueda ser revertida?",
         options: f5(
           "Sí, claramente identificable",
           "Sí, pero parcialmente definida",
@@ -784,7 +861,7 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
     questions: [
       {
         id: "s01_exhaustion",
-        label: "¿Se observa agotamiento del movimiento previo?",
+        label: "R2 · ¿El movimiento previo presenta señales de agotamiento?",
         options: f5(
           "Agotamiento claro",
           "Agotamiento fuerte",
@@ -795,7 +872,7 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
       },
       {
         id: "s01_key_level",
-        label: "¿Existe un máximo/mínimo relevante susceptible de ser superado o defendido?",
+        label: "R3 · ¿Existe un máximo/mínimo relevante que defina la zona crítica de la reversión?",
         options: f5(
           "Nivel claramente definido",
           "Nivel relevante",
@@ -806,7 +883,7 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
       },
       {
         id: "s01_structure_change",
-        label: "¿Existe evidencia de cambio de estructura a favor de la nueva dirección?",
+        label: "R4 · ¿Existe cambio de estructura confirmado a favor de la nueva dirección?",
         options: f5(
           "Cambio de estructura confirmado",
           "Evidencia fuerte",
@@ -814,6 +891,13 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
           "Primer indicio solamente",
           "No existe cambio",
         ),
+      },
+      {
+        id: "s01_pattern",
+        label: "R7 · Patrón de reversión identificado (descriptivo, no puntúa):",
+        hint: "Identifica el patrón. No suma ni resta puntos: la puntuación depende de los criterios de evaluación.",
+        meta: true,
+        options: REVERSAL_PATTERNS,
       },
     ],
   },
@@ -823,14 +907,25 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
     title: "S01 — REVERSIÓN · Zona",
     questions: [
       {
-        id: "s01_zone_confluence",
-        label: "¿La zona tiene confluencia suficiente para justificar la reacción?",
+        id: "s01_zone_relevant",
+        label: "R5 · ¿La reversión ocurre dentro de una zona técnica relevante?",
         options: f5(
-          "Confluencia fuerte",
-          "Buena confluencia",
-          "Confluencia parcial",
-          "Confluencia débil",
-          "Sin confluencia",
+          "Zona muy relevante",
+          "Zona relevante",
+          "Zona moderadamente relevante",
+          "Zona poco relevante",
+          "No existe zona",
+        ),
+      },
+      {
+        id: "s01_zone_reaction",
+        label: "R6 · ¿La zona presenta una reacción coherente con una posible reversión?",
+        options: f5(
+          "Reacción clara",
+          "Reacción fuerte",
+          "Reacción parcial",
+          "Reacción débil",
+          "Sin reacción",
         ),
       },
     ],
@@ -841,27 +936,110 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
     title: "S01 — REVERSIÓN · Confirmación",
     questions: [
       {
-        id: "s01_confirm_direction",
-        label: "¿La confirmación favorece claramente la nueva dirección?",
+        id: "s01_pattern_confirmed",
+        label: "R8 · ¿El patrón o estructura de reversión está confirmado?",
         options: f5(
-          "Claramente",
-          "Mayormente",
-          "Parcialmente",
-          "Débilmente",
-          "No favorece la nueva dirección",
+          "Confirmado",
+          "Confirmación fuerte",
+          "Parcialmente confirmado",
+          "En formación",
+          "Sin confirmación",
         ),
+      },
+      {
+        id: "s01_confirm_direction",
+        label: "R9 · ¿El precio confirma la nueva dirección antes de la entrada?",
+        options: CONFIRM_SCALE,
+      },
+    ],
+  },
+  {
+    setup: "REVERSION",
+    sectionId: "riesgo",
+    title: "S01 — REVERSIÓN · Riesgo",
+    questions: [
+      {
+        id: "s01_stop_invalidation",
+        label: "R10 · ¿El Stop Loss está detrás de la invalidación lógica de la reversión?",
+        options: STOP_SCALE,
+      },
+    ],
+  },
+  {
+    setup: "REVERSION",
+    sectionId: "recorrido",
+    title: "S01 — REVERSIÓN · Recorrido",
+    questions: [
+      {
+        id: "s01_room",
+        label:
+          "R11 · ¿Existe recorrido suficiente hasta el objetivo antes de una zona opuesta relevante?",
+        options: ROOM_SCALE,
+      },
+    ],
+  },
+  {
+    setup: "REVERSION",
+    sectionId: "ejecucion",
+    title: "S01 — REVERSIÓN · Ejecución",
+    questions: [
+      {
+        id: "s01_entry_after_confirm",
+        label: "R12 · ¿La entrada se ejecuta después de la confirmación sin perseguir el precio?",
+        options: ENTRY_SCALE,
+      },
+    ],
+  },
+  {
+    setup: "REVERSION",
+    sectionId: "disciplina",
+    title: "S01 — REVERSIÓN · Disciplina",
+    questions: [
+      {
+        id: "s01_plan_respect",
+        label: "R13 · ¿La operación respeta completamente el plan del setup?",
+        options: PLAN_SCALE,
       },
     ],
   },
   // ---------------------------------------------------------------- S02
   {
     setup: "CONTINUACION",
+    sectionId: "contexto",
+    title: "S02 — CONTINUACIÓN · Contexto",
+    questions: [
+      {
+        id: "s02_trend_defined",
+        label: "C1 · ¿Existe una tendencia dominante claramente definida?",
+        options: f5(
+          "Tendencia muy clara",
+          "Tendencia clara",
+          "Tendencia moderada",
+          "Tendencia débil",
+          "No existe tendencia",
+        ),
+      },
+    ],
+  },
+  {
+    setup: "CONTINUACION",
     sectionId: "estructura",
     title: "S02 — CONTINUACIÓN · Estructura",
     questions: [
       {
+        id: "s02_swing_sequence",
+        label: "C2 · ¿La secuencia de máximos y mínimos mantiene la dirección dominante?",
+        options: f5(
+          "Secuencia intacta",
+          "Secuencia sólida",
+          "Secuencia parcial",
+          "Secuencia débil",
+          "Secuencia rota",
+        ),
+      },
+      {
         id: "s02_correction_valid",
-        label: "¿La corrección mantiene la estructura principal sin invalidarla?",
+        label: "C3 · ¿La corrección mantiene intacta la estructura principal?",
         options: f5(
           "Mantiene perfectamente",
           "Mantiene con pequeñas desviaciones",
@@ -869,6 +1047,13 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
           "Muy cerca de invalidar",
           "Invalidó la tendencia",
         ),
+      },
+      {
+        id: "s02_pattern",
+        label: "C5 · Patrón de continuación identificado (descriptivo, no puntúa):",
+        hint: "Identifica el patrón. No modifica el score.",
+        meta: true,
+        options: CONTINUATION_PATTERNS,
       },
     ],
   },
@@ -879,7 +1064,7 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
     questions: [
       {
         id: "s02_pullback_zone",
-        label: "¿El retroceso llega a una zona técnica relevante dentro de la tendencia?",
+        label: "C4 · ¿El retroceso llega a una zona técnica relevante dentro de la tendencia?",
         options: f5(
           "Zona muy relevante",
           "Relevante",
@@ -896,21 +1081,83 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
     title: "S02 — CONTINUACIÓN · Confirmación",
     questions: [
       {
+        id: "s02_pattern_confirmed",
+        label: "C6 · ¿El patrón o estructura de continuación está confirmado?",
+        options: f5(
+          "Confirmado",
+          "Confirmación fuerte",
+          "Parcialmente confirmado",
+          "En formación",
+          "Sin confirmación",
+        ),
+      },
+      {
         id: "s02_confirm_direction",
-        label: "¿La confirmación favorece la dirección de la tendencia?",
-        options: f5("Claramente", "Mayormente", "Parcialmente", "Débilmente", "No"),
+        label: "C7 · ¿El precio confirma la continuación en la dirección de la tendencia?",
+        options: CONFIRM_SCALE,
+      },
+    ],
+  },
+  {
+    setup: "CONTINUACION",
+    sectionId: "riesgo",
+    title: "S02 — CONTINUACIÓN · Riesgo",
+    questions: [
+      {
+        id: "s02_stop_invalidation",
+        label: "C8 · ¿El Stop Loss está detrás de la invalidación de la continuación?",
+        options: STOP_SCALE,
+      },
+    ],
+  },
+  {
+    setup: "CONTINUACION",
+    sectionId: "recorrido",
+    title: "S02 — CONTINUACIÓN · Recorrido",
+    questions: [
+      {
+        id: "s02_room",
+        label:
+          "C9 · ¿Existe recorrido suficiente para continuar el movimiento antes de una zona opuesta relevante?",
+        options: ROOM_SCALE,
+      },
+    ],
+  },
+  {
+    setup: "CONTINUACION",
+    sectionId: "ejecucion",
+    title: "S02 — CONTINUACIÓN · Ejecución",
+    questions: [
+      {
+        id: "s02_entry_after_confirm",
+        label:
+          "C10 · ¿La entrada se ejecuta después de la confirmación y no durante una corrección incompleta?",
+        options: ENTRY_SCALE,
+      },
+    ],
+  },
+  {
+    setup: "CONTINUACION",
+    sectionId: "disciplina",
+    title: "S02 — CONTINUACIÓN · Disciplina",
+    questions: [
+      {
+        id: "s02_plan_respect",
+        label: "C11 · ¿La operación respeta el plan y las reglas del setup?",
+        options: PLAN_SCALE,
       },
     ],
   },
   // ---------------------------------------------------------------- S03
   {
     setup: "RUPTURA_RETESTEO",
-    sectionId: "estructura",
-    title: "S03 — RUPTURA + RETESTEO · Estructura",
+    sectionId: "contexto",
+    title: "S03 — RUPTURA + RETESTEO · Contexto",
     questions: [
       {
         id: "s03_structure_defined",
-        label: "¿Existe una estructura o zona claramente delimitada susceptible de ruptura?",
+        label:
+          "RR1 · ¿Existe una estructura o zona claramente delimitada susceptible de ruptura?",
         options: f5(
           "Claramente definida",
           "Bien definida",
@@ -919,15 +1166,44 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
           "No existe",
         ),
       },
+    ],
+  },
+  {
+    setup: "RUPTURA_RETESTEO",
+    sectionId: "estructura",
+    title: "S03 — RUPTURA + RETESTEO · Estructura",
+    questions: [
+      {
+        id: "s03_level_relevant",
+        label: "RR2 · ¿El nivel de ruptura es relevante dentro de la estructura actual?",
+        options: f5(
+          "Nivel muy relevante",
+          "Nivel relevante",
+          "Relevancia moderada",
+          "Poco relevante",
+          "Irrelevante",
+        ),
+      },
       {
         id: "s03_break_displacement",
-        label: "¿La ruptura presenta suficiente desplazamiento para considerarla válida?",
+        label: "RR3 · ¿La ruptura presenta desplazamiento suficiente para considerarse válida?",
         options: f5(
           "Ruptura clara y fuerte",
           "Ruptura clara",
           "Ruptura moderada",
           "Ruptura débil",
           "No existe ruptura válida",
+        ),
+      },
+      {
+        id: "s03_break_close",
+        label: "RR4 · ¿La ruptura fue confirmada mediante cierre fuera del nivel?",
+        options: f5(
+          "Cierre claro fuera del nivel",
+          "Cierre válido pero débil",
+          "Cierre parcialmente válido",
+          "Solo penetración intravela",
+          "No hubo cierre",
         ),
       },
     ],
@@ -939,12 +1215,12 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
     questions: [
       {
         id: "s03_level_as_retest",
-        label: "¿El nivel roto puede actuar como zona de retesteo?",
+        label: "RR5 · ¿El nivel roto puede actuar como zona de retesteo?",
         options: f5("Claramente", "Sí, con buena estructura", "Parcialmente", "Dudoso", "No"),
       },
       {
         id: "s03_retest_on_level",
-        label: "¿El retesteo ocurre realmente sobre el nivel o zona previamente rota?",
+        label: "RR6 · ¿El retesteo ocurre realmente sobre el nivel o zona previamente rota?",
         options: f5("Exactamente", "Muy cerca", "Parcialmente", "Alejado", "No existe retesteo"),
       },
     ],
@@ -955,19 +1231,8 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
     title: "S03 — RUPTURA + RETESTEO · Confirmación",
     questions: [
       {
-        id: "s03_break_close",
-        label: "¿La ruptura fue confirmada mediante cierre de vela?",
-        options: f5(
-          "Cierre claro fuera del nivel",
-          "Cierre válido pero débil",
-          "Cierre parcialmente válido",
-          "Solo penetración intravela",
-          "No hubo cierre",
-        ),
-      },
-      {
         id: "s03_retest_reaction",
-        label: "¿El retesteo muestra rechazo o reacción coherente con la ruptura?",
+        label: "RR7 · ¿El retesteo presenta rechazo o reacción coherente con la ruptura?",
         options: f5(
           "Reacción clara",
           "Reacción fuerte",
@@ -977,24 +1242,79 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
         ),
       },
       {
-        id: "s03_pattern_confirm",
-        label: "¿Existe un patrón de confirmación válido según la biblioteca?",
-        options: f5(
-          "Patrón válido y confirmado",
-          "Patrón válido con confirmación fuerte",
-          "Patrón parcialmente confirmado",
-          "Patrón en formación",
-          "Sin patrón / confirmación",
-        ),
-      },
-      {
         id: "s03_confirm_direction",
-        label: "¿El precio confirma la dirección después del retesteo?",
-        options: f5("Claramente", "Mayormente", "Parcialmente", "Débilmente", "No confirma"),
+        label: "RR8 · ¿El precio confirma la dirección después del retesteo?",
+        options: CONFIRM_SCALE,
+      },
+    ],
+  },
+  {
+    setup: "RUPTURA_RETESTEO",
+    sectionId: "riesgo",
+    title: "S03 — RUPTURA + RETESTEO · Riesgo",
+    questions: [
+      {
+        id: "s03_stop_invalidation",
+        label: "RR9 · ¿El Stop Loss queda detrás de la invalidación del retesteo?",
+        options: STOP_SCALE,
+      },
+    ],
+  },
+  {
+    setup: "RUPTURA_RETESTEO",
+    sectionId: "recorrido",
+    title: "S03 — RUPTURA + RETESTEO · Recorrido",
+    questions: [
+      {
+        id: "s03_room",
+        label: "RR10 · ¿Existe recorrido suficiente hacia el objetivo después de la ruptura?",
+        options: ROOM_SCALE,
+      },
+    ],
+  },
+  {
+    setup: "RUPTURA_RETESTEO",
+    sectionId: "ejecucion",
+    title: "S03 — RUPTURA + RETESTEO · Ejecución",
+    questions: [
+      {
+        id: "s03_entry_after_confirm",
+        label: "RR11 · ¿La entrada se realiza después de la confirmación sin perseguir el precio?",
+        options: ENTRY_SCALE,
+      },
+    ],
+  },
+  {
+    setup: "RUPTURA_RETESTEO",
+    sectionId: "disciplina",
+    title: "S03 — RUPTURA + RETESTEO · Disciplina",
+    questions: [
+      {
+        id: "s03_plan_respect",
+        label: "RR12 · ¿La operación respeta completamente las condiciones del plan?",
+        options: PLAN_SCALE,
       },
     ],
   },
   // ---------------------------------------------------------------- S04
+  {
+    setup: "ZONA_FIBONACCI",
+    sectionId: "contexto",
+    title: "S04 — ZONA + FIBONACCI · Contexto",
+    questions: [
+      {
+        id: "s04_prev_move",
+        label: "ZF1 · ¿Existe un movimiento previo suficientemente claro para aplicar Fibonacci?",
+        options: f5(
+          "Movimiento muy claro",
+          "Movimiento claro",
+          "Moderadamente claro",
+          "Poco claro",
+          "No existe",
+        ),
+      },
+    ],
+  },
   {
     setup: "ZONA_FIBONACCI",
     sectionId: "estructura",
@@ -1002,12 +1322,12 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
     questions: [
       {
         id: "s04_impulse_correct",
-        label: "¿El impulso utilizado para Fibonacci está correctamente identificado?",
+        label: "ZF2 · ¿El impulso utilizado para Fibonacci está correctamente identificado?",
         options: f5("Totalmente", "Correctamente", "Parcialmente", "Dudoso", "Incorrecto"),
       },
       {
         id: "s04_structure_sense",
-        label: "¿La estructura mantiene sentido con el retroceso planteado?",
+        label: "ZF3 · ¿La estructura mantiene sentido con el retroceso planteado?",
         options: f5("Totalmente", "Mayormente", "Parcialmente", "Débilmente", "No"),
       },
     ],
@@ -1018,20 +1338,28 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
     title: "S04 — ZONA + FIBONACCI · Zona",
     questions: [
       {
-        id: "s04_confluence_clear",
-        label: "¿La confluencia zona + Fibonacci es clara?",
-        options: f5("Muy clara", "Clara", "Parcial", "Débil", "No existe"),
+        id: "s04_zone_fibo_match",
+        label:
+          "ZF4 · ¿Existe una zona técnica relevante coincidente con el retroceso Fibonacci?",
+        options: f5(
+          "Coincidencia exacta",
+          "Coincidencia clara",
+          "Coincidencia parcial",
+          "Coincidencia débil",
+          "No coincide",
+        ),
       },
       {
-        id: "s04_price_reacting",
-        label: "¿El precio está reaccionando en la confluencia?",
-        options: f5(
-          "Reacción clara",
-          "Reacción fuerte",
-          "Reacción parcial",
-          "Reacción débil",
-          "Sin reacción",
-        ),
+        id: "s04_fibo_level",
+        label: "ZF5 · Nivel Fibonacci utilizado (descriptivo, no puntúa):",
+        hint: "Los niveles oficiales son metadata: identifican el retroceso, no puntúan.",
+        meta: true,
+        options: FIBO_META_OPTIONS,
+      },
+      {
+        id: "s04_confluence_clear",
+        label: "ZF6 · ¿La confluencia entre zona y Fibonacci es técnicamente clara?",
+        options: f5("Muy clara", "Clara", "Parcial", "Débil", "No existe"),
       },
     ],
   },
@@ -1041,19 +1369,25 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
     title: "S04 — ZONA + FIBONACCI · Confirmación",
     questions: [
       {
-        id: "s04_pattern_valid",
-        label: "¿Existe un patrón válido de cambio o continuidad cuando corresponde?",
+        id: "s04_price_reacting",
+        label: "ZF7 · ¿El precio reacciona en la confluencia zona + Fibonacci?",
         options: f5(
-          "Patrón confirmado",
-          "Patrón fuerte",
-          "Patrón parcialmente confirmado",
-          "En formación",
-          "No existe",
+          "Reacción clara",
+          "Reacción fuerte",
+          "Reacción parcial",
+          "Reacción débil",
+          "Sin reacción",
         ),
       },
       {
+        id: "s04_confirm_direction",
+        label: "ZF8 · ¿Existe confirmación de la dirección antes de la entrada?",
+        options: CONFIRM_SCALE,
+      },
+      {
         id: "s04_not_only_fibo",
-        label: "¿La entrada tiene confirmación suficiente y no depende únicamente de Fibonacci?",
+        label:
+          "ZF9 · ¿La entrada depende de la confirmación del precio y no únicamente de Fibonacci?",
         options: f5(
           "Confirmación completa",
           "Buena confirmación",
@@ -1064,20 +1398,87 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
       },
     ],
   },
+  {
+    setup: "ZONA_FIBONACCI",
+    sectionId: "riesgo",
+    title: "S04 — ZONA + FIBONACCI · Riesgo",
+    questions: [
+      {
+        id: "s04_stop_invalidation",
+        label: "ZF10 · ¿El Stop Loss está detrás de la invalidación estructural de la zona?",
+        options: STOP_SCALE,
+      },
+    ],
+  },
+  {
+    setup: "ZONA_FIBONACCI",
+    sectionId: "recorrido",
+    title: "S04 — ZONA + FIBONACCI · Recorrido",
+    questions: [
+      {
+        id: "s04_room",
+        label:
+          "ZF11 · ¿El objetivo ofrece recorrido suficiente respecto al riesgo y a las zonas opuestas?",
+        options: ROOM_SCALE,
+      },
+    ],
+  },
+  {
+    setup: "ZONA_FIBONACCI",
+    sectionId: "ejecucion",
+    title: "S04 — ZONA + FIBONACCI · Ejecución",
+    questions: [
+      {
+        id: "s04_entry_after_confirm",
+        label: "ZF12 · ¿La entrada se ejecuta después de la confirmación?",
+        options: ENTRY_SCALE,
+      },
+    ],
+  },
+  {
+    setup: "ZONA_FIBONACCI",
+    sectionId: "disciplina",
+    title: "S04 — ZONA + FIBONACCI · Disciplina",
+    questions: [
+      {
+        id: "s04_plan_respect",
+        label: "ZF13 · ¿Se respetan las reglas de aplicación de Fibonacci y el plan?",
+        options: PLAN_SCALE,
+      },
+    ],
+  },
   // ---------------------------------------------------------------- S05
+  {
+    setup: "IMPULSO_PULLBACK",
+    sectionId: "contexto",
+    title: "S05 — IMPULSO + PULLBACK · Contexto",
+    questions: [
+      {
+        id: "s05_impulse_clear",
+        label: "IP1 · ¿Existe un impulso claro y dominante?",
+        options: f5("Muy claro", "Claro", "Moderadamente claro", "Débil", "No existe"),
+      },
+    ],
+  },
   {
     setup: "IMPULSO_PULLBACK",
     sectionId: "estructura",
     title: "S05 — IMPULSO + PULLBACK · Estructura",
     questions: [
       {
-        id: "s05_impulse_clear",
-        label: "¿Existe un impulso claro y dominante?",
-        options: f5("Muy claro", "Claro", "Moderadamente claro", "Débil", "No existe"),
+        id: "s05_impulse_structure",
+        label: "IP2 · ¿El impulso genera una estructura coherente con la dirección operada?",
+        options: f5(
+          "Totalmente coherente",
+          "Coherente",
+          "Parcialmente coherente",
+          "Poco coherente",
+          "Incoherente",
+        ),
       },
       {
         id: "s05_pullback_valid",
-        label: "¿El pullback mantiene la estructura del impulso sin invalidarla?",
+        label: "IP3 · ¿El pullback mantiene la estructura del impulso sin invalidarla?",
         options: f5(
           "Perfectamente",
           "Bien",
@@ -1095,7 +1496,7 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
     questions: [
       {
         id: "s05_pullback_zone",
-        label: "¿El retroceso llega a una zona de interés para reanudar el movimiento?",
+        label: "IP4 · ¿El pullback llega a una zona de interés para reanudar el movimiento?",
         options: f5("Zona muy clara", "Zona clara", "Moderadamente clara", "Débil", "No existe"),
       },
     ],
@@ -1107,24 +1508,62 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
     questions: [
       {
         id: "s05_pullback_rejection",
-        label: "¿El pullback muestra rechazo o pérdida de presión contra la dirección del impulso?",
+        label:
+          "IP5 · ¿El pullback muestra rechazo o pérdida de presión contra la dirección del impulso?",
         options: f5("Evidencia clara", "Evidencia fuerte", "Parcial", "Débil", "No existe"),
       },
       {
-        id: "s05_pattern_valid",
-        label: "¿Existe un patrón válido de continuidad o confirmación?",
-        options: f5(
-          "Patrón confirmado",
-          "Patrón fuerte",
-          "Parcialmente confirmado",
-          "En formación",
-          "No existe",
-        ),
-      },
-      {
         id: "s05_confirm_resume",
-        label: "¿El precio confirma la reanudación del impulso?",
+        label: "IP6 · ¿El precio confirma la reanudación del impulso?",
         options: f5("Confirmación clara", "Confirmación fuerte", "Parcial", "Débil", "No confirma"),
+      },
+    ],
+  },
+  {
+    setup: "IMPULSO_PULLBACK",
+    sectionId: "riesgo",
+    title: "S05 — IMPULSO + PULLBACK · Riesgo",
+    questions: [
+      {
+        id: "s05_stop_invalidation",
+        label: "IP7 · ¿El Stop Loss queda detrás de la invalidación del pullback?",
+        options: STOP_SCALE,
+      },
+    ],
+  },
+  {
+    setup: "IMPULSO_PULLBACK",
+    sectionId: "recorrido",
+    title: "S05 — IMPULSO + PULLBACK · Recorrido",
+    questions: [
+      {
+        id: "s05_room",
+        label: "IP8 · ¿El objetivo permite capturar un recorrido razonable del impulso?",
+        options: ROOM_SCALE,
+      },
+    ],
+  },
+  {
+    setup: "IMPULSO_PULLBACK",
+    sectionId: "ejecucion",
+    title: "S05 — IMPULSO + PULLBACK · Ejecución",
+    questions: [
+      {
+        id: "s05_entry_no_chase",
+        label: "IP9 · ¿La entrada evita perseguir el impulso inicial?",
+        options: ENTRY_SCALE,
+      },
+    ],
+  },
+  {
+    setup: "IMPULSO_PULLBACK",
+    sectionId: "disciplina",
+    title: "S05 — IMPULSO + PULLBACK · Disciplina",
+    questions: [
+      {
+        id: "s05_plan_respect",
+        label: "IP10 · ¿La operación cumple las reglas del plan y no surge por FOMO?",
+        options: PLAN_SCALE,
       },
     ],
   },
