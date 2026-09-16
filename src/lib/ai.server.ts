@@ -167,6 +167,7 @@ type EvalRow = {
   hard_rules: string[] | null;
   emotional_stop: boolean | null;
   decision: string | null;
+  final_state?: string | null;
   result_r: number | null;
   followed_plan: string | null;
   answers: Record<string, unknown> | null;

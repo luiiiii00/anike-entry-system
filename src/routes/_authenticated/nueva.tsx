@@ -249,11 +249,13 @@ function NuevaEvaluacion() {
       return;
     }
 
-    if (
-      decisionValue === "registrado" &&
-      (decision.blocked || decision.finalState === "DESCARTADA")
-    ) {
-      toast.error("La operación está DESCARTADA por el sistema: no puede registrarse.");
+    // El servidor es la autoridad: aquí sólo se evita un envío que ya se sabe inválido.
+    if (decisionValue === "registrado" && decision.finalState !== "APROBADA") {
+      toast.error(
+        decision.finalState === "CONDICIONAL"
+          ? "La operación es CONDICIONAL: no cumple los gates obligatorios y no puede registrarse."
+          : "La operación es NO TRADE por el sistema: no puede registrarse.",
+      );
       return;
     }
     const saved = await persist("completed", decisionValue);
