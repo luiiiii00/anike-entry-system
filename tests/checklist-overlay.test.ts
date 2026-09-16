@@ -65,7 +65,9 @@ describe("editor de preguntas (capa de edición)", () => {
         ],
       }),
     );
-    for (const setup of Object.keys(catalog.setupQuestions) as (keyof typeof catalog.setupQuestions)[]) {
+    for (const setup of Object.keys(
+      catalog.setupQuestions,
+    ) as (keyof typeof catalog.setupQuestions)[]) {
       expect(catalog.setupQuestions[setup].some((q) => q.id === "x_nueva_comun")).toBe(true);
     }
   });
