@@ -75,12 +75,11 @@ export function QuestionList({
                 );
               })}
             </div>
-            {answers[q.id] &&
-              q.options.find((o) => o.v === answers[q.id])?.na && (
-                <p className="mt-2 text-[11px] text-muted-foreground">
-                  Marcado como no aplica: este criterio se excluye del cálculo, no penaliza.
-                </p>
-              )}
+            {answers[q.id] && q.options.find((o) => o.v === answers[q.id])?.na && (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Marcado como no aplica: este criterio se excluye del cálculo, no penaliza.
+              </p>
+            )}
           </div>
         );
       })}

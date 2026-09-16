@@ -768,10 +768,7 @@ export const QUESTION_TIMEFRAME: Record<string, Timeframe> = {
 };
 
 /** Timeframe asociado a una pregunta dentro de su bloque CORE. */
-export function questionTimeframe(
-  questionId: string,
-  sectionId: SectionId,
-): Timeframe | undefined {
+export function questionTimeframe(questionId: string, sectionId: SectionId): Timeframe | undefined {
   return QUESTION_TIMEFRAME[questionId] ?? SECTION_TIMEFRAME[sectionId];
 }
 
