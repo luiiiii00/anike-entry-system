@@ -124,13 +124,19 @@ export const saveEvaluationFn = createServerFn({ method: "POST" })
       direction: data.direction ?? null,
       market: data.market ?? null,
     });
-    const rejected = decision.blocked || decision.finalState === "DESCARTADA";
+    // Precedencia del motor: sólo una evaluación APROBADA puede registrarse.
+    // NO TRADE (HARD/freno emocional) y CONDICIONAL (gates o pendientes) no son registrables.
+    const rejected = decision.blocked || decision.finalState === "NO TRADE";
 
     let effectiveDecision: "registrado" | "no_trade" | null = null;
     if (data.status === "completed") {
       if (!data.decision) throw friendly("decision_required");
       if (!data.asset?.trim()) throw friendly("asset_required");
-      if (data.decision === "registrado" && rejected) throw friendly("trade_rejected_cannot_register");
+      if (data.decision === "registrado") {
+        if (rejected) throw friendly("trade_rejected_cannot_register");
+        if (!decision.complete) throw friendly("incomplete_cannot_register");
+        if (decision.finalState !== "APROBADA") throw friendly("conditional_cannot_register");
+      }
       effectiveDecision = data.decision;
     }
 
