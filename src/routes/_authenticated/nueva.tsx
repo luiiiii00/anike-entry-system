@@ -16,6 +16,7 @@ import {
   SESSIONS,
   answersForSetup,
   getQuestionsForSetup,
+  missingActiveAnswers,
   sectionGroupsForSetup,
   setupLabel,
   WIZARD_STEPS,
@@ -230,6 +231,21 @@ function NuevaEvaluacion() {
     if (!trade.asset.trim()) {
       toast.error("Falta el activo. Vuelve al paso 00 Trade.");
       setStep(1);
+      return;
+    }
+
+    // Toda pregunta del cuestionario activo es obligatoria: no hay "No aplica".
+    const missing = missingActiveAnswers(answers, trade.setup);
+    if (missing.length > 0) {
+      const first = missing[0]!;
+      toast.error(`Faltan ${missing.length} respuestas obligatorias del cuestionario.`);
+      const sectionIndex = WIZARD_STEPS.findIndex(
+        (w) =>
+          SECTIONS.find((sec) => sec.id === w.key)
+            ?.groups.flatMap((g) => g.questions)
+            .some((q) => q.id === first) ?? false,
+      );
+      if (sectionIndex >= 0) setStep(sectionIndex);
       return;
     }
 
