@@ -597,35 +597,24 @@ function degradeBlock(sectionId: string, limit: number) {
   const section = PRE_SECTIONS.find((s) => s.id === sectionId)!;
   const questions = section.groups.flatMap((g) => g.questions);
   let answers = { ...perfect };
+  // Estado que aparece cuando el bloque sólo puede bajar del gate activando una HARD.
+  let blockedBelow: string | null = null;
   for (const q of questions) {
     const opts = q.options.filter((o) => !o.na).sort((x, y) => x.pts - y.pts);
     for (const opt of opts) {
       const trial = { ...answers, [q.id]: opt.v };
       const d = decide(trial);
-      if (d.hardRules.length > 0 || d.emotional) continue;
+      if (d.hardRules.length > 0 || d.emotional) {
+        if (d.breakdown[section.id]!.percent < limit) blockedBelow = d.finalState;
+        continue;
+      }
       answers = trial;
-      const dd = decide(answers);
-      if (dd.breakdown[section.id]!.percent < limit)
-        return { answers, decision: dd, reached: true };
+      if (d.breakdown[section.id]!.percent < limit)
+        return { answers, decision: d, reached: true, blockedBelow };
       break;
     }
   }
-  return { answers, decision: decide(answers), reached: false };
-}
-
-/**
- * Primer estado que aparece al empeorar el bloque por debajo de `percent`: sirve para
- * demostrar que, cuando el gate no puede incumplirse sin HARD, el motor da NO TRADE.
- */
-function decideWorst(sectionId: string, percent: number): string | null {
-  const section = PRE_SECTIONS.find((s) => s.id === sectionId)!;
-  for (const q of section.groups.flatMap((g) => g.questions)) {
-    for (const opt of q.options.filter((o) => !o.na).sort((x, y) => x.pts - y.pts)) {
-      const d = decide({ ...perfect, [q.id]: opt.v });
-      if (d.breakdown[section.id]!.percent < percent) return d.finalState;
-    }
-  }
-  return null;
+  return { answers, decision: decide(answers), reached: false, blockedBelow };
 }
 
 describe("CORE — pesos y fórmula", () => {
@@ -715,7 +704,7 @@ describe("CORE — gates obligatorios", () => {
     { id: "recorrido", min: 60, case: "G" },
   ]) {
     it(`${gate.case}. ${gate.id} por debajo de ${gate.min}% => CONDICIONAL, no APROBADA`, () => {
-      const { decision, reached } = degradeBlock(gate.id, gate.min);
+      const { decision, reached, blockedBelow } = degradeBlock(gate.id, gate.min);
       expect(decision.hardRules).toEqual([]);
       expect(decision.emotional).toBe(false);
       if (reached) {
@@ -726,8 +715,7 @@ describe("CORE — gates obligatorios", () => {
         // El bloque no puede bajar del gate sin activar antes una HARD: precedencia
         // HARD → NO TRADE (nunca APROBADA con el gate incumplido).
         expect(decision.breakdown[gate.id as "zona"]!.percent).toBeGreaterThanOrEqual(gate.min);
-        const worse = decideWorst(gate.id, decision.breakdown[gate.id as "zona"]!.percent);
-        expect(worse).toBe("NO TRADE");
+        expect(blockedBelow).toBe("NO TRADE");
       }
     });
   }
