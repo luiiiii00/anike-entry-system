@@ -50,8 +50,10 @@ describe("seis matrices independientes (SETUP LIBRE + S01–S05)", () => {
 
   test("SETUP LIBRE conserva la MATRIZ ORIGINAL completa", () => {
     const free = new Set(SETUP_MATRIX.FREE);
-    for (const q of allBaseQuestions()) expect(free.has(q.id)).toBe(true);
-    expect(SETUP_MATRIX.FREE.length).toBe(allBaseQuestions().length);
+    const exclusive = new Set(OFFICIAL.flatMap((id) => SETUP_EXCLUSIVE_QUESTIONS[id]));
+    const original = allBaseQuestions().filter((q) => !exclusive.has(q.id));
+    for (const q of original) expect(free.has(q.id)).toBe(true);
+    expect(SETUP_MATRIX.FREE.length).toBe(original.length);
   });
 
   test("cada setup oficial usa exclusivamente su propia matriz", () => {
