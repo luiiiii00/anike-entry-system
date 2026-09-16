@@ -153,19 +153,19 @@ function NuevaEvaluacion() {
     setRisk(d.risk ?? {});
   }, [draftQuery.data]);
 
-  const decision = useMemo(
-    () =>
-      evaluate({
-        answers,
-        risk,
-        maxRiskPct: Number(settings?.max_risk_pct ?? 1),
-        setup: trade.setup,
-        preferredSetups: settings?.preferred_setups ?? [],
-        direction: trade.direction,
-        market: trade.market ?? null,
-      }),
-    [answers, risk, settings, trade.setup, trade.direction, trade.market, catalog.stamp],
-  );
+  const decision = useMemo(() => {
+    // `stamp` cambia cuando se carga la versión publicada del cuestionario.
+    void catalog.stamp;
+    return evaluate({
+      answers,
+      risk,
+      maxRiskPct: Number(settings?.max_risk_pct ?? 1),
+      setup: trade.setup,
+      preferredSetups: settings?.preferred_setups ?? [],
+      direction: trade.direction,
+      market: trade.market ?? null,
+    });
+  }, [answers, risk, settings, trade.setup, trade.direction, trade.market, catalog.stamp]);
   const metrics = useMemo(
     () => computeRisk(risk, trade.direction, { market: trade.market ?? null }),
     [risk, trade.direction, trade.market],
