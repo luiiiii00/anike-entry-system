@@ -63,7 +63,12 @@ export const FIBO_LEVELS = [
 /** Nivel predeterminado de Stop Loss (sugerido, nunca ejecutado automáticamente). */
 export const FIBO_SL_RATIO = 0.75;
 
-export const SECTIONS: Section[] = [
+/**
+ * Definición base del cuestionario. `SECTIONS` (lo que ve el usuario y lo que
+ * usa el cálculo) se deriva de aquí quitando cualquier opción "No aplica":
+ * regla ANIKE EJEPIKA — toda pregunta del cuestionario ACTIVO es obligatoria.
+ */
+const SECTIONS_SOURCE: Section[] = [
   {
     id: "comercio",
     step: "00",
@@ -701,6 +706,28 @@ export const SECTIONS: Section[] = [
   },
 ];
 
+/** Valor histórico "no aplica" ya guardado en evaluaciones antiguas (sólo lectura). */
+export const HISTORICAL_NA_VALUE = "na";
+
+/**
+ * Elimina las opciones "No aplica" del cuestionario activo. No borra datos:
+ * las respuestas históricas con valor "na" siguen leyéndose tal cual.
+ */
+function withoutNaOptions(sections: Section[]): Section[] {
+  return sections.map((section) => ({
+    ...section,
+    groups: section.groups.map((group) => ({
+      ...group,
+      questions: group.questions.map((question) => ({
+        ...question,
+        options: question.options.filter((option) => !option.na),
+      })),
+    })),
+  }));
+}
+
+export const SECTIONS: Section[] = withoutNaOptions(SECTIONS_SOURCE);
+
 export const SECTION_BY_ID = Object.fromEntries(SECTIONS.map((s) => [s.id, s])) as Record<
   SectionId,
   Section
@@ -1131,4 +1158,28 @@ export function answersForSetup(
     if (active.has(id)) next[id] = value;
   }
   return next;
+}
+
+/**
+ * Preguntas ACTIVAS del setup que aún no tienen respuesta. Toda pregunta activa
+ * es obligatoria: mientras la lista no esté vacía la evaluación está incompleta.
+ * Las preguntas post-cierre (Resultados) no bloquean la evaluación de entrada.
+ */
+export function missingActiveAnswers(
+  answers: Record<string, string>,
+  setupId: string | null | undefined,
+  options?: { includePostTrade?: boolean },
+): string[] {
+  const postTradeIds = new Set(
+    SECTIONS.filter((s) => s.postTrade).flatMap((s) =>
+      s.groups.flatMap((g) => g.questions.map((q) => q.id)),
+    ),
+  );
+  return getQuestionsForSetup(setupId)
+    .filter((q) => options?.includePostTrade === true || !postTradeIds.has(q.id))
+    .filter((q) => {
+      const value = answers[q.id];
+      return value === undefined || value === "";
+    })
+    .map((q) => q.id);
 }
