@@ -1806,7 +1806,12 @@ export const SESSIONS = ["Asia", "Londres", "Nueva York", "Overlap", "Fuera de s
  * La matriz NO modifica pesos, fórmula del score, gates, HARD rules ni estados.
  * =========================================================================== */
 
-/** Preguntas comunes a los 5 setups, declaradas de forma intencional. */
+/**
+ * CORE COMÚN MÍNIMO: sólo los criterios que los 5 setups comparten de verdad
+ * (identificación de la operación, contexto, estructura base, riesgo del CORE,
+ * recorrido, ejecución, disciplina y resultados post-cierre). Todo criterio
+ * técnico propio de un setup vive en `SETUP_EXCLUSIVE_QUESTIONS`.
+ */
 export const COMMON_QUESTION_IDS: string[] = [
   // Comercio
   "co_instrument",
@@ -1815,38 +1820,28 @@ export const COMMON_QUESTION_IDS: string[] = [
   "ctx_direction",
   "ctx_swings",
   "ctx_aligned",
-  "ctx_levels",
-  "ctx_near_zone",
-  // Estructura base
+  // Estructura base (criterios de HARD rules del CORE)
   "h1_structure",
   "h1_struct",
-  // Zona
+  // Zona base
   "z_relevance",
-  "z_reacted",
   "z_space",
-  "z_clear",
-  "z_mid",
-  // Confirmación base (incluye los criterios de HARD rules del CORE)
+  // Confirmación base (criterios de HARD rules del CORE)
   "cf5_diag_break",
   "cf5_close",
-  "cf_signal",
   "cf_basis",
   // Riesgo
-  "r_sl_fibo_ok",
   "r_invalidation",
   "r_stop_logic",
   "r_limit",
   "r_rr",
   "r_loss_ok",
   // Recorrido
-  "rc_target",
   "rc_room",
   "rc_rr2",
   // Ejecución
   "ex_conditions",
   "m5_timing",
-  "ex_plan",
-  "ex_respect",
   // Disciplina
   "ds_why",
   "ds_revenge",
@@ -1857,27 +1852,76 @@ export const COMMON_QUESTION_IDS: string[] = [
   "rs_process",
 ];
 
-/** Preguntas EXCLUSIVAS de cada setup oficial. Una pregunta sólo puede figurar en uno. */
-export const SETUP_EXCLUSIVE_QUESTIONS: Record<OfficialSetupId, string[]> = {
-  REVERSION: [
-    "h1_pattern_change",
-    "h1_pattern_change_state",
-    "h1_rsi_div",
-    "h1_rsi_div_fibo",
-    "cf_price_action",
-  ],
-  CONTINUACION: ["h1_pattern_cont", "h1_pattern_cont_state", "h1_macd", "cf5_macd_cross"],
-  RUPTURA_RETESTEO: ["cf5_retest", "cf5_retest_ok", "cf5_volume"],
-  ZONA_FIBONACCI: ["h1_fibo", "h1_fibo_react", "h1_fibo_weak", "z_type"],
-  IMPULSO_PULLBACK: ["cf5_rsi", "cf5_rsi_extended", "cf5_macd"],
+/**
+ * Criterios de la biblioteca ANIKE EJEPIKA reutilizados por un único setup
+ * (mantienen su `questionId` histórico para no perder evaluaciones antiguas).
+ */
+const SETUP_REUSED_QUESTIONS: Record<OfficialSetupId, string[]> = {
+  REVERSION: ["h1_pattern_change", "h1_pattern_change_state"],
+  CONTINUACION: ["h1_pattern_cont", "h1_pattern_cont_state"],
+  RUPTURA_RETESTEO: [],
+  ZONA_FIBONACCI: ["h1_fibo"],
+  IMPULSO_PULLBACK: [],
 };
 
 /**
- * Preguntas del CORE declaradas fuera de los 5 setups oficiales (categoría G).
- * Hoy no existe ninguna: la lista queda explícita para que cualquier alta futura
- * sea una decisión consciente y no un efecto de la ausencia de mapeo.
+ * Preguntas EXCLUSIVAS de cada setup oficial: los criterios específicos
+ * declarados en `SETUP_SPECIFIC` más los criterios reutilizados de la
+ * biblioteca. Una pregunta sólo puede figurar en un setup.
  */
-export const UNUSED_QUESTION_IDS: string[] = [];
+export const SETUP_EXCLUSIVE_QUESTIONS: Record<OfficialSetupId, string[]> = Object.fromEntries(
+  (
+    [
+      "REVERSION",
+      "CONTINUACION",
+      "RUPTURA_RETESTEO",
+      "ZONA_FIBONACCI",
+      "IMPULSO_PULLBACK",
+    ] as OfficialSetupId[]
+  ).map((setup) => [
+    setup,
+    [
+      ...SETUP_SPECIFIC.filter((b) => b.setup === setup).flatMap((b) =>
+        b.questions.map((q) => q.id),
+      ),
+      ...SETUP_REUSED_QUESTIONS[setup],
+    ],
+  ]),
+) as Record<OfficialSetupId, string[]>;
+
+/**
+ * Preguntas del CORE declaradas FUERA de los 5 setups oficiales: se conservan
+ * únicamente para leer evaluaciones antiguas. No entran en ningún cuestionario
+ * activo ni en el cálculo del score de una evaluación nueva.
+ */
+export const UNUSED_QUESTION_IDS: string[] = [
+  "ctx_levels",
+  "ctx_near_zone",
+  "z_type",
+  "z_reacted",
+  "z_clear",
+  "z_mid",
+  "h1_fibo_react",
+  "h1_fibo_weak",
+  "h1_rsi_div",
+  "h1_rsi_div_fibo",
+  "h1_macd",
+  "h1_pattern_cont",
+  "cf5_retest",
+  "cf5_retest_ok",
+  "cf5_macd",
+  "cf5_macd_cross",
+  "cf5_rsi",
+  "cf5_rsi_extended",
+  "cf5_volume",
+  "cf_price_action",
+  "cf_signal",
+  "r_sl_fibo_ok",
+  "rc_target",
+  "ex_plan",
+  "ex_respect",
+];
+
 
 /** Pregunta ya resuelta para un setup concreto: `setupId` es explícito. */
 export type SetupQuestion = Question & { setupId: OfficialSetupId; sectionId: SectionId };
