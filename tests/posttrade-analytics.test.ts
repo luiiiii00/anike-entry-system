@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import {
   analyzeEma50,
@@ -7,6 +7,7 @@ import {
   analyzeResult,
   buildAiPostTradeContext,
   finite,
+  refsFromRow,
   type PlannedRef,
   type RealRef,
 } from "@/lib/posttrade-analytics";
