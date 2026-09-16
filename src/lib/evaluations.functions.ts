@@ -173,7 +173,9 @@ export const saveEvaluationFn = createServerFn({ method: "POST" })
     const { data: row, error } = await supabaseAdmin
       .from("evaluations")
       .update({
-        score: decision.score,
+        // Se persiste el score VISIBLE (floor); la clasificación y el estado ya
+        // se decidieron con el score interno con decimales.
+        score: decision.scoreVisible,
         breakdown: decision.breakdown as unknown as Json,
         classification: decision.classification,
         hard_rules: decision.hardRules,
