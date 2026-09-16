@@ -1424,7 +1424,7 @@ export const SESSIONS = ["Asia", "Londres", "Nueva York", "Overlap", "Fuera de s
  * recorrido, ejecución, disciplina y resultados post-cierre). Todo criterio
  * técnico propio de un setup vive en `SETUP_EXCLUSIVE_QUESTIONS`.
  */
-export const COMMON_QUESTION_IDS: string[] = [
+const BASE_COMMON_QUESTION_IDS: string[] = [
   // Comercio
   "co_instrument",
   "co_conditions",
