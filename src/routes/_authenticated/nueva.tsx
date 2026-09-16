@@ -35,6 +35,7 @@ import { fetchEvaluation, fetchSettings, nextTradeNumber } from "@/lib/db";
 import { saveEvaluationFn } from "@/lib/evaluations.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/hooks/useAuth";
+import { useChecklistCatalog } from "@/hooks/useChecklistCatalog";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/nueva")({
@@ -101,6 +102,8 @@ function NuevaEvaluacion() {
   });
   const [answers, setAnswers] = useState<Answers>({});
   const [risk, setRisk] = useState<RiskData>({});
+  // Versión publicada del cuestionario (editor de administración).
+  const catalog = useChecklistCatalog();
 
   const settings = settingsQuery.data;
 
@@ -150,19 +153,19 @@ function NuevaEvaluacion() {
     setRisk(d.risk ?? {});
   }, [draftQuery.data]);
 
-  const decision = useMemo(
-    () =>
-      evaluate({
-        answers,
-        risk,
-        maxRiskPct: Number(settings?.max_risk_pct ?? 1),
-        setup: trade.setup,
-        preferredSetups: settings?.preferred_setups ?? [],
-        direction: trade.direction,
-        market: trade.market ?? null,
-      }),
-    [answers, risk, settings, trade.setup, trade.direction, trade.market],
-  );
+  const decision = useMemo(() => {
+    // `stamp` cambia cuando se carga la versión publicada del cuestionario.
+    void catalog.stamp;
+    return evaluate({
+      answers,
+      risk,
+      maxRiskPct: Number(settings?.max_risk_pct ?? 1),
+      setup: trade.setup,
+      preferredSetups: settings?.preferred_setups ?? [],
+      direction: trade.direction,
+      market: trade.market ?? null,
+    });
+  }, [answers, risk, settings, trade.setup, trade.direction, trade.market, catalog.stamp]);
   const metrics = useMemo(
     () => computeRisk(risk, trade.direction, { market: trade.market ?? null }),
     [risk, trade.direction, trade.market],
@@ -265,6 +268,14 @@ function NuevaEvaluacion() {
   }
 
   const progress = ((step + 1) / WIZARD_STEPS.length) * 100;
+
+  if (!catalog.ready) {
+    return (
+      <AppShell title="Nueva evaluación" subtitle="Preparando cuestionario">
+        <p className="text-sm text-muted-foreground">Cargando cuestionario...</p>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell

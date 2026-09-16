@@ -122,6 +122,27 @@ export type Database = {
         }
         Relationships: []
       }
+      checklist_overlays: {
+        Row: {
+          overlay: Json
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          overlay?: Json
+          status: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          overlay?: Json
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       email_outbox: {
         Row: {
           created_at: string

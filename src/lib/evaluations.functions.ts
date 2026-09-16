@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { evaluate, type Answers, type RiskData } from "@/lib/scoring";
+import { loadAndApplyPublishedOverlay } from "@/lib/checklist-overlay";
 import type { Evaluation } from "@/lib/db";
 import type { Json } from "@/integrations/supabase/types";
 
@@ -92,6 +93,10 @@ export const saveEvaluationFn = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const answers: Answers = data.answers;
     const risk = cleanRisk(data.risk);
+
+    // El cuestionario activo es el publicado desde administración (si existe):
+    // el servidor recalcula siempre con la misma versión que ve el usuario.
+    await loadAndApplyPublishedOverlay(supabase);
 
     const { data: settings } = await supabase
       .from("settings")
