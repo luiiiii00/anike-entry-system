@@ -23,6 +23,7 @@ import {
   BASE_SECTIONS,
   EVALUATION_SETUP_IDS,
   getActiveQuestionsBySetup,
+  questionTimeframe,
   setupLabel,
   type EvaluationSetupId,
   type SectionId,
@@ -264,16 +265,31 @@ function behaviorOf(type: RegistryType, id: string, weight: number): string {
   }
 }
 
+const score5 = (opts: [string, string][]): RegistryOption[] =>
+  opts.map(([value, label], i) => ({ value, label, factor: OFFICIAL_FACTORS[i]! }));
+
+/** Opciones descriptivas: METADATA nunca puntúa (factor 0). */
+const meta0 = (opts: [string, string][]): RegistryOption[] =>
+  opts.map(([value, label]) => ({ value, label, factor: 0 }));
+
 /**
- * Reactivos declarados en la especificación que TODAVÍA no pueden cerrarse sin
- * material fuente. Se registran (con tipo, condición y destino CORE) pero NO se
- * inyectan en el cuestionario: no alteran motor ni UI.
+ * Reactivos DECLARADOS del registro maestro (fuente cerrada por contrato). Se
+ * registran con tipo, condición, opciones y destino CORE, pero NO se inyectan en
+ * el cuestionario activo: no alteran motor, pesos, fórmula, gates ni UI.
  */
-const DECLARED_PENDING: Array<
+const DECLARED_RECORDS: Array<
   Pick<
     RegistryRecord,
-    "setup_id" | "question_id" | "block_id" | "type" | "concept" | "text" | "condition" | "source"
-  > & { pending_reason: string }
+    | "setup_id"
+    | "question_id"
+    | "block_id"
+    | "type"
+    | "concept"
+    | "text"
+    | "condition"
+    | "source"
+    | "options"
+  >
 > = [
   {
     setup_id: "RUPTURA_RETESTEO",
@@ -281,11 +297,13 @@ const DECLARED_PENDING: Array<
     block_id: "estructura",
     type: "METADATA",
     concept: "Variante de ruptura declarada (MOMENTUM o THREE_BODY)",
-    text: "Variante de ruptura utilizada (descriptivo, no puntúa):",
+    text: "¿Qué variante de ruptura se utilizará?",
     condition: null,
     source: "ANIKE EJEPIKA — S03 RUPTURA: variantes MOMENTUM / THREE_BODY",
-    pending_reason:
-      "Faltan las etiquetas definitivas de las variantes y su definición técnica en el material fuente.",
+    options: meta0([
+      ["MOMENTUM", "MOMENTUM"],
+      ["THREE_BODY", "THREE_BODY"],
+    ]),
   },
   {
     setup_id: "RUPTURA_RETESTEO",
@@ -293,10 +311,16 @@ const DECLARED_PENDING: Array<
     block_id: "confirmacion",
     type: "CONDITIONAL_SCORE",
     concept: "Calidad de la ruptura por momentum",
-    text: "PENDIENTE DE FUENTE — criterio de calidad de la ruptura por momentum.",
+    text: "¿Qué tan fuerte y válida es la ruptura por momentum?",
     condition: "s03_break_variant = MOMENTUM",
     source: "ANIKE EJEPIKA — S03 RUPTURA, variante MOMENTUM",
-    pending_reason: "El material fuente no define las 5 opciones/factores de la variante MOMENTUM.",
+    options: score5([
+      ["excelente", "Impulso fuerte, cierre limpio y ruptura inequívoca"],
+      ["fuerte", "Impulso claro y ruptura válida"],
+      ["parcial", "Ruptura moderada"],
+      ["debil", "Ruptura débil/dudosa"],
+      ["ausente", "No existe ruptura válida por momentum"],
+    ]),
   },
   {
     setup_id: "RUPTURA_RETESTEO",
@@ -304,11 +328,16 @@ const DECLARED_PENDING: Array<
     block_id: "confirmacion",
     type: "CONDITIONAL_SCORE",
     concept: "Calidad de la ruptura de tres cuerpos",
-    text: "PENDIENTE DE FUENTE — criterio de calidad de la ruptura de tres cuerpos.",
+    text: "¿Qué tan válida es la ruptura formada por tres cuerpos?",
     condition: "s03_break_variant = THREE_BODY",
     source: "ANIKE EJEPIKA — S03 RUPTURA, variante THREE_BODY",
-    pending_reason:
-      "El material fuente no define las 5 opciones/factores de la variante THREE_BODY.",
+    options: score5([
+      ["excelente", "Secuencia completa, clara y con cierre válido"],
+      ["fuerte", "Secuencia clara con pequeña imperfección"],
+      ["parcial", "Secuencia parcialmente formada"],
+      ["debil", "Secuencia débil/dudosa"],
+      ["ausente", "No existe una ruptura válida de tres cuerpos"],
+    ]),
   },
   {
     setup_id: "ZONA_FIBONACCI",
@@ -316,11 +345,16 @@ const DECLARED_PENDING: Array<
     block_id: "ejecucion",
     type: "METADATA",
     concept: "Modo de ejecución declarado (incluye GIRO)",
-    text: "Modo de ejecución de la entrada (descriptivo, no puntúa):",
+    text: "¿Qué modo de ejecución se utilizará?",
     condition: null,
     source: "ANIKE EJEPIKA — S04, execution_mode",
-    pending_reason:
-      "Sólo está documentado el modo GIRO; faltan los demás modos oficiales para cerrar la lista.",
+    options: meta0([
+      ["GIRO", "GIRO"],
+      ["CONTINUACION", "CONTINUACIÓN"],
+      ["REACCION_EN_ZONA", "REACCIÓN EN ZONA"],
+      ["RUPTURA_RETESTEO", "RUPTURA/RETESTEO"],
+      ["OTRO", "OTRO MODO DECLARADO"],
+    ]),
   },
   {
     setup_id: "ZONA_FIBONACCI",
@@ -328,10 +362,16 @@ const DECLARED_PENDING: Array<
     block_id: "confirmacion",
     type: "CONDITIONAL_SCORE",
     concept: "Cambio de dirección en la temporalidad de ejecución",
-    text: "PENDIENTE DE FUENTE — cambio de dirección en la temporalidad de ejecución.",
+    text: "¿Qué tan clara es la confirmación del cambio de dirección en la temporalidad de ejecución?",
     condition: "s04_execution_mode = GIRO",
     source: "ANIKE EJEPIKA — S04, condición execution_mode = GIRO",
-    pending_reason: "El material fuente no define las 5 opciones/factores de este criterio.",
+    options: score5([
+      ["excelente", "Cambio de dirección claramente confirmado"],
+      ["fuerte", "Cambio fuertemente confirmado"],
+      ["parcial", "Cambio parcialmente confirmado"],
+      ["debil", "Cambio débil/en desarrollo"],
+      ["ausente", "No existe confirmación de cambio de dirección"],
+    ]),
   },
   {
     setup_id: "ZONA_FIBONACCI",
@@ -339,11 +379,16 @@ const DECLARED_PENDING: Array<
     block_id: "estructura",
     type: "VALIDATION",
     concept: "Secuencia de cinco etapas (validación, sin doble puntuación)",
-    text: "PENDIENTE DE FUENTE — validación de la secuencia de cinco etapas.",
+    text: "¿Qué tan completa está la secuencia de cinco etapas exigida para S04?",
     condition: null,
     source: "ANIKE EJEPIKA — S04, secuencia de cinco etapas",
-    pending_reason:
-      "Faltan las cinco etapas nombradas y su criterio de validación (no puntúa: valida).",
+    options: score5([
+      ["excelente", "Las cinco etapas están completas y en orden"],
+      ["fuerte", "Cuatro etapas completas y la quinta en confirmación clara"],
+      ["parcial", "Tres etapas completas"],
+      ["debil", "Una o dos etapas completas"],
+      ["ausente", "Secuencia ausente o inválida"],
+    ]),
   },
   {
     setup_id: "IMPULSO_PULLBACK",
@@ -351,10 +396,16 @@ const DECLARED_PENDING: Array<
     block_id: "zona",
     type: "METADATA",
     concept: "Tipo de pullback",
-    text: "Tipo de pullback (descriptivo, no puntúa):",
+    text: "¿Qué tipo de pullback presenta el precio?",
     condition: null,
     source: "ANIKE EJEPIKA — S05, tipo de pullback",
-    pending_reason: "Falta la enumeración oficial de los tipos de pullback.",
+    options: meta0([
+      ["superficial", "Pullback superficial"],
+      ["moderado", "Pullback moderado"],
+      ["profundo", "Pullback profundo"],
+      ["complejo", "Pullback complejo"],
+      ["no_clasificable", "Pullback no clasificable"],
+    ]),
   },
   {
     setup_id: "IMPULSO_PULLBACK",
@@ -362,11 +413,16 @@ const DECLARED_PENDING: Array<
     block_id: "estructura",
     type: "VALIDATION",
     concept: "Pullback profundo (validación, nunca HARD automático)",
-    text: "PENDIENTE DE FUENTE — validación de pullback profundo.",
+    text: "¿El pullback profundo conserva la validez estructural del impulso?",
     condition: null,
     source: "ANIKE EJEPIKA — S05, pullback profundo",
-    pending_reason:
-      "Falta el umbral de profundidad y su criterio de validación; sólo un movimiento no válido puede bloquear.",
+    options: score5([
+      ["excelente", "Conserva completamente la estructura y no amenaza la invalidación"],
+      ["fuerte", "Conserva la estructura con margen reducido"],
+      ["parcial", "Se acerca a la invalidación pero todavía conserva la tesis"],
+      ["debil", "Está muy cerca de invalidar la estructura"],
+      ["ausente", "Invalidó el impulso"],
+    ]),
   },
 ];
 
@@ -490,37 +546,33 @@ export function buildRegistry(): RegistryRecord[] {
         pending_reason: null,
       });
     }
-    for (const pendingRec of DECLARED_PENDING.filter((p) => p.setup_id === setupId)) {
+    for (const rec of DECLARED_RECORDS.filter((p) => p.setup_id === setupId)) {
       order += 1;
-      const block = blockOf(pendingRec.block_id);
+      const block = blockOf(rec.block_id);
       records.push({
         setup_id: setupId,
         setup_label: setupLabel(setupId),
-        question_id: pendingRec.question_id,
-        block_id: pendingRec.block_id,
+        question_id: rec.question_id,
+        block_id: rec.block_id,
         block_code: block.code,
         block_title: block.title,
         order,
-        type: pendingRec.type,
-        concept: pendingRec.concept,
-        text: pendingRec.text,
-        condition: pendingRec.condition,
-        options: [],
-        internal_weight: 0,
+        type: rec.type,
+        concept: rec.concept,
+        text: rec.text,
+        condition: rec.condition,
+        options: rec.options,
+        internal_weight: rec.type === "METADATA" ? 0 : 1,
         core_target: {
-          block: pendingRec.block_id,
-          weight: CORE_WEIGHTS[pendingRec.block_id],
+          block: rec.block_id,
+          weight: CORE_WEIGHTS[rec.block_id],
           stage: block.postTrade ? "POST_TRADE" : "PRE_TRADE",
         },
-        behavior: behaviorOf(
-          pendingRec.type,
-          pendingRec.question_id,
-          CORE_WEIGHTS[pendingRec.block_id],
-        ),
-        timeframe: null,
-        source: pendingRec.source,
-        status: "PENDIENTE_DE_FUENTE",
-        pending_reason: pendingRec.pending_reason,
+        behavior: behaviorOf(rec.type, rec.question_id, CORE_WEIGHTS[rec.block_id]),
+        timeframe: questionTimeframe(rec.question_id, rec.block_id) ?? null,
+        source: rec.source,
+        status: "COMPLETO",
+        pending_reason: null,
       });
     }
   }

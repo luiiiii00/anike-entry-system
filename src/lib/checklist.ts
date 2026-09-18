@@ -78,6 +78,13 @@ const f5 = (l1: string, l2: string, l3: string, l4: string, l5: string): Option[
   { v: "ausente", label: l5, pts: 0 },
 ];
 
+/**
+ * Escala oficial 1,00 / 0,75 / 0,50 / 0,25 / 0,00 conservando los VALORES
+ * históricos que usan las HARD rules y los avisos CONDICIONAL del motor.
+ */
+const s5 = (opts: [string, string][]): Option[] =>
+  opts.map(([v, label], i) => ({ v, label, pts: [1, 0.75, 0.5, 0.25, 0][i]! }));
+
 export const INSTRUMENTS = ["BTC", "ETH", "SOL", "Forex", "Índices", "Otro"];
 
 /** Niveles oficiales de Fibonacci de ANIKE EJEPIKA. 0,75 es el SL predeterminado. */
@@ -119,9 +126,16 @@ const SECTIONS_SOURCE: Section[] = [
           },
           {
             id: "co_conditions",
-            label: "¿El mercado presenta condiciones adecuadas para operar?",
+            label:
+              "¿Las condiciones actuales del mercado son adecuadas para ejecutar la operación?",
             hint: "Una condición favorable no es una señal de entrada: solo habilita la evaluación.",
-            options: ynd(1, 0, 0.4),
+            options: s5([
+              ["si", "Condiciones totalmente adecuadas"],
+              ["mayormente", "Condiciones mayormente adecuadas"],
+              ["dudoso", "Condiciones parcialmente adecuadas"],
+              ["poco", "Condiciones poco adecuadas"],
+              ["no", "Condiciones inadecuadas"],
+            ]),
           },
         ],
       },
@@ -138,42 +152,59 @@ const SECTIONS_SOURCE: Section[] = [
         questions: [
           {
             id: "ctx_direction",
-            label: "¿Cuál es la dirección predominante?",
-            options: [
-              { v: "alcista", label: "Alcista", pts: 1 },
-              { v: "bajista", label: "Bajista", pts: 1 },
-              { v: "lateral", label: "Lateral", pts: 0.4 },
-              { v: "transicion", label: "Transición", pts: 0.4 },
-            ],
+            label:
+              "¿Qué tan definido está el contexto direccional respecto de la operación planteada?",
+            options: s5([
+              ["alineada", "Dirección claramente definida y alineada"],
+              ["definida", "Dirección definida, con leve pérdida de claridad"],
+              ["lateral", "Contexto lateral o neutral"],
+              ["transicion", "Contexto en transición o con dirección débil"],
+              ["contraria", "Dirección claramente contraria a la operación"],
+            ]),
           },
           {
             id: "ctx_swings",
-            label: "¿Cómo está formando el precio sus máximos y mínimos?",
-            options: [
-              { v: "crecientes", label: "Máximos y mínimos crecientes", pts: 1 },
-              { v: "decrecientes", label: "Máximos y mínimos decrecientes", pts: 1 },
-              { v: "lateral", label: "Estructura lateral", pts: 0.4 },
-              { v: "indefinida", label: "Estructura indefinida", pts: 0.2 },
-            ],
+            label: "¿Qué tan clara es la secuencia de máximos y mínimos del contexto superior?",
+            options: s5([
+              ["coherente", "Secuencia claramente creciente/decreciente y coherente"],
+              ["irregular", "Secuencia clara con una pequeña irregularidad"],
+              ["lateral", "Secuencia parcialmente definida/lateral"],
+              ["debil", "Secuencia débil o difícil de identificar"],
+              ["indefinida", "Secuencia indefinida o contradictoria"],
+            ]),
           },
           {
             id: "ctx_aligned",
-            label: "¿La operación está alineada con el contexto?",
-            options: [
-              { v: "si", label: "Sí", pts: 1 },
-              { v: "no", label: "No", pts: 0 },
-              { v: "parcial", label: "Parcialmente", pts: 0.5 },
-            ],
+            label: "¿La operación está alineada con el contexto superior?",
+            options: s5([
+              ["si", "Totalmente alineada"],
+              ["mayormente", "Mayormente alineada"],
+              ["parcial", "Parcialmente alineada"],
+              ["debil", "Débilmente alineada / presenta conflicto relevante"],
+              ["no", "Contraria al contexto"],
+            ]),
           },
           {
             id: "ctx_levels",
-            label: "¿Existen niveles importantes de soporte/resistencia?",
-            options: yn(1, 0.2),
+            label: "¿Qué tan claros y relevantes son los niveles técnicos del contexto?",
+            options: s5([
+              ["si", "Niveles claros, relevantes y correctamente identificados"],
+              ["claros_dudas", "Niveles claros con pequeñas dudas"],
+              ["parcial", "Niveles parcialmente definidos"],
+              ["poco_claros", "Niveles poco claros"],
+              ["no", "No existen niveles relevantes identificables"],
+            ]),
           },
           {
             id: "ctx_near_zone",
-            label: "¿El precio se encuentra cerca de una zona importante?",
-            options: yn(1, 0.2),
+            label: "¿La operación se encuentra cerca de una zona técnica relevante?",
+            options: s5([
+              ["si", "Claramente dentro o junto a una zona relevante"],
+              ["muy_proxima", "Muy próxima a una zona relevante"],
+              ["moderada", "Moderadamente próxima"],
+              ["lejana", "Lejana de la zona relevante"],
+              ["no", "No existe una zona relevante próxima"],
+            ]),
           },
         ],
       },
@@ -190,23 +221,25 @@ const SECTIONS_SOURCE: Section[] = [
         questions: [
           {
             id: "h1_structure",
-            label: "¿Qué estructura presenta actualmente el precio?",
-            options: [
-              { v: "alcista", label: "Alcista", pts: 1 },
-              { v: "bajista", label: "Bajista", pts: 1 },
-              { v: "lateral", label: "Lateral", pts: 0.4 },
-              { v: "cambio", label: "Cambio de estructura", pts: 0.7 },
-              { v: "no_definida", label: "No definida", pts: 0 },
-            ],
+            label: "¿Cuál es el estado de la estructura vigente del precio?",
+            options: s5([
+              ["definida", "Estructura claramente definida y coherente con la operación"],
+              ["leve", "Estructura definida con leve pérdida de claridad"],
+              ["lateral", "Estructura lateral"],
+              ["cambio", "Cambio de estructura en desarrollo"],
+              ["no_definida", "Estructura no definida o incompatible"],
+            ]),
           },
           {
             id: "h1_struct",
-            label: "¿La estructura confirma la dirección de la operación?",
-            options: [
-              { v: "si", label: "Sí", pts: 1 },
-              { v: "no", label: "No", pts: 0 },
-              { v: "parcial", label: "Parcialmente", pts: 0.5 },
-            ],
+            label: "¿Qué grado de confirmación estructural existe para la dirección operada?",
+            options: s5([
+              ["si", "Confirmación estructural completa"],
+              ["fuerte", "Confirmación fuerte"],
+              ["parcial", "Confirmación parcial"],
+              ["debil", "Confirmación débil"],
+              ["no", "Sin confirmación"],
+            ]),
           },
         ],
       },
@@ -302,13 +335,13 @@ const SECTIONS_SOURCE: Section[] = [
             id: "h1_fibo",
             label: "¿Qué nivel Fibonacci oficial está siendo utilizado?",
             hint: "0,75 es principalmente la referencia del SL predeterminado, no una señal de entrada por sí misma.",
-            options: [
-              { v: "0_618", label: "0,618", pts: 1 },
-              { v: "0_50", label: "0,50", pts: 1 },
-              { v: "0_38", label: "0,38", pts: 0.75 },
-              { v: "0_75", label: "0,75", pts: 0.75 },
-              NA_OPTION,
-            ],
+            options: s5([
+              ["0_618", "0,618"],
+              ["0_50", "0,50"],
+              ["0_38", "0,38"],
+              ["0_75", "0,75"],
+              ["otro", "Otro nivel / ninguno de los niveles oficiales"],
+            ]),
           },
         ],
       },
@@ -318,14 +351,26 @@ const SECTIONS_SOURCE: Section[] = [
         questions: [
           {
             id: "h1_fibo_react",
-            label: "¿El precio está reaccionando en la zona de Fibonacci?",
-            options: [...ynd(1, 0, 0.4), NA_OPTION],
+            label: "¿Qué tan clara es la reacción del precio en el nivel Fibonacci?",
+            options: s5([
+              ["si", "Reacción clara y fuerte"],
+              ["clara", "Reacción clara"],
+              ["dudoso", "Reacción parcial o dudosa"],
+              ["debil", "Reacción débil"],
+              ["no", "Sin reacción"],
+            ]),
           },
           {
             id: "h1_fibo_weak",
-            label: "¿Existe pérdida de fuerza durante el retroceso?",
+            label: "¿Qué tan evidente es la pérdida de fuerza durante el retroceso?",
             hint: "El agotamiento del retroceso es un confirmador, no un gatillo de entrada.",
-            options: [...ynd(1, 0.2, 0.5), NA_OPTION],
+            options: s5([
+              ["si", "Pérdida de fuerza muy clara"],
+              ["clara", "Pérdida de fuerza clara"],
+              ["dudoso", "Pérdida de fuerza parcial"],
+              ["debil", "Evidencia débil"],
+              ["no", "No existe pérdida de fuerza"],
+            ]),
           },
         ],
       },
@@ -334,19 +379,26 @@ const SECTIONS_SOURCE: Section[] = [
         questions: [
           {
             id: "h1_rsi_div",
-            label: "¿Existe divergencia entre el precio y el RSI?",
+            label: "¿Qué relación existe entre precio y RSI?",
             hint: "Si el precio testea el nivel de Fibonacci pero el RSI no hace nuevos mínimos/máximos, el agotamiento del retroceso puede ser una señal de pérdida de fuerza. Una divergencia no es una señal de entrada.",
-            options: [
-              { v: "alcista", label: "Divergencia alcista", pts: 1 },
-              { v: "bajista", label: "Divergencia bajista", pts: 1 },
-              { v: "no_existe", label: "Sin divergencia", pts: 0.4 },
-              NA_OPTION,
-            ],
+            options: s5([
+              ["favorable", "Divergencia claramente favorable a la operación"],
+              ["moderada", "Divergencia favorable pero moderada"],
+              ["no_existe", "Sin divergencia / señal neutral"],
+              ["poco_favorable", "Divergencia poco favorable"],
+              ["contraria", "Divergencia claramente contraria a la operación"],
+            ]),
           },
           {
             id: "h1_rsi_div_fibo",
-            label: "¿La divergencia aparece cerca del nivel de Fibonacci?",
-            options: ynNa(1, 0.3),
+            label: "¿Existe confluencia entre la divergencia del RSI y Fibonacci?",
+            options: s5([
+              ["si", "Confluencia clara y directa"],
+              ["fuerte", "Confluencia fuerte"],
+              ["parcial", "Confluencia parcial"],
+              ["debil", "Confluencia débil"],
+              ["no", "No existe confluencia"],
+            ]),
           },
         ],
       },
@@ -355,9 +407,15 @@ const SECTIONS_SOURCE: Section[] = [
         questions: [
           {
             id: "h1_macd",
-            label: "¿El histograma del MACD empieza a perder fuerza en la zona de Fibonacci?",
+            label: "¿Qué tan clara es la pérdida de fuerza del MACD en la zona?",
             hint: "Revisa que el histograma del MACD empiece a perder fuerza justo en la zona de Fibonacci.",
-            options: ynNa(1, 0.3),
+            options: s5([
+              ["si", "Muy clara y favorable"],
+              ["clara", "Clara"],
+              ["parcial", "Parcial"],
+              ["debil", "Débil"],
+              ["no", "No existe pérdida de fuerza favorable"],
+            ]),
           },
         ],
       },
@@ -373,37 +431,70 @@ const SECTIONS_SOURCE: Section[] = [
         questions: [
           {
             id: "z_type",
-            label: "¿Qué zona está siendo testeada?",
-            options: [
-              { v: "soporte", label: "Soporte", pts: 1 },
-              { v: "resistencia", label: "Resistencia", pts: 1 },
-              { v: "sop_res", label: "Soporte convertido en resistencia", pts: 1 },
-              { v: "res_sop", label: "Resistencia convertida en soporte", pts: 1 },
-              { v: "intermedia", label: "Zona intermedia", pts: 0.2 },
-              NA_OPTION,
-            ],
+            label: "¿Qué tipo de zona técnica está siendo testeada?",
+            options: s5([
+              ["soporte", "Soporte"],
+              ["resistencia", "Resistencia"],
+              ["sop_res", "Soporte convertido en resistencia"],
+              ["res_sop", "Resistencia convertida en soporte"],
+              ["intermedia", "Zona intermedia / sin zona válida"],
+            ]),
           },
           {
             id: "z_relevance",
-            label: "¿La zona tiene relevancia dentro del contexto 1D/1H?",
-            options: [
-              { v: "alta", label: "Alta", pts: 1 },
-              { v: "media", label: "Media", pts: 0.6 },
-              { v: "baja", label: "Baja", pts: 0.2 },
-            ],
+            label: "¿Qué tan relevante es la zona en el contexto 1D/1H?",
+            options: s5([
+              ["alta", "Relevancia alta y claramente validada"],
+              ["alta_media", "Relevancia alta/moderada"],
+              ["media", "Relevancia media"],
+              ["baja", "Relevancia baja"],
+              ["nula", "Sin relevancia técnica"],
+            ]),
           },
           {
             id: "z_reacted",
-            label: "¿El precio está reaccionando en la zona?",
-            options: ynd(1, 0, 0.4),
+            label: "¿Qué tan efectiva fue la reacción del precio en la zona?",
+            options: s5([
+              ["si", "Reacción clara y fuerte"],
+              ["clara", "Reacción clara"],
+              ["dudoso", "Reacción parcial/dudosa"],
+              ["debil", "Reacción débil"],
+              ["no", "Sin reacción"],
+            ]),
           },
           {
             id: "z_space",
-            label: "¿Existe espacio suficiente hasta la próxima zona de reacción?",
-            options: ynd(1, 0, 0.4),
+            label: "¿Existe espacio suficiente hasta la próxima zona relevante?",
+            options: s5([
+              ["si", "Espacio amplio y limpio"],
+              ["suficiente", "Espacio suficiente"],
+              ["dudoso", "Espacio justo"],
+              ["escaso", "Espacio escaso"],
+              ["no", "No existe espacio operativo suficiente"],
+            ]),
           },
-          { id: "z_clear", label: "¿Estoy entrando en una zona clara?", options: yn() },
-          { id: "z_mid", label: "¿Estoy evitando entrar en mitad del rango?", options: yn() },
+          {
+            id: "z_clear",
+            label: "¿Qué tan clara es la zona de entrada?",
+            options: s5([
+              ["si", "Zona perfectamente delimitada"],
+              ["clara", "Zona claramente delimitada"],
+              ["parcial", "Zona parcialmente delimitada"],
+              ["poco_clara", "Zona poco clara"],
+              ["no", "Zona inexistente o indeterminada"],
+            ]),
+          },
+          {
+            id: "z_mid",
+            label: "¿La entrada evita quedar en la mitad del rango?",
+            options: s5([
+              ["si", "Entrada claramente ubicada en zona válida, lejos del centro del rango"],
+              ["buena", "Buena ubicación con margen reducido"],
+              ["intermedia", "Ubicación aproximadamente intermedia"],
+              ["cercana", "Entrada demasiado cercana al centro del rango"],
+              ["no", "Entrada claramente en mitad de rango"],
+            ]),
+          },
         ],
       },
     ],
@@ -417,12 +508,28 @@ const SECTIONS_SOURCE: Section[] = [
       {
         title: "04.1 Ruptura de diagonal · 5M",
         questions: [
-          { id: "cf5_diag_break", label: "¿La diagonal fue rota?", options: yn() },
+          {
+            id: "cf5_diag_break",
+            label: "¿La ruptura de la diagonal está técnicamente confirmada?",
+            options: s5([
+              ["si", "Ruptura clara y válida"],
+              ["fuerte", "Ruptura fuerte con mínima duda"],
+              ["parcial", "Ruptura parcial/en desarrollo"],
+              ["debil", "Ruptura débil o dudosa"],
+              ["no", "No existe ruptura válida"],
+            ]),
+          },
           {
             id: "cf5_close",
-            label: "¿La vela de 5M cerró fuera de la diagonal?",
+            label: "¿Existe cierre de vela fuera de la diagonal?",
             hint: "Una ruptura intravela no es confirmación. El cierre de la vela es un criterio independiente.",
-            options: yn(),
+            options: s5([
+              ["si", "Cierre claro fuera de la diagonal"],
+              ["valido", "Cierre válido con pequeña duda"],
+              ["parcial", "Cierre parcialmente confirmado"],
+              ["debil", "Cierre débil o muy cercano a la diagonal"],
+              ["no", "No hay cierre válido fuera"],
+            ]),
           },
         ],
       },
@@ -431,13 +538,25 @@ const SECTIONS_SOURCE: Section[] = [
         questions: [
           {
             id: "cf5_retest",
-            label: "¿Existe retesteo después de la ruptura?",
-            options: ynNa(1, 0.4),
+            label: "¿Existe un retesteo después de la ruptura?",
+            options: s5([
+              ["si", "Retesteo claro y completo"],
+              ["claro", "Retesteo claro"],
+              ["parcial", "Retesteo parcial/en desarrollo"],
+              ["debil", "Retesteo débil o dudoso"],
+              ["no", "No existe retesteo"],
+            ]),
           },
           {
             id: "cf5_retest_ok",
-            label: "¿El retesteo respeta la nueva estructura?",
-            options: [...ynd(1, 0, 0.4), NA_OPTION],
+            label: "¿Qué tan válido es el retesteo?",
+            options: s5([
+              ["si", "Retesteo perfectamente válido y respetado"],
+              ["valido", "Retesteo válido"],
+              ["dudoso", "Retesteo parcialmente válido"],
+              ["debil", "Retesteo débil o dudoso"],
+              ["no", "Retesteo inválido"],
+            ]),
           },
         ],
       },
@@ -446,14 +565,26 @@ const SECTIONS_SOURCE: Section[] = [
         questions: [
           {
             id: "cf5_macd",
-            label: "Una vez rota la diagonal, ¿la entrada está validada por el MACD?",
+            label: "¿El MACD valida la continuación después de la ruptura?",
             hint: "Una vez rota la diagonal, valida la entrada con el cruce de líneas del MACD. Es un confirmador, no una orden de entrada.",
-            options: ynNa(1, 0.2),
+            options: s5([
+              ["si", "Validación clara y fuerte"],
+              ["clara", "Validación clara"],
+              ["parcial", "Validación parcial"],
+              ["debil", "Validación débil"],
+              ["no", "No valida"],
+            ]),
           },
           {
             id: "cf5_macd_cross",
-            label: "¿Existe cruce de MACD con su línea de señal?",
-            options: ynNa(1, 0.3),
+            label: "¿El MACD presenta cruce con su línea de señal favorable a la operación?",
+            options: s5([
+              ["si", "Cruce claro y confirmado"],
+              ["desarrollo", "Cruce claro en desarrollo"],
+              ["parcial", "Cruce parcial/dudoso"],
+              ["debil", "Señal débil"],
+              ["no", "No existe cruce favorable"],
+            ]),
           },
         ],
       },
@@ -462,14 +593,27 @@ const SECTIONS_SOURCE: Section[] = [
         questions: [
           {
             id: "cf5_rsi",
-            label: "¿El RSI permite una entrada sin perseguir el movimiento?",
+            label: "¿El RSI permite una entrada sin perseguir el precio?",
             hint: "El RSI sirve para evitar comprar/vender justo cuando la ruptura ya dejó el movimiento sobreextendido.",
-            options: ynd(1, 0, 0.4),
+            options: s5([
+              ["si", "RSI claramente favorable y sin extensión problemática"],
+              ["favorable", "RSI favorable"],
+              ["dudoso", "RSI neutral"],
+              ["poco_favorable", "RSI poco favorable"],
+              ["no", "RSI claramente desfavorable/extremo"],
+            ]),
           },
           {
             id: "cf5_rsi_extended",
-            label: "¿El movimiento ya está sobrecomprado/sobrevendido?",
-            options: yn(0, 1),
+            label:
+              "¿El RSI presenta extensión sobrecomprada/sobrevendida que perjudica la entrada?",
+            options: s5([
+              ["no", "No existe extensión perjudicial y la condición es óptima"],
+              ["minima", "Extensión mínima"],
+              ["moderada", "Extensión moderada"],
+              ["relevante", "Extensión relevante"],
+              ["si", "Extensión extrema que invalida la condición"],
+            ]),
           },
         ],
       },
@@ -478,27 +622,26 @@ const SECTIONS_SOURCE: Section[] = [
         questions: [
           {
             id: "cf_price_action",
-            label: "¿La acción del precio de la vela confirma la dirección?",
-            options: [
-              { v: "si", label: "Sí", pts: 1 },
-              { v: "no", label: "No", pts: 0 },
-              { v: "dudosa", label: "Dudosa", pts: 0.4 },
-              NA_OPTION,
-            ],
+            label: "¿Qué tan clara es la acción del precio de la vela de confirmación?",
+            options: s5([
+              ["si", "Acción del precio muy clara y favorable"],
+              ["clara", "Clara y favorable"],
+              ["dudosa", "Parcial/dudosa"],
+              ["debil", "Débil"],
+              ["no", "Contraria o inexistente"],
+            ]),
           },
           {
             id: "cf_signal",
-            label: "Tipo de vela:",
+            label: "¿Qué tipo y calidad tiene la vela de señal?",
             hint: "Un patrón de vela individual no es una señal automática.",
-            options: [
-              { v: "rechazo", label: "Rechazo", pts: 1 },
-              { v: "impulso", label: "Impulso", pts: 1 },
-              { v: "envolvente", label: "Envolvente", pts: 1 },
-              { v: "pin_bar", label: "Pin bar", pts: 1 },
-              { v: "indecision", label: "Indecisión", pts: 0.3 },
-              { v: "otra", label: "Otra", pts: 0.5 },
-              NA_OPTION,
-            ],
+            options: s5([
+              ["rechazo", "Rechazo / impulso / envolvente / pin bar claramente favorable"],
+              ["impulso", "Patrón de señal favorable claro pero menos contundente"],
+              ["otra", "Señal aceptable pero moderada"],
+              ["indecision", "Indecisión o señal débil"],
+              ["contraria", "Señal contraria o ausencia de señal"],
+            ]),
           },
         ],
       },
@@ -507,23 +650,26 @@ const SECTIONS_SOURCE: Section[] = [
         questions: [
           {
             id: "cf5_volume",
-            label: "¿El volumen acompaña la ruptura?",
+            label: "¿El volumen acompaña la confirmación?",
             hint: "El volumen es confirmador, no un gatillo independiente.",
-            options: [
-              { v: "si", label: "Sí", pts: 1 },
-              { v: "no", label: "No", pts: 0.2 },
-              { v: "dudoso", label: "Dudoso", pts: 0.5 },
-              { v: "no_disponible", label: "No disponible", pts: 0, na: true },
-              NA_OPTION,
-            ],
+            options: s5([
+              ["si", "Acompañamiento claro y fuerte"],
+              ["claro", "Acompañamiento claro"],
+              ["dudoso", "Acompañamiento parcial/dudoso"],
+              ["debil", "Acompañamiento débil"],
+              ["no", "No acompaña"],
+            ]),
           },
           {
             id: "cf_basis",
-            label: "La entrada se basa en:",
-            options: [
-              { v: "objetivo", label: "Algo objetivo", pts: 1 },
-              { v: "intuicion", label: "Intuición", pts: 0 },
-            ],
+            label: "¿La entrada tiene una base técnica objetiva?",
+            options: s5([
+              ["objetivo", "Base técnica objetiva, completa y documentada"],
+              ["clara", "Base objetiva clara"],
+              ["parcial", "Base parcialmente objetiva"],
+              ["debil", "Base débil y con alta dependencia de interpretación"],
+              ["intuicion", "Entrada basada en intuición sin criterio técnico"],
+            ]),
           },
         ],
       },
@@ -540,26 +686,37 @@ const SECTIONS_SOURCE: Section[] = [
         questions: [
           {
             id: "r_sl_fibo_ok",
-            label: "¿El SL predeterminado en 0,75 es compatible con la estructura?",
+            label: "¿El Stop Loss es compatible con el nivel 0,75 de Fibonacci y la estructura?",
             hint: "El nivel 0,75 es el SL predeterminado sugerido. El sistema nunca coloca órdenes reales.",
-            options: [
-              { v: "si", label: "Sí", pts: 1 },
-              { v: "no", label: "No", pts: 0 },
-              { v: "revision", label: "Requiere revisión", pts: 0.4 },
-            ],
+            options: s5([
+              ["si", "Compatible y correctamente ubicado"],
+              ["compatible", "Compatible con pequeño margen de revisión"],
+              ["revision", "Compatible parcialmente / requiere revisión"],
+              ["ajustado", "Demasiado ajustado o poco compatible"],
+              ["no", "Incompatible con la invalidación estructural"],
+            ]),
           },
           {
             id: "r_invalidation",
-            label: "¿Sé exactamente dónde mi idea queda invalidada?",
-            options: yn(),
+            label: "¿Está definido un punto claro de invalidación?",
+            options: s5([
+              ["si", "Invalidación clara, objetiva y estructural"],
+              ["clara", "Invalidación clara"],
+              ["parcial", "Invalidación parcialmente definida"],
+              ["debil", "Invalidación débil o ambigua"],
+              ["no", "No existe invalidación definida"],
+            ]),
           },
           {
             id: "r_stop_logic",
-            label: "Mi stop:",
-            options: [
-              { v: "logica", label: "Tiene lógica", pts: 1 },
-              { v: "por_poner", label: 'Está puesto "por poner"', pts: 0 },
-            ],
+            label: "¿El Stop Loss tiene una lógica técnica definida?",
+            options: s5([
+              ["logica", "Lógica técnica completa y estructural"],
+              ["clara", "Lógica clara"],
+              ["parcial", "Lógica parcial"],
+              ["debil", "Lógica débil / poco justificada"],
+              ["por_poner", "Stop colocado sin lógica técnica"],
+            ]),
           },
         ],
       },
@@ -568,8 +725,14 @@ const SECTIONS_SOURCE: Section[] = [
         questions: [
           {
             id: "r_limit",
-            label: "¿El riesgo por operación está dentro del límite establecido?",
-            options: yn(),
+            label: "¿El riesgo monetario está dentro del límite establecido?",
+            options: s5([
+              ["si", "Totalmente dentro del límite"],
+              ["margen", "Dentro con margen reducido"],
+              ["cerca", "Cerca del límite"],
+              ["ligeramente", "Ligeramente por encima del límite"],
+              ["no", "Claramente por encima del límite"],
+            ]),
           },
           {
             id: "r_rr",
@@ -584,8 +747,14 @@ const SECTIONS_SOURCE: Section[] = [
           },
           {
             id: "r_loss_ok",
-            label: "¿La pérdida de este trade es aceptable para mi cuenta?",
-            options: yn(),
+            label: "¿La pérdida potencial es aceptable y coherente con el plan?",
+            options: s5([
+              ["si", "Totalmente aceptable"],
+              ["aceptable", "Aceptable"],
+              ["reservas", "Aceptable con reservas"],
+              ["poco", "Poco aceptable"],
+              ["no", "Inaceptable"],
+            ]),
           },
         ],
       },
@@ -601,25 +770,37 @@ const SECTIONS_SOURCE: Section[] = [
         questions: [
           {
             id: "rc_target",
-            label: "¿Cuál es el objetivo lógico?",
-            options: [
-              { v: "max_anterior", label: "Máximo anterior", pts: 1 },
-              { v: "min_anterior", label: "Mínimo anterior", pts: 1 },
-              { v: "prox_resistencia", label: "Próxima resistencia", pts: 1 },
-              { v: "prox_soporte", label: "Próximo soporte", pts: 1 },
-              { v: "liquidez", label: "Zona de liquidez", pts: 1 },
-              { v: "otro", label: "Otro", pts: 0.5 },
-            ],
+            label: "¿Qué tipo de referencia técnica se utiliza para el objetivo?",
+            options: s5([
+              ["max_anterior", "Máximo/mínimo anterior claramente relevante según dirección"],
+              ["prox_resistencia", "Próxima resistencia/soporte claramente relevante"],
+              ["zona_tecnica", "Zona técnica relevante"],
+              ["liquidez", "Zona de liquidez relevante pero menos directa"],
+              ["otro", "Objetivo arbitrario o sin referencia técnica"],
+            ]),
           },
           {
             id: "rc_room",
             label: "¿Existe recorrido suficiente hasta el objetivo?",
-            options: ynd(1, 0, 0.4),
+            options: s5([
+              ["si", "Recorrido amplio y limpio"],
+              ["suficiente", "Recorrido suficiente"],
+              ["dudoso", "Recorrido justo"],
+              ["escaso", "Recorrido escaso"],
+              ["no", "Sin recorrido suficiente"],
+            ]),
           },
           {
             id: "rc_rr2",
-            label: "¿El recorrido permite mantener R/R ≥ 1:2?",
-            options: yn(),
+            label: "¿El recorrido permite alcanzar un R:R mínimo de 1:2?",
+            hint: "El R:R lo calcula el motor: esta respuesta no sustituye el cálculo automático.",
+            options: s5([
+              ["si", "R:R claramente ≥ 1:2 con margen"],
+              ["margen", "R:R ≥ 1:2 con margen reducido"],
+              ["aprox", "R:R aproximadamente 1:2"],
+              ["inferior", "R:R inferior a 1:2"],
+              ["no", "R:R claramente inferior a 1:2 / no viable"],
+            ]),
           },
         ],
       },
@@ -635,30 +816,47 @@ const SECTIONS_SOURCE: Section[] = [
         questions: [
           {
             id: "ex_conditions",
-            label: "¿Todas las condiciones principales fueron cumplidas antes de entrar?",
-            options: [
-              { v: "si", label: "Sí", pts: 1 },
-              { v: "no", label: "No", pts: 0 },
-              { v: "parcial", label: "Parcialmente", pts: 0.5 },
-            ],
+            label: "¿Se cumplen las condiciones previas exigidas por el setup?",
+            options: s5([
+              ["si", "Todas las condiciones cumplidas"],
+              ["casi", "Casi todas, con desviación mínima"],
+              ["parcial", "Cumplimiento parcial"],
+              ["varias", "Varias condiciones incumplidas"],
+              ["no", "Condiciones esenciales incumplidas"],
+            ]),
           },
           {
             id: "m5_timing",
-            label: "¿La entrada se realizó después de la confirmación?",
-            options: [
-              { v: "despues", label: "Sí", pts: 1 },
-              { v: "antes", label: "No", pts: 0 },
-            ],
+            label: "¿La entrada ocurre en el momento correcto respecto de la confirmación?",
+            options: s5([
+              ["despues", "Entrada inmediatamente después de confirmación válida, sin perseguir"],
+              ["leve", "Entrada correcta con leve retraso"],
+              ["moderada", "Entrada moderadamente tardía/anticipada"],
+              ["desfasada", "Entrada claramente desfasada"],
+              ["antes", "Entrada sin confirmación o claramente fuera de timing"],
+            ]),
           },
           {
             id: "ex_plan",
-            label: "¿La entrada fue ejecutada según el plan?",
-            options: yn(),
+            label: "¿La ejecución se realiza conforme al plan?",
+            options: s5([
+              ["si", "Cumplimiento completo"],
+              ["casi", "Cumplimiento casi completo"],
+              ["parcial", "Cumplimiento parcial"],
+              ["desviacion", "Desviación importante"],
+              ["no", "Incumplimiento del plan"],
+            ]),
           },
           {
             id: "ex_respect",
-            label: "¿Voy a respetar el plan sin moverlo por impulso?",
-            options: yn(),
+            label: "¿Se mantiene el plan sin modificarlo durante la ejecución?",
+            options: s5([
+              ["si", "Se mantiene completamente"],
+              ["minima", "Se mantiene con desviación mínima"],
+              ["parcial", "Se modifica parcialmente sin alterar la tesis central"],
+              ["importante", "Se modifica de forma importante"],
+              ["no", "Se modifica para justificar la entrada/posición"],
+            ]),
           },
         ],
       },
@@ -674,29 +872,47 @@ const SECTIONS_SOURCE: Section[] = [
         questions: [
           {
             id: "ds_why",
-            label: "¿Estoy entrando porque el sistema lo permite o por FOMO?",
-            options: [
-              { v: "senal", label: "Sistema", pts: 1 },
-              { v: "impulso", label: "FOMO", pts: 0 },
-            ],
+            label: "¿Cuál es el motivo real de la entrada?",
+            options: s5([
+              ["senal", "Setup ANIKE EJEPIKA plenamente identificado"],
+              ["senal_duda", "Setup identificado con mínima duda"],
+              ["tecnico_parcial", "Motivo técnico parcialmente definido"],
+              ["debil", "Motivo débil/emocional parcialmente presente"],
+              ["impulso", "FOMO / entrada sin criterio del sistema"],
+            ]),
           },
           {
             id: "ds_revenge",
-            label: "¿Estoy intentando recuperar una pérdida?",
-            options: yn(0, 1),
+            label: "¿Existe intención de recuperar una pérdida mediante esta operación?",
+            options: s5([
+              ["no", "No existe intención de revancha"],
+              ["practicamente_no", "Prácticamente no existe"],
+              ["duda", "Existe una duda leve"],
+              ["componente", "Existe componente de revancha"],
+              ["si", "La operación es claramente de revancha"],
+            ]),
           },
           {
             id: "ds_rules",
-            label: "¿Estoy modificando las reglas para justificar la entrada?",
-            options: yn(0, 1),
+            label: "¿Se están modificando las reglas para justificar la operación?",
+            options: s5([
+              ["no", "No se modifican reglas"],
+              ["minima", "Desviación mínima sin alterar reglas"],
+              ["parcial", "Modificación parcial"],
+              ["importante", "Modificación importante"],
+              ["si", "Se modifican reglas explícitamente para justificar la entrada"],
+            ]),
           },
           {
             id: "ds_plan",
-            label: "¿Estoy respetando mi plan?",
-            options: [
-              { v: "cumple", label: "Sí", pts: 1 },
-              { v: "forzando", label: "No", pts: 0 },
-            ],
+            label: "¿La operación respeta el plan definido antes de ejecutarla?",
+            options: s5([
+              ["cumple", "Respeto total"],
+              ["casi", "Respeto casi total"],
+              ["parcial", "Respeto parcial"],
+              ["desviacion", "Desviación importante"],
+              ["forzando", "No respeta el plan"],
+            ]),
           },
         ],
       },
@@ -722,12 +938,14 @@ const SECTIONS_SOURCE: Section[] = [
           },
           {
             id: "rs_process",
-            label: "¿La calidad del proceso fue la esperada, más allá del resultado?",
-            options: [
-              { v: "si", label: "Sí", pts: 1 },
-              { v: "no", label: "No", pts: 0 },
-              { v: "parcial", label: "Parcialmente", pts: 0.5 },
-            ],
+            label: "¿Qué tan correctamente se ejecutó el proceso completo de la operación?",
+            options: s5([
+              ["si", "Proceso completo y disciplinado"],
+              ["minima", "Proceso correcto con desviación mínima"],
+              ["parcial", "Proceso parcialmente correcto"],
+              ["errores", "Proceso con errores importantes"],
+              ["no", "Proceso incumplido"],
+            ]),
           },
         ],
       },
