@@ -686,8 +686,7 @@ const SECTIONS_SOURCE: Section[] = [
         questions: [
           {
             id: "r_sl_fibo_ok",
-            label:
-              "¿El Stop Loss es compatible con el nivel 0,75 de Fibonacci y la estructura?",
+            label: "¿El Stop Loss es compatible con el nivel 0,75 de Fibonacci y la estructura?",
             hint: "El nivel 0,75 es el SL predeterminado sugerido. El sistema nunca coloca órdenes reales.",
             options: s5([
               ["si", "Compatible y correctamente ubicado"],

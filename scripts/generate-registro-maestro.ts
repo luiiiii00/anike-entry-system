@@ -23,10 +23,7 @@ lines.push("# REGISTRO TÉCNICO MAESTRO — MATRIZ ANIKE EJEPIKA", "");
 lines.push(
   "Generado desde `src/lib/checklist-registry.ts` (fuente: matriz activa en `src/lib/checklist.ts`).",
 );
-lines.push(
-  "Este registro NO modifica pesos CORE, fórmula, gates, HARD, umbral 80 ni estados.",
-  "",
-);
+lines.push("Este registro NO modifica pesos CORE, fórmula, gates, HARD, umbral 80 ni estados.", "");
 lines.push(`- Total de reactivos registrados: **${summary.total}**`);
 lines.push(`- COMPLETOS: **${summary.complete}**`);
 lines.push(`- PENDIENTE_DE_FUENTE: **${summary.pending}**`);
@@ -59,7 +56,10 @@ for (const r of records) {
 }
 lines.push("");
 
-writeFileSync(new URL("../docs/REGISTRO-MAESTRO-ANIKE-EJEPIKA.md", import.meta.url), lines.join("\n"));
+writeFileSync(
+  new URL("../docs/REGISTRO-MAESTRO-ANIKE-EJEPIKA.md", import.meta.url),
+  lines.join("\n"),
+);
 console.log(
   `Registro generado: ${summary.total} reactivos · ${summary.complete} COMPLETOS · ${summary.pending} PENDIENTES · ${issues.length} errores de esquema`,
 );
