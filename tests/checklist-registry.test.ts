@@ -91,7 +91,9 @@ describe("registro técnico maestro ANIKE EJEPIKA", () => {
   });
 
   it("las variantes condicionales de S03 nunca puntúan a la vez", () => {
-    const variants = records.filter((r) => r.type === "CONDITIONAL_SCORE" && r.setup_id === "RUPTURA_RETESTEO");
+    const variants = records.filter(
+      (r) => r.type === "CONDITIONAL_SCORE" && r.setup_id === "RUPTURA_RETESTEO",
+    );
     expect(variants.length).toBe(2);
     expect(new Set(variants.map((v) => v.condition))).toEqual(
       new Set(["s03_break_variant = MOMENTUM", "s03_break_variant = THREE_BODY"]),

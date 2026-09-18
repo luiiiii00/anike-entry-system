@@ -296,8 +296,7 @@ const DECLARED_PENDING: Array<
     text: "PENDIENTE DE FUENTE — criterio de calidad de la ruptura por momentum.",
     condition: "s03_break_variant = MOMENTUM",
     source: "ANIKE EJEPIKA — S03 RUPTURA, variante MOMENTUM",
-    pending_reason:
-      "El material fuente no define las 5 opciones/factores de la variante MOMENTUM.",
+    pending_reason: "El material fuente no define las 5 opciones/factores de la variante MOMENTUM.",
   },
   {
     setup_id: "RUPTURA_RETESTEO",
@@ -428,7 +427,12 @@ function recordFromQuestion(
     block_title: block.title,
     order,
     type,
-    concept: CONCEPTS[q.id] ?? q.label.replace(/^[A-Z]+\d+\s·\s/, "").replace(/[¿?:]/g, "").trim(),
+    concept:
+      CONCEPTS[q.id] ??
+      q.label
+        .replace(/^[A-Z]+\d+\s·\s/, "")
+        .replace(/[¿?:]/g, "")
+        .trim(),
     text: q.label,
     condition: null,
     options: q.options.map((o) => ({ value: o.v, label: o.label, factor: o.pts })),
@@ -508,7 +512,11 @@ export function buildRegistry(): RegistryRecord[] {
           weight: CORE_WEIGHTS[pendingRec.block_id],
           stage: block.postTrade ? "POST_TRADE" : "PRE_TRADE",
         },
-        behavior: behaviorOf(pendingRec.type, pendingRec.question_id, CORE_WEIGHTS[pendingRec.block_id]),
+        behavior: behaviorOf(
+          pendingRec.type,
+          pendingRec.question_id,
+          CORE_WEIGHTS[pendingRec.block_id],
+        ),
         timeframe: null,
         source: pendingRec.source,
         status: "PENDIENTE_DE_FUENTE",
@@ -589,7 +597,11 @@ export function registryIssues(records = buildRegistry()): string[] {
     }
 
     const scoring =
-      r.type === "SCORE" || r.type === "SCORE_VALIDATION" || r.type === "CONDITIONAL_SCORE" || r.type === "VALIDATION" || r.type === "HARD";
+      r.type === "SCORE" ||
+      r.type === "SCORE_VALIDATION" ||
+      r.type === "CONDITIONAL_SCORE" ||
+      r.type === "VALIDATION" ||
+      r.type === "HARD";
     if (scoring && r.status === "COMPLETO") {
       const factors = r.options.map((o) => o.factor);
       if (!isOfficialScale(factors)) {
@@ -602,7 +614,7 @@ export function registryIssues(records = buildRegistry()): string[] {
         }
       }
     }
-    if (!scoring && r.internal_weight !== 0) {
+    if (!scoring && r.options.length === 0 && r.internal_weight !== 0) {
       problems.push(`${key}: reactivo no puntuable con internal_weight distinto de 0`);
     }
   }
@@ -610,7 +622,8 @@ export function registryIssues(records = buildRegistry()): string[] {
   const preTrade = (Object.keys(CORE_WEIGHTS) as SectionId[])
     .filter((id) => id !== "resultados")
     .reduce((acc, id) => acc + CORE_WEIGHTS[id], 0);
-  if (preTrade !== PRE_TRADE_CORE_WEIGHT) problems.push(`Peso pre-trade CORE incorrecto: ${preTrade}`);
+  if (preTrade !== PRE_TRADE_CORE_WEIGHT)
+    problems.push(`Peso pre-trade CORE incorrecto: ${preTrade}`);
   if (CORE_WEIGHTS["resultados"] !== POST_TRADE_CORE_WEIGHT)
     problems.push("Peso post-trade CORE incorrecto");
 
