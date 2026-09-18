@@ -23,6 +23,7 @@ import {
   BASE_SECTIONS,
   EVALUATION_SETUP_IDS,
   getActiveQuestionsBySetup,
+  questionTimeframe,
   setupLabel,
   type EvaluationSetupId,
   type SectionId,
