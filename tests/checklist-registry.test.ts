@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import {
   CORE_WEIGHTS,
   POST_TRADE_CORE_WEIGHT,
