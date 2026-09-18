@@ -78,7 +78,7 @@ export const OFFICIAL_FACTORS = [1, 0.75, 0.5, 0.25, 0] as const;
 
 /** Pesos CORE oficiales. Este registro NO los modifica. */
 export const CORE_WEIGHTS: Record<SectionId, number> = {
-  comercio: 0,
+  comercio: 5,
   contexto: 10,
   estructura: 25,
   zona: 10,
