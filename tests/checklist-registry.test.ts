@@ -122,4 +122,49 @@ describe("registro técnico maestro ANIKE EJEPIKA", () => {
     const s = registrySummary(records);
     expect(s.complete + s.pending).toBe(s.total);
   });
+
+  it("el registro está cerrado: 0 PENDIENTE_DE_FUENTE", () => {
+    const s = registrySummary(records);
+    expect(s.pendingIds).toEqual([]);
+    expect(s.pending).toBe(0);
+    expect(s.complete).toBe(s.total);
+  });
+
+  it("todo reactivo SCORE/HARD/VALIDATION/CONDITIONAL_SCORE tiene 5 opciones válidas", () => {
+    const scoring = ["SCORE", "SCORE_VALIDATION", "CONDITIONAL_SCORE", "VALIDATION", "HARD"];
+    for (const r of records.filter((r) => scoring.includes(r.type))) {
+      expect(r.options.length).toBe(5);
+      for (const o of r.options) {
+        expect(o.factor).toBeGreaterThanOrEqual(0);
+        expect(o.factor).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+
+  it("METADATA no puntúa: todos sus factores son 0 o descriptivos sin peso", () => {
+    for (const r of records.filter((r) => r.type === "METADATA")) {
+      expect(r.internal_weight).toBe(0);
+    }
+  });
+
+  it("selección de setup: S01→solo S01, S02→solo S02, … S05→solo S05", () => {
+    const bySetup = registryBySetup();
+    const prefixes: Record<string, string> = {
+      REVERSION: "s01_",
+      CONTINUACION: "s02_",
+      RUPTURA_RETESTEO: "s03_",
+      ZONA_FIBONACCI: "s04_",
+      IMPULSO_PULLBACK: "s05_",
+    };
+    for (const [setupId, prefix] of Object.entries(prefixes)) {
+      const foreign = Object.entries(prefixes)
+        .filter(([other]) => other !== setupId)
+        .map(([, p]) => p);
+      const ids = bySetup[setupId as keyof typeof bySetup].map((r) => r.question_id);
+      expect(ids.some((id) => id.startsWith(prefix))).toBe(true);
+      for (const id of ids) {
+        for (const p of foreign) expect(id.startsWith(p)).toBe(false);
+      }
+    }
+  });
 });
