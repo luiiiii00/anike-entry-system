@@ -545,37 +545,33 @@ export function buildRegistry(): RegistryRecord[] {
         pending_reason: null,
       });
     }
-    for (const pendingRec of DECLARED_PENDING.filter((p) => p.setup_id === setupId)) {
+    for (const rec of DECLARED_RECORDS.filter((p) => p.setup_id === setupId)) {
       order += 1;
-      const block = blockOf(pendingRec.block_id);
+      const block = blockOf(rec.block_id);
       records.push({
         setup_id: setupId,
         setup_label: setupLabel(setupId),
-        question_id: pendingRec.question_id,
-        block_id: pendingRec.block_id,
+        question_id: rec.question_id,
+        block_id: rec.block_id,
         block_code: block.code,
         block_title: block.title,
         order,
-        type: pendingRec.type,
-        concept: pendingRec.concept,
-        text: pendingRec.text,
-        condition: pendingRec.condition,
-        options: [],
-        internal_weight: 0,
+        type: rec.type,
+        concept: rec.concept,
+        text: rec.text,
+        condition: rec.condition,
+        options: rec.options,
+        internal_weight: rec.type === "METADATA" ? 0 : 1,
         core_target: {
-          block: pendingRec.block_id,
-          weight: CORE_WEIGHTS[pendingRec.block_id],
+          block: rec.block_id,
+          weight: CORE_WEIGHTS[rec.block_id],
           stage: block.postTrade ? "POST_TRADE" : "PRE_TRADE",
         },
-        behavior: behaviorOf(
-          pendingRec.type,
-          pendingRec.question_id,
-          CORE_WEIGHTS[pendingRec.block_id],
-        ),
-        timeframe: null,
-        source: pendingRec.source,
-        status: "PENDIENTE_DE_FUENTE",
-        pending_reason: pendingRec.pending_reason,
+        behavior: behaviorOf(rec.type, rec.question_id, CORE_WEIGHTS[rec.block_id]),
+        timeframe: questionTimeframe(rec.question_id, rec.block_id) ?? null,
+        source: rec.source,
+        status: "COMPLETO",
+        pending_reason: null,
       });
     }
   }
