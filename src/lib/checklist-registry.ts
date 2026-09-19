@@ -43,10 +43,39 @@ export type RegistryType =
 
 export type RegistryStatus = "COMPLETO" | "PENDIENTE_DE_FUENTE";
 
+/** Respaldo documental del registro. */
+export type RegistrySourceStatus = "VERIFIED" | "NORMALIZED" | "PENDIENTE_DE_FUENTE";
+
+/** Naturaleza de la condición de activación del reactivo. */
+export type RegistryConditionType = "NONE" | "VARIANT" | "MODE";
+
+/** Códigos oficiales/visibles de setup (S03 se denomina RUPTURA). */
+export const SETUP_CODE: Record<EvaluationSetupId, string> = {
+  FREE: "SETUP_LIBRE",
+  REVERSION: "S01",
+  CONTINUACION: "S02",
+  RUPTURA_RETESTEO: "S03",
+  ZONA_FIBONACCI: "S04",
+  IMPULSO_PULLBACK: "S05",
+};
+
+export const SETUP_SEMANTIC_NAME: Record<EvaluationSetupId, string> = {
+  FREE: "SETUP LIBRE",
+  REVERSION: "REVERSIÓN",
+  CONTINUACION: "CONTINUACIÓN",
+  RUPTURA_RETESTEO: "RUPTURA",
+  ZONA_FIBONACCI: "ZONA + FIBONACCI",
+  IMPULSO_PULLBACK: "IMPULSO + PULLBACK",
+};
+
 export type RegistryOption = { value: string; label: string; factor: number };
 
 export type RegistryRecord = {
   setup_id: EvaluationSetupId;
+  /** Código oficial del setup (SETUP_LIBRE, S01…S05). */
+  setup_code: string;
+  /** Nombre semántico/visible del setup (S03 = RUPTURA). */
+  setup_semantic_name: string;
   setup_label: string;
   question_id: string;
   block_id: SectionId;
@@ -61,16 +90,23 @@ export type RegistryRecord = {
   text: string;
   /** Condición de activación. `null` = siempre activo dentro de su setup. */
   condition: string | null;
+  condition_type: RegistryConditionType;
   options: RegistryOption[];
   /** Peso interno dentro de su bloque (equiponderado en el motor actual). */
   internal_weight: number;
   core_target: { block: SectionId; weight: number; stage: "PRE_TRADE" | "POST_TRADE" };
-  /** Comportamiento de score / validación / HARD. */
+  /** Comportamiento de score / validación / HARD (resumen). */
   behavior: string;
+  score_behavior: string;
+  validation_behavior: string;
+  hard_behavior: string;
   timeframe: Timeframe | null;
   /** Referencia de fuente cuando existe. */
   source: string | null;
+  /** `true` cuando el reactivo está activo en la matriz vigente del setup. */
+  active: boolean;
   status: RegistryStatus;
+  source_status: RegistrySourceStatus;
   pending_reason: string | null;
 };
 
@@ -263,6 +299,35 @@ function behaviorOf(type: RegistryType, id: string, weight: number): string {
     default:
       return scoreNote;
   }
+}
+
+/** Desglose explícito de comportamiento exigido por el contrato del registro. */
+function scoreBehaviorOf(type: RegistryType, weight: number): string {
+  if (type === "METADATA") return "NO_SCORE: descriptivo, no aporta puntos.";
+  if (type === "AUTO" || type === "AUTO_VALIDATION")
+    return "NO_SCORE: valor calculado por el motor, no puntúa como criterio subjetivo.";
+  if (type === "CONDITIONAL_SCORE")
+    return `SCORE_CONDICIONAL: puntúa al bloque CORE (${weight} pts) sólo cuando su condición está activa.`;
+  return `SCORE: puntúa al bloque CORE (${weight} pts) mediante F_block; no altera pesos ni fórmula.`;
+}
+
+function validationBehaviorOf(type: RegistryType, id: string): string {
+  if (type === "VALIDATION" || type === "SCORE_VALIDATION" || type === "AUTO_VALIDATION")
+    return `VALIDA: puede dejar la evaluación CONDICIONAL (regla ${id}).`;
+  return "NO_VALIDA: no genera aviso condicional.";
+}
+
+function hardBehaviorOf(type: RegistryType, id: string): string {
+  if (type === "HARD" || type === "SCORE_VALIDATION")
+    return `HARD: puede activar la regla crítica ${id} → NO TRADE inmediato.`;
+  if (type === "AUTO_VALIDATION")
+    return "HARD: R:R < 1:2 activa la regla crítica `rr_below_2` → NO TRADE.";
+  return "NO_HARD: nunca bloquea por sí mismo.";
+}
+
+function conditionTypeOf(condition: string | null): RegistryConditionType {
+  if (!condition) return "NONE";
+  return /execution_mode/.test(condition) ? "MODE" : "VARIANT";
 }
 
 const score5 = (opts: [string, string][]): RegistryOption[] =>
@@ -476,7 +541,10 @@ function recordFromQuestion(
   const pending = scorable && type !== "AUTO_VALIDATION" && !officialScale;
   return {
     setup_id: setupId,
+    setup_code: SETUP_CODE[setupId],
+    setup_semantic_name: SETUP_SEMANTIC_NAME[setupId],
     setup_label: setupLabel(setupId),
+
     question_id: q.id,
     block_id: q.sectionId,
     block_code: block.code,
@@ -491,6 +559,7 @@ function recordFromQuestion(
         .trim(),
     text: q.label,
     condition: null,
+    condition_type: "NONE",
     options: q.options.map((o) => ({ value: o.v, label: o.label, factor: o.pts })),
     internal_weight: scorable ? 1 : 0,
     core_target: {
@@ -499,9 +568,14 @@ function recordFromQuestion(
       stage: block.postTrade ? "POST_TRADE" : "PRE_TRADE",
     },
     behavior: behaviorOf(type, q.id, weight),
+    score_behavior: scoreBehaviorOf(type, weight),
+    validation_behavior: validationBehaviorOf(type, q.id),
+    hard_behavior: hardBehaviorOf(type, q.id),
     timeframe: q.timeframe ?? null,
     source: SOURCES[setupId] ?? null,
+    active: true,
     status: pending ? "PENDIENTE_DE_FUENTE" : "COMPLETO",
+    source_status: pending ? "PENDIENTE_DE_FUENTE" : "VERIFIED",
     pending_reason: pending
       ? `Escala histórica de ${factors.length} nivel(es) (${factors.join(" / ")}): falta fuente para expresarla con los 5 factores oficiales sin inventar contenido.`
       : null,
@@ -522,6 +596,8 @@ export function buildRegistry(): RegistryRecord[] {
       const block = blockOf(auto.block_id);
       records.push({
         setup_id: setupId,
+        setup_code: SETUP_CODE[setupId],
+        setup_semantic_name: SETUP_SEMANTIC_NAME[setupId],
         setup_label: setupLabel(setupId),
         question_id: auto.question_id,
         block_id: auto.block_id,
@@ -532,6 +608,7 @@ export function buildRegistry(): RegistryRecord[] {
         concept: auto.concept,
         text: auto.text,
         condition: null,
+        condition_type: "NONE",
         options: [],
         internal_weight: 0,
         core_target: {
@@ -540,9 +617,14 @@ export function buildRegistry(): RegistryRecord[] {
           stage: "PRE_TRADE",
         },
         behavior: auto.behavior,
+        score_behavior: scoreBehaviorOf(auto.type, CORE_WEIGHTS[auto.block_id]),
+        validation_behavior: validationBehaviorOf(auto.type, auto.question_id),
+        hard_behavior: hardBehaviorOf(auto.type, auto.question_id),
         timeframe: null,
         source: "ANIKE EJEPIKA — motor CORE (cálculo automático)",
+        active: true,
         status: "COMPLETO",
+        source_status: "VERIFIED",
         pending_reason: null,
       });
     }
@@ -551,6 +633,8 @@ export function buildRegistry(): RegistryRecord[] {
       const block = blockOf(rec.block_id);
       records.push({
         setup_id: setupId,
+        setup_code: SETUP_CODE[setupId],
+        setup_semantic_name: SETUP_SEMANTIC_NAME[setupId],
         setup_label: setupLabel(setupId),
         question_id: rec.question_id,
         block_id: rec.block_id,
@@ -561,6 +645,7 @@ export function buildRegistry(): RegistryRecord[] {
         concept: rec.concept,
         text: rec.text,
         condition: rec.condition,
+        condition_type: conditionTypeOf(rec.condition),
         options: rec.options,
         internal_weight: rec.type === "METADATA" ? 0 : 1,
         core_target: {
@@ -569,9 +654,14 @@ export function buildRegistry(): RegistryRecord[] {
           stage: block.postTrade ? "POST_TRADE" : "PRE_TRADE",
         },
         behavior: behaviorOf(rec.type, rec.question_id, CORE_WEIGHTS[rec.block_id]),
+        score_behavior: scoreBehaviorOf(rec.type, CORE_WEIGHTS[rec.block_id]),
+        validation_behavior: validationBehaviorOf(rec.type, rec.question_id),
+        hard_behavior: hardBehaviorOf(rec.type, rec.question_id),
         timeframe: questionTimeframe(rec.question_id, rec.block_id) ?? null,
         source: rec.source,
+        active: false,
         status: "COMPLETO",
+        source_status: "NORMALIZED",
         pending_reason: null,
       });
     }
@@ -593,11 +683,20 @@ export type RegistrySummary = {
   pending: number;
   pendingIds: { setup_id: EvaluationSetupId; question_id: string; reason: string }[];
   byType: Record<RegistryType, number>;
+  bySourceStatus: Record<RegistrySourceStatus, number>;
+  active: number;
+  declared: number;
 };
 
 export function registrySummary(records = buildRegistry()): RegistrySummary {
   const byType = {} as Record<RegistryType, number>;
   for (const r of records) byType[r.type] = (byType[r.type] ?? 0) + 1;
+  const bySourceStatus: Record<RegistrySourceStatus, number> = {
+    VERIFIED: 0,
+    NORMALIZED: 0,
+    PENDIENTE_DE_FUENTE: 0,
+  };
+  for (const r of records) bySourceStatus[r.source_status] += 1;
   const pending = records.filter((r) => r.status === "PENDIENTE_DE_FUENTE");
   return {
     total: records.length,
@@ -609,6 +708,9 @@ export function registrySummary(records = buildRegistry()): RegistrySummary {
       reason: r.pending_reason ?? "",
     })),
     byType,
+    bySourceStatus,
+    active: records.filter((r) => r.active).length,
+    declared: records.filter((r) => !r.active).length,
   };
 }
 
@@ -646,6 +748,24 @@ export function registryIssues(records = buildRegistry()): string[] {
 
     if (r.condition !== null && !/^[a-z0-9_]+ (=|!=) [A-Z_]+$/.test(r.condition)) {
       problems.push(`${key}: condición con formato inválido: ${r.condition}`);
+    }
+    if ((r.condition === null) !== (r.condition_type === "NONE")) {
+      problems.push(`${key}: condition_type incoherente con la condición declarada`);
+    }
+    if (r.block_id === "resultados" && r.core_target.stage !== "POST_TRADE") {
+      problems.push(`${key}: Resultados debe ser post-trade`);
+    }
+    if (r.block_id !== "resultados" && r.core_target.stage !== "PRE_TRADE") {
+      problems.push(`${key}: sólo Resultados puede ser post-trade`);
+    }
+    if (/(^|_)rr$/.test(r.question_id) && r.type !== "AUTO_VALIDATION") {
+      problems.push(`${key}: R:R debe registrarse como AUTO_VALIDATION, no como SCORE subjetivo`);
+    }
+    if (
+      r.question_id === "s05_deep_pullback" &&
+      (r.type === "HARD" || r.hard_behavior.startsWith("HARD"))
+    ) {
+      problems.push(`${key}: el pullback profundo no puede bloquear automáticamente`);
     }
 
     const scoring =

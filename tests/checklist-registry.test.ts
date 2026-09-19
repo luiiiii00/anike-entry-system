@@ -128,6 +128,38 @@ describe("registro técnico maestro ANIKE EJEPIKA", () => {
     expect(s.pendingIds).toEqual([]);
     expect(s.pending).toBe(0);
     expect(s.complete).toBe(s.total);
+    expect(s.bySourceStatus.PENDIENTE_DE_FUENTE).toBe(0);
+    expect(s.bySourceStatus.VERIFIED + s.bySourceStatus.NORMALIZED).toBe(s.total);
+  });
+
+  it("cada registro cumple el contrato ampliado", () => {
+    for (const r of records) {
+      expect(r.setup_code.length).toBeGreaterThan(0);
+      expect(r.setup_semantic_name.length).toBeGreaterThan(0);
+      expect(r.score_behavior.length).toBeGreaterThan(0);
+      expect(r.validation_behavior.length).toBeGreaterThan(0);
+      expect(r.hard_behavior.length).toBeGreaterThan(0);
+      expect(typeof r.active).toBe("boolean");
+      expect(["NONE", "VARIANT", "MODE"]).toContain(r.condition_type);
+    }
+  });
+
+  it("S03 se denomina RUPTURA aunque el ID interno sea RUPTURA_RETESTEO", () => {
+    const s03 = records.find((r) => r.setup_id === "RUPTURA_RETESTEO");
+    expect(s03?.setup_code).toBe("S03");
+    expect(s03?.setup_semantic_name).toBe("RUPTURA");
+  });
+
+  it("Resultados es el único bloque post-trade", () => {
+    for (const r of records) {
+      expect(r.core_target.stage).toBe(r.block_id === "resultados" ? "POST_TRADE" : "PRE_TRADE");
+    }
+  });
+
+  it("el pullback profundo de S05 nunca bloquea automáticamente", () => {
+    const deep = records.find((r) => r.question_id === "s05_deep_pullback");
+    expect(deep?.type).toBe("VALIDATION");
+    expect(deep?.hard_behavior.startsWith("NO_HARD")).toBe(true);
   });
 
   it("todo reactivo SCORE/HARD/VALIDATION/CONDITIONAL_SCORE tiene 5 opciones válidas", () => {
