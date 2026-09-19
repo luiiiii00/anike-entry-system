@@ -302,7 +302,37 @@ function behaviorOf(type: RegistryType, id: string, weight: number): string {
   }
 }
 
+/** Desglose explícito de comportamiento exigido por el contrato del registro. */
+function scoreBehaviorOf(type: RegistryType, weight: number): string {
+  if (type === "METADATA") return "NO_SCORE: descriptivo, no aporta puntos.";
+  if (type === "AUTO" || type === "AUTO_VALIDATION")
+    return "NO_SCORE: valor calculado por el motor, no puntúa como criterio subjetivo.";
+  if (type === "CONDITIONAL_SCORE")
+    return `SCORE_CONDICIONAL: puntúa al bloque CORE (${weight} pts) sólo cuando su condición está activa.`;
+  return `SCORE: puntúa al bloque CORE (${weight} pts) mediante F_block; no altera pesos ni fórmula.`;
+}
+
+function validationBehaviorOf(type: RegistryType, id: string): string {
+  if (type === "VALIDATION" || type === "SCORE_VALIDATION" || type === "AUTO_VALIDATION")
+    return `VALIDA: puede dejar la evaluación CONDICIONAL (regla ${id}).`;
+  return "NO_VALIDA: no genera aviso condicional.";
+}
+
+function hardBehaviorOf(type: RegistryType, id: string): string {
+  if (type === "HARD" || type === "SCORE_VALIDATION")
+    return `HARD: puede activar la regla crítica ${id} → NO TRADE inmediato.`;
+  if (type === "AUTO_VALIDATION")
+    return "HARD: R:R < 1:2 activa la regla crítica `rr_below_2` → NO TRADE.";
+  return "NO_HARD: nunca bloquea por sí mismo.";
+}
+
+function conditionTypeOf(condition: string | null): RegistryConditionType {
+  if (!condition) return "NONE";
+  return /execution_mode/.test(condition) ? "MODE" : "VARIANT";
+}
+
 const score5 = (opts: [string, string][]): RegistryOption[] =>
+
   opts.map(([value, label], i) => ({ value, label, factor: OFFICIAL_FACTORS[i]! }));
 
 /** Opciones descriptivas: METADATA nunca puntúa (factor 0). */
