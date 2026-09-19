@@ -543,7 +543,10 @@ function recordFromQuestion(
   const pending = scorable && type !== "AUTO_VALIDATION" && !officialScale;
   return {
     setup_id: setupId,
+    setup_code: SETUP_CODE[setupId],
+    setup_semantic_name: SETUP_SEMANTIC_NAME[setupId],
     setup_label: setupLabel(setupId),
+
     question_id: q.id,
     block_id: q.sectionId,
     block_code: block.code,
