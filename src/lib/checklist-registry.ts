@@ -561,6 +561,7 @@ function recordFromQuestion(
         .trim(),
     text: q.label,
     condition: null,
+    condition_type: "NONE",
     options: q.options.map((o) => ({ value: o.v, label: o.label, factor: o.pts })),
     internal_weight: scorable ? 1 : 0,
     core_target: {
@@ -569,14 +570,20 @@ function recordFromQuestion(
       stage: block.postTrade ? "POST_TRADE" : "PRE_TRADE",
     },
     behavior: behaviorOf(type, q.id, weight),
+    score_behavior: scoreBehaviorOf(type, weight),
+    validation_behavior: validationBehaviorOf(type, q.id),
+    hard_behavior: hardBehaviorOf(type, q.id),
     timeframe: q.timeframe ?? null,
     source: SOURCES[setupId] ?? null,
+    active: true,
     status: pending ? "PENDIENTE_DE_FUENTE" : "COMPLETO",
+    source_status: pending ? "PENDIENTE_DE_FUENTE" : "VERIFIED",
     pending_reason: pending
       ? `Escala histórica de ${factors.length} nivel(es) (${factors.join(" / ")}): falta fuente para expresarla con los 5 factores oficiales sin inventar contenido.`
       : null,
   };
 }
+
 
 /** Construye el registro maestro completo desde la matriz activa. */
 export function buildRegistry(): RegistryRecord[] {
