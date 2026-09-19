@@ -754,6 +754,22 @@ export function registryIssues(records = buildRegistry()): string[] {
     if (r.condition !== null && !/^[a-z0-9_]+ (=|!=) [A-Z_]+$/.test(r.condition)) {
       problems.push(`${key}: condición con formato inválido: ${r.condition}`);
     }
+    if ((r.condition === null) !== (r.condition_type === "NONE")) {
+      problems.push(`${key}: condition_type incoherente con la condición declarada`);
+    }
+    if (r.block_id === "resultados" && r.core_target.stage !== "POST_TRADE") {
+      problems.push(`${key}: Resultados debe ser post-trade`);
+    }
+    if (r.block_id !== "resultados" && r.core_target.stage !== "PRE_TRADE") {
+      problems.push(`${key}: sólo Resultados puede ser post-trade`);
+    }
+    if (/(^|_)rr$/.test(r.question_id) && r.type !== "AUTO_VALIDATION") {
+      problems.push(`${key}: R:R debe registrarse como AUTO_VALIDATION, no como SCORE subjetivo`);
+    }
+    if (r.question_id === "s05_deep_pullback" && (r.type === "HARD" || r.hard_behavior.startsWith("HARD"))) {
+      problems.push(`${key}: el pullback profundo no puede bloquear automáticamente`);
+    }
+
 
     const scoring =
       r.type === "SCORE" ||
