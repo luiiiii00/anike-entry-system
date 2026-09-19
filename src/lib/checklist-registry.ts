@@ -599,6 +599,8 @@ export function buildRegistry(): RegistryRecord[] {
       const block = blockOf(auto.block_id);
       records.push({
         setup_id: setupId,
+        setup_code: SETUP_CODE[setupId],
+        setup_semantic_name: SETUP_SEMANTIC_NAME[setupId],
         setup_label: setupLabel(setupId),
         question_id: auto.question_id,
         block_id: auto.block_id,
@@ -609,6 +611,7 @@ export function buildRegistry(): RegistryRecord[] {
         concept: auto.concept,
         text: auto.text,
         condition: null,
+        condition_type: "NONE",
         options: [],
         internal_weight: 0,
         core_target: {
@@ -617,9 +620,14 @@ export function buildRegistry(): RegistryRecord[] {
           stage: "PRE_TRADE",
         },
         behavior: auto.behavior,
+        score_behavior: scoreBehaviorOf(auto.type, CORE_WEIGHTS[auto.block_id]),
+        validation_behavior: validationBehaviorOf(auto.type, auto.question_id),
+        hard_behavior: hardBehaviorOf(auto.type, auto.question_id),
         timeframe: null,
         source: "ANIKE EJEPIKA — motor CORE (cálculo automático)",
+        active: true,
         status: "COMPLETO",
+        source_status: "VERIFIED",
         pending_reason: null,
       });
     }
@@ -628,6 +636,8 @@ export function buildRegistry(): RegistryRecord[] {
       const block = blockOf(rec.block_id);
       records.push({
         setup_id: setupId,
+        setup_code: SETUP_CODE[setupId],
+        setup_semantic_name: SETUP_SEMANTIC_NAME[setupId],
         setup_label: setupLabel(setupId),
         question_id: rec.question_id,
         block_id: rec.block_id,
@@ -638,6 +648,7 @@ export function buildRegistry(): RegistryRecord[] {
         concept: rec.concept,
         text: rec.text,
         condition: rec.condition,
+        condition_type: conditionTypeOf(rec.condition),
         options: rec.options,
         internal_weight: rec.type === "METADATA" ? 0 : 1,
         core_target: {
@@ -646,11 +657,17 @@ export function buildRegistry(): RegistryRecord[] {
           stage: block.postTrade ? "POST_TRADE" : "PRE_TRADE",
         },
         behavior: behaviorOf(rec.type, rec.question_id, CORE_WEIGHTS[rec.block_id]),
+        score_behavior: scoreBehaviorOf(rec.type, CORE_WEIGHTS[rec.block_id]),
+        validation_behavior: validationBehaviorOf(rec.type, rec.question_id),
+        hard_behavior: hardBehaviorOf(rec.type, rec.question_id),
         timeframe: questionTimeframe(rec.question_id, rec.block_id) ?? null,
         source: rec.source,
+        active: false,
         status: "COMPLETO",
+        source_status: "NORMALIZED",
         pending_reason: null,
       });
+
     }
   }
   return records;
