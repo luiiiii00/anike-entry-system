@@ -687,11 +687,20 @@ export type RegistrySummary = {
   pending: number;
   pendingIds: { setup_id: EvaluationSetupId; question_id: string; reason: string }[];
   byType: Record<RegistryType, number>;
+  bySourceStatus: Record<RegistrySourceStatus, number>;
+  active: number;
+  declared: number;
 };
 
 export function registrySummary(records = buildRegistry()): RegistrySummary {
   const byType = {} as Record<RegistryType, number>;
   for (const r of records) byType[r.type] = (byType[r.type] ?? 0) + 1;
+  const bySourceStatus: Record<RegistrySourceStatus, number> = {
+    VERIFIED: 0,
+    NORMALIZED: 0,
+    PENDIENTE_DE_FUENTE: 0,
+  };
+  for (const r of records) bySourceStatus[r.source_status] += 1;
   const pending = records.filter((r) => r.status === "PENDIENTE_DE_FUENTE");
   return {
     total: records.length,
@@ -703,8 +712,12 @@ export function registrySummary(records = buildRegistry()): RegistrySummary {
       reason: r.pending_reason ?? "",
     })),
     byType,
+    bySourceStatus,
+    active: records.filter((r) => r.active).length,
+    declared: records.filter((r) => !r.active).length,
   };
 }
+
 
 /** Integridad del registro. Los tests exigen lista vacía. */
 export function registryIssues(records = buildRegistry()): string[] {
