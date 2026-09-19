@@ -110,7 +110,6 @@ export type RegistryRecord = {
   pending_reason: string | null;
 };
 
-
 /** Escala oficial de factores (orden descendente obligatorio). */
 export const OFFICIAL_FACTORS = [1, 0.75, 0.5, 0.25, 0] as const;
 
@@ -332,7 +331,6 @@ function conditionTypeOf(condition: string | null): RegistryConditionType {
 }
 
 const score5 = (opts: [string, string][]): RegistryOption[] =>
-
   opts.map(([value, label], i) => ({ value, label, factor: OFFICIAL_FACTORS[i]! }));
 
 /** Opciones descriptivas: METADATA nunca puntúa (factor 0). */
@@ -584,7 +582,6 @@ function recordFromQuestion(
   };
 }
 
-
 /** Construye el registro maestro completo desde la matriz activa. */
 export function buildRegistry(): RegistryRecord[] {
   const records: RegistryRecord[] = [];
@@ -667,7 +664,6 @@ export function buildRegistry(): RegistryRecord[] {
         source_status: "NORMALIZED",
         pending_reason: null,
       });
-
     }
   }
   return records;
@@ -718,7 +714,6 @@ export function registrySummary(records = buildRegistry()): RegistrySummary {
   };
 }
 
-
 /** Integridad del registro. Los tests exigen lista vacía. */
 export function registryIssues(records = buildRegistry()): string[] {
   const problems: string[] = [];
@@ -766,10 +761,12 @@ export function registryIssues(records = buildRegistry()): string[] {
     if (/(^|_)rr$/.test(r.question_id) && r.type !== "AUTO_VALIDATION") {
       problems.push(`${key}: R:R debe registrarse como AUTO_VALIDATION, no como SCORE subjetivo`);
     }
-    if (r.question_id === "s05_deep_pullback" && (r.type === "HARD" || r.hard_behavior.startsWith("HARD"))) {
+    if (
+      r.question_id === "s05_deep_pullback" &&
+      (r.type === "HARD" || r.hard_behavior.startsWith("HARD"))
+    ) {
       problems.push(`${key}: el pullback profundo no puede bloquear automáticamente`);
     }
-
 
     const scoring =
       r.type === "SCORE" ||

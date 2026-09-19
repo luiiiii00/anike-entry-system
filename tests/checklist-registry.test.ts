@@ -162,7 +162,6 @@ describe("registro técnico maestro ANIKE EJEPIKA", () => {
     expect(deep?.hard_behavior.startsWith("NO_HARD")).toBe(true);
   });
 
-
   it("todo reactivo SCORE/HARD/VALIDATION/CONDITIONAL_SCORE tiene 5 opciones válidas", () => {
     const scoring = ["SCORE", "SCORE_VALIDATION", "CONDITIONAL_SCORE", "VALIDATION", "HARD"];
     for (const r of records.filter((r) => scoring.includes(r.type))) {
