@@ -43,10 +43,39 @@ export type RegistryType =
 
 export type RegistryStatus = "COMPLETO" | "PENDIENTE_DE_FUENTE";
 
+/** Respaldo documental del registro. */
+export type RegistrySourceStatus = "VERIFIED" | "NORMALIZED" | "PENDIENTE_DE_FUENTE";
+
+/** Naturaleza de la condición de activación del reactivo. */
+export type RegistryConditionType = "NONE" | "VARIANT" | "MODE";
+
+/** Códigos oficiales/visibles de setup (S03 se denomina RUPTURA). */
+export const SETUP_CODE: Record<EvaluationSetupId, string> = {
+  FREE: "SETUP_LIBRE",
+  REVERSION: "S01",
+  CONTINUACION: "S02",
+  RUPTURA_RETESTEO: "S03",
+  ZONA_FIBONACCI: "S04",
+  IMPULSO_PULLBACK: "S05",
+};
+
+export const SETUP_SEMANTIC_NAME: Record<EvaluationSetupId, string> = {
+  FREE: "SETUP LIBRE",
+  REVERSION: "REVERSIÓN",
+  CONTINUACION: "CONTINUACIÓN",
+  RUPTURA_RETESTEO: "RUPTURA",
+  ZONA_FIBONACCI: "ZONA + FIBONACCI",
+  IMPULSO_PULLBACK: "IMPULSO + PULLBACK",
+};
+
 export type RegistryOption = { value: string; label: string; factor: number };
 
 export type RegistryRecord = {
   setup_id: EvaluationSetupId;
+  /** Código oficial del setup (SETUP_LIBRE, S01…S05). */
+  setup_code: string;
+  /** Nombre semántico/visible del setup (S03 = RUPTURA). */
+  setup_semantic_name: string;
   setup_label: string;
   question_id: string;
   block_id: SectionId;
@@ -61,18 +90,26 @@ export type RegistryRecord = {
   text: string;
   /** Condición de activación. `null` = siempre activo dentro de su setup. */
   condition: string | null;
+  condition_type: RegistryConditionType;
   options: RegistryOption[];
   /** Peso interno dentro de su bloque (equiponderado en el motor actual). */
   internal_weight: number;
   core_target: { block: SectionId; weight: number; stage: "PRE_TRADE" | "POST_TRADE" };
-  /** Comportamiento de score / validación / HARD. */
+  /** Comportamiento de score / validación / HARD (resumen). */
   behavior: string;
+  score_behavior: string;
+  validation_behavior: string;
+  hard_behavior: string;
   timeframe: Timeframe | null;
   /** Referencia de fuente cuando existe. */
   source: string | null;
+  /** `true` cuando el reactivo está activo en la matriz vigente del setup. */
+  active: boolean;
   status: RegistryStatus;
+  source_status: RegistrySourceStatus;
   pending_reason: string | null;
 };
+
 
 /** Escala oficial de factores (orden descendente obligatorio). */
 export const OFFICIAL_FACTORS = [1, 0.75, 0.5, 0.25, 0] as const;
