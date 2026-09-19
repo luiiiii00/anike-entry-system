@@ -32,6 +32,12 @@ lines.push(
     .map(([t, n]) => `${t}=${n}`)
     .join(", ")}`,
 );
+lines.push(
+  `- Por respaldo de fuente: VERIFIED=${summary.bySourceStatus.VERIFIED}, NORMALIZED=${summary.bySourceStatus.NORMALIZED}, PENDIENTE_DE_FUENTE=${summary.bySourceStatus.PENDIENTE_DE_FUENTE}`,
+);
+lines.push(
+  `- Activos en matriz vigente: **${summary.active}** · declarados por contrato (no inyectados): **${summary.declared}**`,
+);
 lines.push(`- Errores de esquema detectados: **${issues.length}**`, "");
 
 lines.push("## Pendientes de fuente", "");
@@ -46,14 +52,17 @@ if (summary.pending === 0) {
 
 lines.push("## Tabla maestra", "");
 lines.push(
-  "| setup_id | question_id | block | orden | tipo | concepto | condición | opciones (factor) | internal_weight | destino CORE | comportamiento | fuente | estado |",
+  "| setup | setup_id | question_id | block | orden | tipo | concepto | condición | tipo cond. | opciones (factor) | internal_weight | destino CORE | score | validación | HARD | timeframe | fuente | activo | estado | source_status |",
 );
-lines.push("|---|---|---|---|---|---|---|---|---|---|---|---|---|");
+lines.push(
+  "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+);
 for (const r of records) {
   lines.push(
-    `| ${r.setup_id} | ${r.question_id} | ${r.block_code} ${r.block_title} | ${r.order} | ${r.type} | ${r.concept} | ${r.condition ?? "—"} | ${opts(r)} | ${r.internal_weight} | ${r.core_target.block} (${r.core_target.weight} · ${r.core_target.stage}) | ${r.behavior} | ${r.source ?? "—"} | ${r.status} |`,
+    `| ${r.setup_code} ${r.setup_semantic_name} | ${r.setup_id} | ${r.question_id} | ${r.block_code} ${r.block_title} | ${r.order} | ${r.type} | ${r.concept} | ${r.condition ?? "—"} | ${r.condition_type} | ${opts(r)} | ${r.internal_weight} | ${r.core_target.block} (${r.core_target.weight} · ${r.core_target.stage}) | ${r.score_behavior} | ${r.validation_behavior} | ${r.hard_behavior} | ${r.timeframe ?? "—"} | ${r.source ?? "—"} | ${r.active ? "sí" : "declarado"} | ${r.status} | ${r.source_status} |`,
   );
 }
+
 lines.push("");
 
 writeFileSync(
