@@ -1,17 +1,81 @@
 /** `na: true` marca una opción "No aplica": no penaliza ni suma, se excluye del cálculo. */
 export type Option = { v: string; label: string; pts: number; na?: boolean };
 /** `meta: true` marca una pregunta DESCRIPTIVA (patrón, nivel Fibonacci): nunca puntúa. */
-/** Temporalidades oficiales del flujo ANIKE EJEPIKA: 1D → 1H → 5M. */
-export type Timeframe = "1D" | "1H" | "5M";
-export const TIMEFRAMES: Timeframe[] = ["1D", "1H", "5M"];
+/** Temporalidades concretas que puede usar cualquier estilo de trading. */
+export type Timeframe = "1W" | "1D" | "1H" | "5M" | "1M";
+
+/**
+ * ROLES de temporalidad (no temporalidades fijas):
+ *   GRANDE     → dirección / contexto
+ *   INTERMEDIA → estructura, patrón y zona
+ *   PEQUENA    → ejecución / entrada
+ * La temporalidad concreta la aporta el ESTILO declarado en `co_style`.
+ */
+export type TimeframeRole = "GRANDE" | "INTERMEDIA" | "PEQUENA";
+export const TIMEFRAME_ROLES: TimeframeRole[] = ["GRANDE", "INTERMEDIA", "PEQUENA"];
+
+export const ROLE_LABEL: Record<TimeframeRole, string> = {
+  GRANDE: "Grande",
+  INTERMEDIA: "Intermedia",
+  PEQUENA: "Pequeña",
+};
+
+/** Estilos de trading declarados en el bloque 00 (metadata, nunca puntúa). */
+export type TradingStyle = "swing" | "day" | "scalping";
+export const TRADING_STYLES: TradingStyle[] = ["swing", "day", "scalping"];
+
+/** Estilo asumido en evaluaciones históricas guardadas sin `co_style`. */
+export const DEFAULT_TRADING_STYLE: TradingStyle = "day";
+
+export const STYLE_TIMEFRAMES: Record<TradingStyle, Record<TimeframeRole, Timeframe>> = {
+  swing: { GRANDE: "1W", INTERMEDIA: "1D", PEQUENA: "1H" },
+  day: { GRANDE: "1D", INTERMEDIA: "1H", PEQUENA: "5M" },
+  scalping: { GRANDE: "1H", INTERMEDIA: "5M", PEQUENA: "1M" },
+};
+
+export const STYLE_LABEL: Record<TradingStyle, string> = {
+  swing: "Swing trading",
+  day: "Day trading",
+  scalping: "Scalping",
+};
+
+/** ID de la pregunta de metadata que declara el estilo de trading. */
+export const STYLE_QUESTION_ID = "co_style";
+
+/** Estilo válido a partir de un valor guardado (histórico sin estilo → day trading). */
+export function resolveTradingStyle(value: string | null | undefined): TradingStyle {
+  return TRADING_STYLES.includes(value as TradingStyle)
+    ? (value as TradingStyle)
+    : DEFAULT_TRADING_STYLE;
+}
+
+/** Estilo declarado en las respuestas (undefined mientras no se ha elegido). */
+export function tradingStyleFromAnswers(
+  answers: Record<string, string> | null | undefined,
+): TradingStyle | undefined {
+  const value = answers?.[STYLE_QUESTION_ID];
+  return TRADING_STYLES.includes(value as TradingStyle) ? (value as TradingStyle) : undefined;
+}
+
+/** Temporalidad concreta de un rol según el estilo. */
+export function roleTimeframe(role: TimeframeRole, style: TradingStyle): Timeframe {
+  return STYLE_TIMEFRAMES[style][role];
+}
+
+/** Las tres temporalidades del estilo, en orden GRANDE → INTERMEDIA → PEQUENA. */
+export function styleTimeframes(style: TradingStyle): Timeframe[] {
+  return TIMEFRAME_ROLES.map((role) => STYLE_TIMEFRAMES[style][role]);
+}
 
 export type Question = {
   id: string;
   label: string;
   hint?: string;
   meta?: boolean;
-  /** Temporalidad de análisis asociada. Informativa: no altera el cálculo CORE. */
-  timeframe?: Timeframe;
+  /** Rol de temporalidad asociado. Informativo: no altera el cálculo CORE. */
+  role?: TimeframeRole;
+  /** El criterio funciona en cualquiera de las tres temporalidades del estilo (S03). */
+  anyTimeframe?: boolean;
   options: Option[];
 };
 export type SectionId =
