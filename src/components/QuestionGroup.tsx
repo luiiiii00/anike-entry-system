@@ -32,24 +32,28 @@ export function QuestionList({
   answers,
   onChange,
   groupTitle,
+  style,
 }: {
   questions: Question[];
   answers: Record<string, string>;
   onChange: (id: string, value: string) => void;
   groupTitle?: string | undefined;
+  /** Estilo declarado en el bloque 00: resuelve la temporalidad de cada rol. */
+  style?: TradingStyle | undefined;
 }) {
   return (
     <div className="space-y-4">
       {groupTitle && <p className="label-mono">{groupTitle}</p>}
       {questions.map((q) => {
         const best = Math.max(0, ...q.options.filter((o) => !o.na).map((o) => o.pts));
+        const badge = questionTimeframeBadge(q, style);
         return (
           <div key={q.id} className="panel p-4">
-            {q.timeframe && (
+            {badge && (
               <div className="mb-2 flex items-center gap-2">
-                <span className="label-mono">Timeframe de análisis</span>
+                <span className="label-mono">Temporalidad de análisis</span>
                 <span className="rounded-lg border border-primary/40 bg-primary/10 px-2 py-0.5 font-mono text-[11px] tabular-nums text-primary">
-                  {q.timeframe}
+                  {badge}
                 </span>
               </div>
             )}
