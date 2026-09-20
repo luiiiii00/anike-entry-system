@@ -1036,33 +1036,68 @@ export const HISTORICAL_NA_VALUE = "na";
  * las respuestas históricas con valor "na" siguen leyéndose tal cual.
  */
 /**
- * TIMEFRAME DE ANÁLISIS (multi-temporalidad ANIKE EJEPIKA: 1D → 1H → 5M).
- * El timeframe es un ATRIBUTO/CONTEXTO de la pregunta: no duplica preguntas, no
- * cambia pesos, factores, fórmula, gates, HARD rules ni estados. Se determina por
- * el bloque CORE al que pertenece la pregunta (flujo oficial) y puede afinarse
- * por pregunta concreta mediante `QUESTION_TIMEFRAME`.
+ * ROL DE TEMPORALIDAD (multi-temporalidad ANIKE EJEPIKA por ESTILO).
+ * El rol es un ATRIBUTO/CONTEXTO de la pregunta: no duplica preguntas, no
+ * cambia pesos, factores, fórmula, gates, HARD rules ni estados. Se determina
+ * por el bloque CORE (flujo oficial) y puede afinarse por pregunta concreta
+ * mediante `QUESTION_ROLE`. La temporalidad concreta sale del estilo (`co_style`).
  */
-export const SECTION_TIMEFRAME: Partial<Record<SectionId, Timeframe>> = {
-  contexto: "1D",
-  estructura: "1H",
-  zona: "1H",
-  confirmacion: "5M",
-  riesgo: "1H",
-  recorrido: "1H",
-  ejecucion: "5M",
+export const SECTION_ROLE: Partial<Record<SectionId, TimeframeRole>> = {
+  contexto: "GRANDE",
+  estructura: "INTERMEDIA",
+  zona: "INTERMEDIA",
+  confirmacion: "PEQUENA",
+  riesgo: "INTERMEDIA",
+  recorrido: "INTERMEDIA",
+  ejecucion: "PEQUENA",
 };
 
-/** Excepciones explícitas pregunta → timeframe (prioridad sobre el bloque). */
-export const QUESTION_TIMEFRAME: Record<string, Timeframe> = {
-  h1_zone: "1H",
-  h1_react: "1H",
-  m5_signal: "5M",
-  m5_break: "5M",
+/** Excepciones explícitas pregunta → rol (prioridad sobre el bloque). */
+export const QUESTION_ROLE: Record<string, TimeframeRole> = {
+  // El patrón se confirma en la temporalidad donde se identifica.
+  s01_pattern_confirmed: "INTERMEDIA",
+  s02_pattern_confirmed: "INTERMEDIA",
+  // S04: la reacción se lee en la intermedia; el giro se ejecuta en la pequeña.
+  s04_price_reacting: "INTERMEDIA",
+  s04_confirm_direction: "PEQUENA",
+  s04_not_only_fibo: "PEQUENA",
+  s04_execution_mode: "PEQUENA",
+  s04_execution_direction_change: "PEQUENA",
+  s04_five_stage_sequence: "INTERMEDIA",
 };
 
-/** Timeframe asociado a una pregunta dentro de su bloque CORE. */
-export function questionTimeframe(questionId: string, sectionId: SectionId): Timeframe | undefined {
-  return QUESTION_TIMEFRAME[questionId] ?? SECTION_TIMEFRAME[sectionId];
+/**
+ * S03 (RUPTURA) funciona en una sola temporalidad de trabajo: sus criterios no
+ * llevan rol y no exigen análisis multi-temporal.
+ */
+export function isAnyTimeframeQuestion(questionId: string): boolean {
+  return questionId.startsWith("s03_");
+}
+
+/** Rol de temporalidad asociado a una pregunta dentro de su bloque CORE. */
+export function questionRole(
+  questionId: string,
+  sectionId: SectionId,
+): TimeframeRole | undefined {
+  if (isAnyTimeframeQuestion(questionId)) return undefined;
+  return QUESTION_ROLE[questionId] ?? SECTION_ROLE[sectionId];
+}
+
+/**
+ * Etiqueta informativa de temporalidad de una pregunta. Sin estilo elegido
+ * muestra sólo el rol. Nunca afecta al cálculo.
+ */
+export function questionTimeframeBadge(
+  question: { id: string; role?: TimeframeRole; anyTimeframe?: boolean },
+  style?: TradingStyle | undefined,
+): string | undefined {
+  if (question.anyTimeframe) {
+    const tfs = styleTimeframes(style ?? DEFAULT_TRADING_STYLE).join(" · ");
+    return `Temporalidad de trabajo: cualquiera de ${tfs}`;
+  }
+  if (!question.role) return undefined;
+  const label = ROLE_LABEL[question.role];
+  return style ? `${label} · ${roleTimeframe(question.role, style)}` : label;
 }
 
 function withRoles(sections: Section[]): Section[] {
@@ -1071,8 +1106,12 @@ function withRoles(sections: Section[]): Section[] {
     groups: section.groups.map((group) => ({
       ...group,
       questions: group.questions.map((question) => {
-        const timeframe = question.timeframe ?? questionTimeframe(question.id, section.id);
-        return timeframe ? { ...question, timeframe } : question;
+        if (isAnyTimeframeQuestion(question.id)) {
+          const { role: _role, ...rest } = question;
+          return { ...rest, anyTimeframe: true as const };
+        }
+        const role = question.role ?? questionRole(question.id, section.id);
+        return role ? { ...question, role } : question;
       }),
     })),
   }));
