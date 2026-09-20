@@ -189,6 +189,17 @@ const SECTIONS_SOURCE: Section[] = [
             ],
           },
           {
+            id: "co_style",
+            label: "Estilo de trading:",
+            meta: true,
+            hint: "Define tus tres temporalidades: la grande marca la dirección, la intermedia la estructura y la pequeña la ejecución. No condiciona la estrategia.",
+            options: [
+              { v: "swing", label: "Swing trading — 1W · 1D · 1H", pts: 0 },
+              { v: "day", label: "Day trading — 1D · 1H · 5M", pts: 0 },
+              { v: "scalping", label: "Scalping — 1H · 5M · 1M", pts: 0 },
+            ],
+          },
+          {
             id: "co_conditions",
             label:
               "¿Las condiciones actuales del mercado son adecuadas para ejecutar la operación?",
@@ -212,7 +223,7 @@ const SECTIONS_SOURCE: Section[] = [
     weight: 10,
     groups: [
       {
-        title: "Temporalidad principal: 1D",
+        title: "Contexto",
         questions: [
           {
             id: "ctx_direction",
@@ -281,7 +292,7 @@ const SECTIONS_SOURCE: Section[] = [
     weight: 25,
     groups: [
       {
-        title: "02.1 Estructura 1H",
+        title: "02.1 Estructura",
         questions: [
           {
             id: "h1_structure",
@@ -439,7 +450,7 @@ const SECTIONS_SOURCE: Section[] = [
         ],
       },
       {
-        title: "02.7 Divergencia RSI — 1H",
+        title: "02.7 Divergencia RSI",
         questions: [
           {
             id: "h1_rsi_div",
@@ -467,7 +478,7 @@ const SECTIONS_SOURCE: Section[] = [
         ],
       },
       {
-        title: "02.8 MACD — 1H",
+        title: "02.8 MACD",
         questions: [
           {
             id: "h1_macd",
@@ -506,7 +517,7 @@ const SECTIONS_SOURCE: Section[] = [
           },
           {
             id: "z_relevance",
-            label: "¿Qué tan relevante es la zona en el contexto 1D/1H?",
+            label: "¿Qué tan relevante es la zona en el contexto superior?",
             options: s5([
               ["alta", "Relevancia alta y claramente validada"],
               ["alta_media", "Relevancia alta/moderada"],
@@ -570,7 +581,7 @@ const SECTIONS_SOURCE: Section[] = [
     weight: 20,
     groups: [
       {
-        title: "04.1 Ruptura de diagonal · 5M",
+        title: "04.1 Ruptura de diagonal",
         questions: [
           {
             id: "cf5_diag_break",
@@ -625,7 +636,7 @@ const SECTIONS_SOURCE: Section[] = [
         ],
       },
       {
-        title: "04.4 MACD — 5M",
+        title: "04.4 MACD",
         questions: [
           {
             id: "cf5_macd",
@@ -653,7 +664,7 @@ const SECTIONS_SOURCE: Section[] = [
         ],
       },
       {
-        title: "04.5 RSI — 5M",
+        title: "04.5 RSI",
         questions: [
           {
             id: "cf5_rsi",
@@ -1054,7 +1065,7 @@ export function questionTimeframe(questionId: string, sectionId: SectionId): Tim
   return QUESTION_TIMEFRAME[questionId] ?? SECTION_TIMEFRAME[sectionId];
 }
 
-function withTimeframes(sections: Section[]): Section[] {
+function withRoles(sections: Section[]): Section[] {
   return sections.map((section) => ({
     ...section,
     groups: section.groups.map((group) => ({
@@ -1921,7 +1932,7 @@ function withSetupQuestions(sections: Section[]): Section[] {
 }
 
 /** Cuestionario base definido en código (sin ediciones del editor de preguntas). */
-export const BASE_SECTIONS: Section[] = withTimeframes(
+export const BASE_SECTIONS: Section[] = withRoles(
   withoutNaOptions(withSetupQuestions(SECTIONS_SOURCE)),
 );
 
@@ -2233,6 +2244,7 @@ const BASE_FREE_QUESTION_IDS: string[] = idsOf(SECTIONS_SOURCE);
  */
 const BASE_SHARED_QUESTION_IDS: string[] = [
   "co_instrument",
+  "co_style",
   "co_conditions",
   "rs_result",
   "rs_process",
@@ -2640,7 +2652,7 @@ export function buildChecklistCatalog(overlayInput?: ChecklistOverlay | null): C
 
   // El timeframe se reasigna siempre desde el bloque CORE: las preguntas nuevas
   // heredan la temporalidad de su bloque y nunca se duplican por timeframe.
-  const sections: Section[] = withTimeframes(edited);
+  const sections: Section[] = withRoles(edited);
 
   const disabled = new Set(overlay.disabled);
   const matrix = Object.fromEntries(
