@@ -1,4 +1,5 @@
-import type { Option, Question } from "@/lib/checklist";
+import type { Option, Question, TradingStyle } from "@/lib/checklist";
+import { questionTimeframeBadge } from "@/lib/checklist";
 import { cn } from "@/lib/utils";
 
 /** Tono semáforo del criterio: verde = cumple, ámbar = parcial, rojo = no cumple, neutro = no aplica. */
