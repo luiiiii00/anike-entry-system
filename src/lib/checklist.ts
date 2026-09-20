@@ -1,17 +1,81 @@
 /** `na: true` marca una opción "No aplica": no penaliza ni suma, se excluye del cálculo. */
 export type Option = { v: string; label: string; pts: number; na?: boolean };
 /** `meta: true` marca una pregunta DESCRIPTIVA (patrón, nivel Fibonacci): nunca puntúa. */
-/** Temporalidades oficiales del flujo ANIKE EJEPIKA: 1D → 1H → 5M. */
-export type Timeframe = "1D" | "1H" | "5M";
-export const TIMEFRAMES: Timeframe[] = ["1D", "1H", "5M"];
+/** Temporalidades concretas que puede usar cualquier estilo de trading. */
+export type Timeframe = "1W" | "1D" | "1H" | "5M" | "1M";
+
+/**
+ * ROLES de temporalidad (no temporalidades fijas):
+ *   GRANDE     → dirección / contexto
+ *   INTERMEDIA → estructura, patrón y zona
+ *   PEQUENA    → ejecución / entrada
+ * La temporalidad concreta la aporta el ESTILO declarado en `co_style`.
+ */
+export type TimeframeRole = "GRANDE" | "INTERMEDIA" | "PEQUENA";
+export const TIMEFRAME_ROLES: TimeframeRole[] = ["GRANDE", "INTERMEDIA", "PEQUENA"];
+
+export const ROLE_LABEL: Record<TimeframeRole, string> = {
+  GRANDE: "Grande",
+  INTERMEDIA: "Intermedia",
+  PEQUENA: "Pequeña",
+};
+
+/** Estilos de trading declarados en el bloque 00 (metadata, nunca puntúa). */
+export type TradingStyle = "swing" | "day" | "scalping";
+export const TRADING_STYLES: TradingStyle[] = ["swing", "day", "scalping"];
+
+/** Estilo asumido en evaluaciones históricas guardadas sin `co_style`. */
+export const DEFAULT_TRADING_STYLE: TradingStyle = "day";
+
+export const STYLE_TIMEFRAMES: Record<TradingStyle, Record<TimeframeRole, Timeframe>> = {
+  swing: { GRANDE: "1W", INTERMEDIA: "1D", PEQUENA: "1H" },
+  day: { GRANDE: "1D", INTERMEDIA: "1H", PEQUENA: "5M" },
+  scalping: { GRANDE: "1H", INTERMEDIA: "5M", PEQUENA: "1M" },
+};
+
+export const STYLE_LABEL: Record<TradingStyle, string> = {
+  swing: "Swing trading",
+  day: "Day trading",
+  scalping: "Scalping",
+};
+
+/** ID de la pregunta de metadata que declara el estilo de trading. */
+export const STYLE_QUESTION_ID = "co_style";
+
+/** Estilo válido a partir de un valor guardado (histórico sin estilo → day trading). */
+export function resolveTradingStyle(value: string | null | undefined): TradingStyle {
+  return TRADING_STYLES.includes(value as TradingStyle)
+    ? (value as TradingStyle)
+    : DEFAULT_TRADING_STYLE;
+}
+
+/** Estilo declarado en las respuestas (undefined mientras no se ha elegido). */
+export function tradingStyleFromAnswers(
+  answers: Record<string, string> | null | undefined,
+): TradingStyle | undefined {
+  const value = answers?.[STYLE_QUESTION_ID];
+  return TRADING_STYLES.includes(value as TradingStyle) ? (value as TradingStyle) : undefined;
+}
+
+/** Temporalidad concreta de un rol según el estilo. */
+export function roleTimeframe(role: TimeframeRole, style: TradingStyle): Timeframe {
+  return STYLE_TIMEFRAMES[style][role];
+}
+
+/** Las tres temporalidades del estilo, en orden GRANDE → INTERMEDIA → PEQUENA. */
+export function styleTimeframes(style: TradingStyle): Timeframe[] {
+  return TIMEFRAME_ROLES.map((role) => STYLE_TIMEFRAMES[style][role]);
+}
 
 export type Question = {
   id: string;
   label: string;
   hint?: string;
   meta?: boolean;
-  /** Temporalidad de análisis asociada. Informativa: no altera el cálculo CORE. */
-  timeframe?: Timeframe;
+  /** Rol de temporalidad asociado. Informativo: no altera el cálculo CORE. */
+  role?: TimeframeRole;
+  /** El criterio funciona en cualquiera de las tres temporalidades del estilo (S03). */
+  anyTimeframe?: boolean;
   options: Option[];
 };
 export type SectionId =
@@ -125,6 +189,17 @@ const SECTIONS_SOURCE: Section[] = [
             ],
           },
           {
+            id: "co_style",
+            label: "Estilo de trading:",
+            meta: true,
+            hint: "Define tus tres temporalidades: la grande marca la dirección, la intermedia la estructura y la pequeña la ejecución. No condiciona la estrategia.",
+            options: [
+              { v: "swing", label: "Swing trading — 1W · 1D · 1H", pts: 0 },
+              { v: "day", label: "Day trading — 1D · 1H · 5M", pts: 0 },
+              { v: "scalping", label: "Scalping — 1H · 5M · 1M", pts: 0 },
+            ],
+          },
+          {
             id: "co_conditions",
             label:
               "¿Las condiciones actuales del mercado son adecuadas para ejecutar la operación?",
@@ -148,7 +223,7 @@ const SECTIONS_SOURCE: Section[] = [
     weight: 10,
     groups: [
       {
-        title: "Temporalidad principal: 1D",
+        title: "Contexto",
         questions: [
           {
             id: "ctx_direction",
@@ -217,7 +292,7 @@ const SECTIONS_SOURCE: Section[] = [
     weight: 25,
     groups: [
       {
-        title: "02.1 Estructura 1H",
+        title: "02.1 Estructura",
         questions: [
           {
             id: "h1_structure",
@@ -375,7 +450,7 @@ const SECTIONS_SOURCE: Section[] = [
         ],
       },
       {
-        title: "02.7 Divergencia RSI — 1H",
+        title: "02.7 Divergencia RSI",
         questions: [
           {
             id: "h1_rsi_div",
@@ -403,7 +478,7 @@ const SECTIONS_SOURCE: Section[] = [
         ],
       },
       {
-        title: "02.8 MACD — 1H",
+        title: "02.8 MACD",
         questions: [
           {
             id: "h1_macd",
@@ -442,7 +517,7 @@ const SECTIONS_SOURCE: Section[] = [
           },
           {
             id: "z_relevance",
-            label: "¿Qué tan relevante es la zona en el contexto 1D/1H?",
+            label: "¿Qué tan relevante es la zona en el contexto superior?",
             options: s5([
               ["alta", "Relevancia alta y claramente validada"],
               ["alta_media", "Relevancia alta/moderada"],
@@ -506,7 +581,7 @@ const SECTIONS_SOURCE: Section[] = [
     weight: 20,
     groups: [
       {
-        title: "04.1 Ruptura de diagonal · 5M",
+        title: "04.1 Ruptura de diagonal",
         questions: [
           {
             id: "cf5_diag_break",
@@ -561,7 +636,7 @@ const SECTIONS_SOURCE: Section[] = [
         ],
       },
       {
-        title: "04.4 MACD — 5M",
+        title: "04.4 MACD",
         questions: [
           {
             id: "cf5_macd",
@@ -589,7 +664,7 @@ const SECTIONS_SOURCE: Section[] = [
         ],
       },
       {
-        title: "04.5 RSI — 5M",
+        title: "04.5 RSI",
         questions: [
           {
             id: "cf5_rsi",
@@ -961,43 +1036,82 @@ export const HISTORICAL_NA_VALUE = "na";
  * las respuestas históricas con valor "na" siguen leyéndose tal cual.
  */
 /**
- * TIMEFRAME DE ANÁLISIS (multi-temporalidad ANIKE EJEPIKA: 1D → 1H → 5M).
- * El timeframe es un ATRIBUTO/CONTEXTO de la pregunta: no duplica preguntas, no
- * cambia pesos, factores, fórmula, gates, HARD rules ni estados. Se determina por
- * el bloque CORE al que pertenece la pregunta (flujo oficial) y puede afinarse
- * por pregunta concreta mediante `QUESTION_TIMEFRAME`.
+ * ROL DE TEMPORALIDAD (multi-temporalidad ANIKE EJEPIKA por ESTILO).
+ * El rol es un ATRIBUTO/CONTEXTO de la pregunta: no duplica preguntas, no
+ * cambia pesos, factores, fórmula, gates, HARD rules ni estados. Se determina
+ * por el bloque CORE (flujo oficial) y puede afinarse por pregunta concreta
+ * mediante `QUESTION_ROLE`. La temporalidad concreta sale del estilo (`co_style`).
  */
-export const SECTION_TIMEFRAME: Partial<Record<SectionId, Timeframe>> = {
-  contexto: "1D",
-  estructura: "1H",
-  zona: "1H",
-  confirmacion: "5M",
-  riesgo: "1H",
-  recorrido: "1H",
-  ejecucion: "5M",
+export const SECTION_ROLE: Partial<Record<SectionId, TimeframeRole>> = {
+  contexto: "GRANDE",
+  estructura: "INTERMEDIA",
+  zona: "INTERMEDIA",
+  confirmacion: "PEQUENA",
+  riesgo: "INTERMEDIA",
+  recorrido: "INTERMEDIA",
+  ejecucion: "PEQUENA",
 };
 
-/** Excepciones explícitas pregunta → timeframe (prioridad sobre el bloque). */
-export const QUESTION_TIMEFRAME: Record<string, Timeframe> = {
-  h1_zone: "1H",
-  h1_react: "1H",
-  m5_signal: "5M",
-  m5_break: "5M",
+/** Excepciones explícitas pregunta → rol (prioridad sobre el bloque). */
+export const QUESTION_ROLE: Record<string, TimeframeRole> = {
+  // El patrón se confirma en la temporalidad donde se identifica.
+  s01_pattern_confirmed: "INTERMEDIA",
+  s02_pattern_confirmed: "INTERMEDIA",
+  // S04: la reacción se lee en la intermedia; el giro se ejecuta en la pequeña.
+  s04_price_reacting: "INTERMEDIA",
+  s04_confirm_direction: "PEQUENA",
+  s04_not_only_fibo: "PEQUENA",
+  s04_execution_mode: "PEQUENA",
+  s04_execution_direction_change: "PEQUENA",
+  s04_five_stage_sequence: "INTERMEDIA",
 };
 
-/** Timeframe asociado a una pregunta dentro de su bloque CORE. */
-export function questionTimeframe(questionId: string, sectionId: SectionId): Timeframe | undefined {
-  return QUESTION_TIMEFRAME[questionId] ?? SECTION_TIMEFRAME[sectionId];
+/**
+ * S03 (RUPTURA) funciona en una sola temporalidad de trabajo: sus criterios no
+ * llevan rol y no exigen análisis multi-temporal.
+ */
+export function isAnyTimeframeQuestion(questionId: string): boolean {
+  return questionId.startsWith("s03_");
 }
 
-function withTimeframes(sections: Section[]): Section[] {
+/** Rol de temporalidad asociado a una pregunta dentro de su bloque CORE. */
+export function questionRole(
+  questionId: string,
+  sectionId: SectionId,
+): TimeframeRole | undefined {
+  if (isAnyTimeframeQuestion(questionId)) return undefined;
+  return QUESTION_ROLE[questionId] ?? SECTION_ROLE[sectionId];
+}
+
+/**
+ * Etiqueta informativa de temporalidad de una pregunta. Sin estilo elegido
+ * muestra sólo el rol. Nunca afecta al cálculo.
+ */
+export function questionTimeframeBadge(
+  question: { id: string; role?: TimeframeRole; anyTimeframe?: boolean },
+  style?: TradingStyle | undefined,
+): string | undefined {
+  if (question.anyTimeframe) {
+    const tfs = styleTimeframes(style ?? DEFAULT_TRADING_STYLE).join(" · ");
+    return `Temporalidad de trabajo: cualquiera de ${tfs}`;
+  }
+  if (!question.role) return undefined;
+  const label = ROLE_LABEL[question.role];
+  return style ? `${label} · ${roleTimeframe(question.role, style)}` : label;
+}
+
+function withRoles(sections: Section[]): Section[] {
   return sections.map((section) => ({
     ...section,
     groups: section.groups.map((group) => ({
       ...group,
       questions: group.questions.map((question) => {
-        const timeframe = question.timeframe ?? questionTimeframe(question.id, section.id);
-        return timeframe ? { ...question, timeframe } : question;
+        if (isAnyTimeframeQuestion(question.id)) {
+          const { role: _role, ...rest } = question;
+          return { ...rest, anyTimeframe: true as const };
+        }
+        const role = question.role ?? questionRole(question.id, section.id);
+        return role ? { ...question, role } : question;
       }),
     })),
   }));
@@ -1857,7 +1971,7 @@ function withSetupQuestions(sections: Section[]): Section[] {
 }
 
 /** Cuestionario base definido en código (sin ediciones del editor de preguntas). */
-export const BASE_SECTIONS: Section[] = withTimeframes(
+export const BASE_SECTIONS: Section[] = withRoles(
   withoutNaOptions(withSetupQuestions(SECTIONS_SOURCE)),
 );
 
@@ -2042,6 +2156,21 @@ export const OFFICIAL_SETUPS: OfficialSetup[] = [
   },
 ];
 
+/**
+ * Nota informativa de temporalidades por setup (sólo texto de ayuda del wizard).
+ * No altera pesos, fórmula, gates, HARD rules ni estados.
+ */
+export const SETUP_TIMEFRAME_NOTE: Record<string, string> = {
+  FREE: "Grande: contexto · Intermedia: estructura y zona · Pequeña: ejecución",
+  REVERSION: "Grande: contexto y zonas · Intermedia: patrón · Pequeña: entrada",
+  CONTINUACION: "Grande: contexto y zonas · Intermedia: patrón · Pequeña: entrada",
+  RUPTURA_RETESTEO: "Una sola temporalidad de trabajo",
+  ZONA_FIBONACCI:
+    "Grande: soporte/resistencia · Intermedia: cambio de tendencia y pullback a Fibonacci · Pequeña: ejecución (limit o giro)",
+  IMPULSO_PULLBACK:
+    "Grande: dirección del impulso · Intermedia: pullback válido · Pequeña: ejecución",
+};
+
 export const OFFICIAL_SETUP_IDS = OFFICIAL_SETUPS.map((s) => s.id);
 
 /**
@@ -2169,6 +2298,7 @@ const BASE_FREE_QUESTION_IDS: string[] = idsOf(SECTIONS_SOURCE);
  */
 const BASE_SHARED_QUESTION_IDS: string[] = [
   "co_instrument",
+  "co_style",
   "co_conditions",
   "rs_result",
   "rs_process",
@@ -2576,7 +2706,7 @@ export function buildChecklistCatalog(overlayInput?: ChecklistOverlay | null): C
 
   // El timeframe se reasigna siempre desde el bloque CORE: las preguntas nuevas
   // heredan la temporalidad de su bloque y nunca se duplican por timeframe.
-  const sections: Section[] = withTimeframes(edited);
+  const sections: Section[] = withRoles(edited);
 
   const disabled = new Set(overlay.disabled);
   const matrix = Object.fromEntries(

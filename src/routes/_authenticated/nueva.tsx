@@ -20,6 +20,8 @@ import {
   missingActiveAnswers,
   missingInBlock,
   setupLabel,
+  SETUP_TIMEFRAME_NOTE,
+  tradingStyleFromAnswers,
   type EvaluationBlock,
 } from "@/lib/checklist";
 
@@ -183,6 +185,9 @@ function NuevaEvaluacion() {
     void catalog.stamp;
     return evaluationBlocks(trade.setup);
   }, [trade.setup, catalog.stamp]);
+
+  // Estilo declarado en el bloque 00: resuelve la temporalidad de cada rol.
+  const tradingStyle = tradingStyleFromAnswers(answers);
 
   const lastStep = blocks.length + 1;
   const currentBlock = step >= 1 && step <= blocks.length ? blocks[step - 1] : undefined;
@@ -455,6 +460,12 @@ function NuevaEvaluacion() {
                 </span>
               </div>
 
+              {SETUP_TIMEFRAME_NOTE[trade.setup] && (
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  {SETUP_TIMEFRAME_NOTE[trade.setup]}
+                </p>
+              )}
+
               <div className="mt-4 space-y-5">
                 {currentBlock.id === "comercio" && <TradeStep trade={trade} setTrade={setTrade} />}
 
@@ -488,6 +499,7 @@ function NuevaEvaluacion() {
                     questions={g.questions}
                     answers={answers}
                     onChange={setAnswer}
+                    style={tradingStyle}
                   />
                 ))}
 
