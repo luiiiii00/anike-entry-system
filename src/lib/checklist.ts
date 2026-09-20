@@ -2156,6 +2156,21 @@ export const OFFICIAL_SETUPS: OfficialSetup[] = [
   },
 ];
 
+/**
+ * Nota informativa de temporalidades por setup (sólo texto de ayuda del wizard).
+ * No altera pesos, fórmula, gates, HARD rules ni estados.
+ */
+export const SETUP_TIMEFRAME_NOTE: Record<string, string> = {
+  FREE: "Grande: contexto · Intermedia: estructura y zona · Pequeña: ejecución",
+  REVERSION: "Grande: contexto y zonas · Intermedia: patrón · Pequeña: entrada",
+  CONTINUACION: "Grande: contexto y zonas · Intermedia: patrón · Pequeña: entrada",
+  RUPTURA_RETESTEO: "Una sola temporalidad de trabajo",
+  ZONA_FIBONACCI:
+    "Grande: soporte/resistencia · Intermedia: cambio de tendencia y pullback a Fibonacci · Pequeña: ejecución (limit o giro)",
+  IMPULSO_PULLBACK:
+    "Grande: dirección del impulso · Intermedia: pullback válido · Pequeña: ejecución",
+};
+
 export const OFFICIAL_SETUP_IDS = OFFICIAL_SETUPS.map((s) => s.id);
 
 /**
