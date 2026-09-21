@@ -4,7 +4,14 @@
  * La clave del proveedor nunca llega al navegador.
  */
 
-import { SECTIONS, setupLabel } from "./checklist";
+import {
+  DEFAULT_TRADING_STYLE,
+  SECTIONS,
+  STYLE_LABEL,
+  STYLE_TIMEFRAMES,
+  setupLabel,
+  tradingStyleFromAnswers,
+} from "./checklist";
 import {
   APPROVAL_GATES,
   APPROVAL_MIN_SCORE,
@@ -520,11 +527,20 @@ export function buildEvaluationPrompt(
   postTrade: unknown = null,
 ): string {
   const rr = rrOf(e.risk);
+  // Estilo declarado por el trader (`co_style`). Las evaluaciones históricas sin
+  // estilo se leen como day trading (1D/1H/5M), igual que antes.
+  const style = tradingStyleFromAnswers(e.answers as Record<string, string> | null | undefined)
+    ?? DEFAULT_TRADING_STYLE;
+  const tf = STYLE_TIMEFRAMES[style];
   const base = [
     "DATOS DE LA EVALUACIÓN (sistema ANIKE EJEPIKA):",
     line("Activo", e.asset),
     line("Dirección", e.direction),
     line("Setup", e.setup ? setupLabel(e.setup) : null),
+    line(
+      "Estilo de trading declarado",
+      `${STYLE_LABEL[style]} (grande ${tf.GRANDE} · intermedia ${tf.INTERMEDIA} · pequeña ${tf.PEQUENA})`,
+    ),
 
     line("Score total", e.score === null ? null : `${e.score}/100`),
     line("Clasificación del sistema", e.classification),
@@ -556,14 +572,20 @@ export function buildEvaluationPrompt(
     "RESPUESTAS DEL TRADER EN EL CHECKLIST (no las repitas, agrega valor sobre ellas):",
     answerLines(e.answers),
     "",
-    'LECTURA TÉCNICA DECLARADA (horaria = contexto/estructura, 5M = confirmación de entrada; "no aplica" o "no registrado" no es un error):',
-    line("Patrón de cambio (horaria)", labelOf("h1_pattern_change", e.answers)),
-    line("Patrón de continuidad (horaria)", labelOf("h1_pattern_cont", e.answers)),
-    line("Nivel de Fibonacci (horaria)", labelOf("h1_fibo", e.answers)),
-    line("Divergencia precio/RSI (horaria)", labelOf("h1_rsi_div", e.answers)),
-    line("MACD histograma en zona Fibonacci (horaria)", labelOf("h1_macd", e.answers)),
-    line("Cruce de líneas MACD tras romper la diagonal (5M)", labelOf("cf5_macd", e.answers)),
-    line("RSI evita sobrecompra/sobreventa en la entrada (5M)", labelOf("cf5_rsi", e.answers)),
+    `LECTURA TÉCNICA DECLARADA (temporalidad intermedia ${tf.INTERMEDIA} = estructura/zona, pequeña ${tf.PEQUENA} = confirmación de entrada; "no aplica" o "no registrado" no es un error):`,
+    line(`Patrón de cambio (${tf.INTERMEDIA})`, labelOf("h1_pattern_change", e.answers)),
+    line(`Patrón de continuidad (${tf.INTERMEDIA})`, labelOf("h1_pattern_cont", e.answers)),
+    line(`Nivel de Fibonacci (${tf.INTERMEDIA})`, labelOf("h1_fibo", e.answers)),
+    line(`Divergencia precio/RSI (${tf.INTERMEDIA})`, labelOf("h1_rsi_div", e.answers)),
+    line(`MACD histograma en zona Fibonacci (${tf.INTERMEDIA})`, labelOf("h1_macd", e.answers)),
+    line(
+      `Cruce de líneas MACD tras romper la diagonal (${tf.PEQUENA})`,
+      labelOf("cf5_macd", e.answers),
+    ),
+    line(
+      `RSI evita sobrecompra/sobreventa en la entrada (${tf.PEQUENA})`,
+      labelOf("cf5_rsi", e.answers),
+    ),
     ...finalStateBlock(e),
     ...historyBlock(history),
   ];
