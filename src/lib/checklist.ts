@@ -1076,10 +1076,7 @@ export function isAnyTimeframeQuestion(questionId: string): boolean {
 }
 
 /** Rol de temporalidad asociado a una pregunta dentro de su bloque CORE. */
-export function questionRole(
-  questionId: string,
-  sectionId: SectionId,
-): TimeframeRole | undefined {
+export function questionRole(questionId: string, sectionId: SectionId): TimeframeRole | undefined {
   if (isAnyTimeframeQuestion(questionId)) return undefined;
   return QUESTION_ROLE[questionId] ?? SECTION_ROLE[sectionId];
 }

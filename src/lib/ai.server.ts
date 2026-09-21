@@ -529,8 +529,9 @@ export function buildEvaluationPrompt(
   const rr = rrOf(e.risk);
   // Estilo declarado por el trader (`co_style`). Las evaluaciones históricas sin
   // estilo se leen como day trading (1D/1H/5M), igual que antes.
-  const style = tradingStyleFromAnswers(e.answers as Record<string, string> | null | undefined)
-    ?? DEFAULT_TRADING_STYLE;
+  const style =
+    tradingStyleFromAnswers(e.answers as Record<string, string> | null | undefined) ??
+    DEFAULT_TRADING_STYLE;
   const tf = STYLE_TIMEFRAMES[style];
   const base = [
     "DATOS DE LA EVALUACIÓN (sistema ANIKE EJEPIKA):",
