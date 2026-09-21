@@ -23,12 +23,22 @@ import {
   BASE_SECTIONS,
   EVALUATION_SETUP_IDS,
   getActiveQuestionsBySetup,
-  questionTimeframe,
+  isAnyTimeframeQuestion,
+  questionRole,
   setupLabel,
   type EvaluationSetupId,
   type SectionId,
-  type Timeframe,
+  type TimeframeRole,
 } from "./checklist";
+
+/**
+ * Rol de temporalidad del reactivo en el registro:
+ *  - GRANDE / INTERMEDIA / PEQUENA: rol declarado por la matriz.
+ *  - "ANY": el reactivo funciona en cualquiera de las tres temporalidades (S03).
+ *  - null: no aplica temporalidad.
+ * La temporalidad concreta la aporta el estilo declarado en `co_style`.
+ */
+export type RegistryRole = TimeframeRole | "ANY" | null;
 
 /** Tipos oficiales de reactivo del registro maestro. */
 export type RegistryType =
@@ -100,7 +110,8 @@ export type RegistryRecord = {
   score_behavior: string;
   validation_behavior: string;
   hard_behavior: string;
-  timeframe: Timeframe | null;
+  /** Rol de temporalidad (GRANDE/INTERMEDIA/PEQUENA), "ANY" (S03) o null. */
+  role: RegistryRole;
   /** Referencia de fuente cuando existe. */
   source: string | null;
   /** `true` cuando el reactivo está activo en la matriz vigente del setup. */
@@ -180,6 +191,7 @@ const AUTO_QUESTIONS = new Set(["r_rr"]);
 /** Conceptos semánticos declarados. Sin entrada se deriva del texto del reactivo. */
 const CONCEPTS: Record<string, string> = {
   co_instrument: "Identificación del instrumento operado",
+  co_style: "Estilo de trading declarado (temporalidades de trabajo)",
   co_conditions: "Idoneidad de las condiciones de mercado",
   ctx_direction: "Dirección predominante del contexto superior",
   ctx_swings: "Secuencia de máximos y mínimos",
@@ -199,7 +211,7 @@ const CONCEPTS: Record<string, string> = {
   h1_rsi_div_fibo: "Confluencia divergencia ↔ Fibonacci",
   h1_macd: "Pérdida de fuerza del MACD en zona",
   z_type: "Tipo de zona testeada",
-  z_relevance: "Relevancia de la zona en contexto 1D/1H",
+  z_relevance: "Relevancia de la zona en la temporalidad superior",
   z_reacted: "Reacción efectiva en la zona",
   z_space: "Espacio hasta la próxima zona",
   z_clear: "Claridad de la zona de entrada",
@@ -526,7 +538,8 @@ function recordFromQuestion(
     id: string;
     label: string;
     meta?: boolean;
-    timeframe?: Timeframe;
+    role?: TimeframeRole;
+    anyTimeframe?: boolean;
     options: { v: string; label: string; pts: number }[];
     sectionId: SectionId;
   },
@@ -571,7 +584,7 @@ function recordFromQuestion(
     score_behavior: scoreBehaviorOf(type, weight),
     validation_behavior: validationBehaviorOf(type, q.id),
     hard_behavior: hardBehaviorOf(type, q.id),
-    timeframe: q.timeframe ?? null,
+    role: q.anyTimeframe ? "ANY" : (q.role ?? null),
     source: SOURCES[setupId] ?? null,
     active: true,
     status: pending ? "PENDIENTE_DE_FUENTE" : "COMPLETO",
@@ -620,7 +633,7 @@ export function buildRegistry(): RegistryRecord[] {
         score_behavior: scoreBehaviorOf(auto.type, CORE_WEIGHTS[auto.block_id]),
         validation_behavior: validationBehaviorOf(auto.type, auto.question_id),
         hard_behavior: hardBehaviorOf(auto.type, auto.question_id),
-        timeframe: null,
+        role: null,
         source: "ANIKE EJEPIKA — motor CORE (cálculo automático)",
         active: true,
         status: "COMPLETO",
@@ -657,7 +670,9 @@ export function buildRegistry(): RegistryRecord[] {
         score_behavior: scoreBehaviorOf(rec.type, CORE_WEIGHTS[rec.block_id]),
         validation_behavior: validationBehaviorOf(rec.type, rec.question_id),
         hard_behavior: hardBehaviorOf(rec.type, rec.question_id),
-        timeframe: questionTimeframe(rec.question_id, rec.block_id) ?? null,
+        role: isAnyTimeframeQuestion(rec.question_id)
+          ? "ANY"
+          : (questionRole(rec.question_id, rec.block_id) ?? null),
         source: rec.source,
         active: false,
         status: "COMPLETO",
