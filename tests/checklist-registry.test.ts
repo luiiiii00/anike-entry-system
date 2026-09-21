@@ -144,6 +144,29 @@ describe("registro técnico maestro ANIKE EJEPIKA", () => {
     }
   });
 
+  it("co_style está registrado como METADATA en los 6 setups, sin peso ni bloqueo", () => {
+    for (const setupId of EVALUATION_SETUP_IDS) {
+      const r = records.find((x) => x.setup_id === setupId && x.question_id === "co_style");
+      expect(r?.type).toBe("METADATA");
+      expect(r?.internal_weight).toBe(0);
+      expect(r?.block_id).toBe("comercio");
+      expect(r?.condition).toBeNull();
+      expect(r?.hard_behavior.startsWith("NO_HARD")).toBe(true);
+      expect(r?.options.map((o) => o.value)).toEqual(["swing", "day", "scalping"]);
+      for (const o of r?.options ?? []) expect(o.factor).toBe(0);
+    }
+  });
+
+  it("la columna de temporalidad registra rol, ANY para S03 o nada", () => {
+    for (const r of records) {
+      expect([null, "ANY", "GRANDE", "INTERMEDIA", "PEQUENA"]).toContain(r.role);
+      if (r.question_id.startsWith("s03_")) expect(r.role).toBe("ANY");
+      if (r.question_id === "co_style") expect(r.role).toBeNull();
+      if (r.question_id === "s04_confirm_direction") expect(r.role).toBe("PEQUENA");
+      if (r.question_id === "s04_five_stage_sequence") expect(r.role).toBe("INTERMEDIA");
+    }
+  });
+
   it("S03 se denomina RUPTURA aunque el ID interno sea RUPTURA_RETESTEO", () => {
     const s03 = records.find((r) => r.setup_id === "RUPTURA_RETESTEO");
     expect(s03?.setup_code).toBe("S03");

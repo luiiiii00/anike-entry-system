@@ -3,6 +3,7 @@ export type Option = { v: string; label: string; pts: number; na?: boolean };
 /** `meta: true` marca una pregunta DESCRIPTIVA (patrón, nivel Fibonacci): nunca puntúa. */
 /** Temporalidades concretas que puede usar cualquier estilo de trading. */
 export type Timeframe = "1W" | "1D" | "1H" | "5M" | "1M";
+export const TIMEFRAMES: Timeframe[] = ["1W", "1D", "1H", "5M", "1M"];
 
 /**
  * ROLES de temporalidad (no temporalidades fijas):
@@ -1075,10 +1076,7 @@ export function isAnyTimeframeQuestion(questionId: string): boolean {
 }
 
 /** Rol de temporalidad asociado a una pregunta dentro de su bloque CORE. */
-export function questionRole(
-  questionId: string,
-  sectionId: SectionId,
-): TimeframeRole | undefined {
+export function questionRole(questionId: string, sectionId: SectionId): TimeframeRole | undefined {
   if (isAnyTimeframeQuestion(questionId)) return undefined;
   return QUESTION_ROLE[questionId] ?? SECTION_ROLE[sectionId];
 }
