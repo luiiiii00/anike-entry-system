@@ -77,8 +77,15 @@ export type Question = {
   role?: TimeframeRole;
   /** El criterio funciona en cualquiera de las tres temporalidades del estilo (S03). */
   anyTimeframe?: boolean;
+  /**
+   * CONDICIÓN de activación (CONDITIONAL_SCORE). La pregunta sólo pertenece al
+   * cuestionario activo cuando la pregunta declarada tiene el valor indicado.
+   * No cambia pesos CORE, fórmula, gates, HARD rules ni estados.
+   */
+  condition?: { questionId: string; value: string };
   options: Option[];
 };
+
 export type SectionId =
   | "comercio"
   | "contexto"
@@ -1597,16 +1604,19 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
   {
     setup: "RUPTURA_RETESTEO",
     sectionId: "zona",
-    title: "S03 — RUPTURA + RETESTEO · Zona",
+    title: "S03 — RUPTURA · Zona",
     questions: [
       {
         id: "s03_level_as_retest",
-        label: "RR5 · ¿El nivel roto puede actuar como zona de retesteo?",
+        label:
+          "RR5 · El nivel roto puede actuar como zona de referencia (protección del stop y posible retesteo)",
         options: f5("Claramente", "Sí, con buena estructura", "Parcialmente", "Dudoso", "No"),
       },
       {
         id: "s03_retest_on_level",
         label: "RR6 · ¿El retesteo ocurre realmente sobre el nivel o zona previamente rota?",
+        hint: "Sólo se evalúa cuando la entrada se hace por retesteo (alternativa opcional).",
+        condition: { questionId: "s03_entry_mode", value: "RETESTEO" },
         options: f5("Exactamente", "Muy cerca", "Parcialmente", "Alejado", "No existe retesteo"),
       },
     ],
@@ -1614,11 +1624,27 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
   {
     setup: "RUPTURA_RETESTEO",
     sectionId: "confirmacion",
-    title: "S03 — RUPTURA + RETESTEO · Confirmación",
+    title: "S03 — RUPTURA · Confirmación",
     questions: [
+      {
+        id: "s03_mini_confirmation",
+        label:
+          "RR6b · La vela siguiente a la ruptura (o la tercera vela) confirma en la misma dirección",
+        hint: "Sólo se evalúa cuando la entrada se hace por mini confirmación.",
+        condition: { questionId: "s03_entry_mode", value: "MINI_CONFIRMACION" },
+        options: f5(
+          "Confirmación clara en la misma dirección",
+          "Confirmación válida",
+          "Confirmación moderada",
+          "Confirmación débil o dudosa",
+          "No confirma o la vela contradice la ruptura",
+        ),
+      },
       {
         id: "s03_retest_reaction",
         label: "RR7 · ¿El retesteo presenta rechazo o reacción coherente con la ruptura?",
+        hint: "Sólo se evalúa cuando la entrada se hace por retesteo (alternativa opcional).",
+        condition: { questionId: "s03_entry_mode", value: "RETESTEO" },
         options: f5(
           "Reacción clara",
           "Reacción fuerte",
@@ -1629,7 +1655,8 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
       },
       {
         id: "s03_confirm_direction",
-        label: "RR8 · ¿El precio confirma la dirección después del retesteo?",
+        label:
+          "RR8 · El precio confirma la dirección después de la ruptura (mini confirmación o retesteo)",
         options: CONFIRM_SCALE,
       },
     ],
@@ -1637,11 +1664,12 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
   {
     setup: "RUPTURA_RETESTEO",
     sectionId: "riesgo",
-    title: "S03 — RUPTURA + RETESTEO · Riesgo",
+    title: "S03 — RUPTURA · Riesgo",
     questions: [
       {
         id: "s03_stop_invalidation",
-        label: "RR9 · ¿El Stop Loss queda detrás de la invalidación del retesteo?",
+        label:
+          "RR9 · El Stop Loss queda dentro del nivel roto, detrás de la invalidación de la ruptura",
         options: STOP_SCALE,
       },
     ],
@@ -1649,7 +1677,7 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
   {
     setup: "RUPTURA_RETESTEO",
     sectionId: "recorrido",
-    title: "S03 — RUPTURA + RETESTEO · Recorrido",
+    title: "S03 — RUPTURA · Recorrido",
     questions: [
       {
         id: "s03_room",
@@ -1661,8 +1689,22 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
   {
     setup: "RUPTURA_RETESTEO",
     sectionId: "ejecucion",
-    title: "S03 — RUPTURA + RETESTEO · Ejecución",
+    title: "S03 — RUPTURA · Ejecución",
     questions: [
+      {
+        id: "s03_entry_mode",
+        label: "Modo de entrada",
+        meta: true,
+        hint: "El flujo oficial es nivel → ruptura válida → entrada tras una mini confirmación. El retesteo es una alternativa opcional.",
+        options: [
+          {
+            v: "MINI_CONFIRMACION",
+            label: "Mini confirmación (vela siguiente o tercera vela en la misma dirección)",
+            pts: 0,
+          },
+          { v: "RETESTEO", label: "Retesteo del nivel roto (opcional)", pts: 0 },
+        ],
+      },
       {
         id: "s03_entry_after_confirm",
         label: "RR11 · ¿La entrada se realiza después de la confirmación sin perseguir el precio?",
@@ -1670,6 +1712,7 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
       },
     ],
   },
+
   {
     setup: "RUPTURA_RETESTEO",
     sectionId: "disciplina",
@@ -1872,6 +1915,20 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
           "Invalidó el impulso",
         ),
       },
+      {
+        id: "s05_pullback_criteria",
+        label:
+          "IP3b · El pullback cumple el criterio de validez: en tendencia alcista su mínimo supera al mínimo de la última vela del impulso (en bajista, su máximo supera al máximo)",
+        hint: "Si no supera ese nivel de referencia no es un pullback: es desaceleración o volatilidad interna.",
+        role: "INTERMEDIA",
+        options: f5(
+          "Cumple claramente",
+          "Cumple",
+          "Cumple de forma marginal",
+          "Dudoso, parece sólo desaceleración",
+          "No cumple: es desaceleración, no un pullback",
+        ),
+      },
     ],
   },
   {
@@ -1882,10 +1939,12 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
       {
         id: "s05_pullback_zone",
         label: "IP4 · ¿El pullback llega a una zona de interés para reanudar el movimiento?",
+        hint: "Zonas de interés: Fibonacci 0,75, media móvil y FVG.",
         options: f5("Zona muy clara", "Zona clara", "Moderadamente clara", "Débil", "No existe"),
       },
     ],
   },
+
   {
     setup: "IMPULSO_PULLBACK",
     sectionId: "confirmacion",
