@@ -2492,15 +2492,54 @@ export function getQuestionsForSetup(setupId: string | null | undefined): SetupQ
   return getActiveQuestionsBySetup(setupId);
 }
 
+/* ---------------------------------------------------------------------------
+ * CONDICIONES DE ACTIVACIÓN (CONDITIONAL_SCORE)
+ * Una pregunta condicional sólo forma parte del cuestionario activo cuando su
+ * pregunta declarada tiene el valor indicado. Compatibilidad histórica: si la
+ * pregunta que declara la condición no está respondida (evaluaciones antiguas)
+ * pero la condicional SÍ tiene respuesta guardada, se conserva activa y se
+ * calcula exactamente como antes. No cambia pesos CORE, fórmula, gates, HARD
+ * rules, umbral 80 ni estados.
+ * ------------------------------------------------------------------------- */
+
+export function isQuestionActive(
+  question: { id: string; condition?: { questionId: string; value: string } },
+  answers?: Record<string, string> | null,
+): boolean {
+  const condition = question.condition;
+  if (!condition) return true;
+  if (!answers) return true;
+  const declared = answers[condition.questionId];
+  if (declared === undefined || declared === "") {
+    const own = answers[question.id];
+    return own !== undefined && own !== "";
+  }
+  return declared === condition.value;
+}
+
+/** Filtra las preguntas condicionales inactivas. Sin respuestas devuelve todas. */
+export function filterByConditions<
+  T extends { id: string; condition?: { questionId: string; value: string } },
+>(questions: T[], answers?: Record<string, string> | null): T[] {
+  if (!answers) return questions;
+  return questions.filter((q) => isQuestionActive(q, answers));
+}
+
 /** IDs de preguntas activas del setup (usado por el wizard y por el cálculo). */
-export function activeQuestionIds(setupId: string | null | undefined): Set<string> {
-  return new Set(getActiveQuestionsBySetup(setupId).map((q) => q.id));
+export function activeQuestionIds(
+  setupId: string | null | undefined,
+  answers?: Record<string, string> | null,
+): Set<string> {
+  return new Set(filterByConditions(getActiveQuestionsBySetup(setupId), answers).map((q) => q.id));
 }
 
 /** IDs PUNTUABLES del setup (sin metadata). */
-export function scorableQuestionIds(setupId: string | null | undefined): Set<string> {
+export function scorableQuestionIds(
+  setupId: string | null | undefined,
+  answers?: Record<string, string> | null,
+): Set<string> {
   return new Set(
-    getActiveQuestionsBySetup(setupId)
+    filterByConditions(getActiveQuestionsBySetup(setupId), answers)
       .filter((q) => q.meta !== true)
       .map((q) => q.id),
   );
@@ -2510,8 +2549,9 @@ export function scorableQuestionIds(setupId: string | null | undefined): Set<str
 export function sectionGroupsForSetup(
   section: Section,
   setupId: string | null | undefined,
+  answers?: Record<string, string> | null,
 ): { title?: string; questions: SetupQuestion[] }[] {
-  const active = getActiveQuestionsBySetup(setupId);
+  const active = filterByConditions(getActiveQuestionsBySetup(setupId), answers);
   const byId = new Map(active.map((q) => [q.id, q]));
   return section.groups
     .map((g) => ({
@@ -2538,23 +2578,26 @@ export type EvaluationBlock = {
  * 00 Comercio → 01 Contexto → … → 08 Disciplina. El bloque 09 Resultados es
  * post-trade y no forma parte del flujo de entrada.
  */
-export function evaluationBlocks(setupId: string | null | undefined): EvaluationBlock[] {
+export function evaluationBlocks(
+  setupId: string | null | undefined,
+  answers?: Record<string, string> | null,
+): EvaluationBlock[] {
   if (!setupId || getActiveQuestionsBySetup(setupId).length === 0) return [];
   return SECTIONS.filter((s) => !s.postTrade).flatMap((section) => {
-    const groups = sectionGroupsForSetup(section, setupId);
+    const groups = sectionGroupsForSetup(section, setupId, answers);
     const questions = groups.flatMap((g) => g.questions);
     if (questions.length === 0) return [];
     return [{ id: section.id, step: section.step, title: section.title, groups, questions }];
   });
 }
 
-/** Preguntas del bloque sin responder (toda pregunta del bloque es obligatoria). */
+/** Preguntas del bloque sin responder (toda pregunta activa del bloque es obligatoria). */
 export function missingInBlock(
   answers: Record<string, string>,
   setupId: string | null | undefined,
   sectionId: SectionId,
 ): string[] {
-  return getActiveQuestionsBySetup(setupId)
+  return filterByConditions(getActiveQuestionsBySetup(setupId), answers)
     .filter((q) => q.sectionId === sectionId)
     .filter((q) => {
       const value = answers[q.id];
@@ -2562,6 +2605,7 @@ export function missingInBlock(
     })
     .map((q) => q.id);
 }
+
 
 /** El bloque está completo: no se puede avanzar hasta que lo esté. */
 export function blockComplete(
