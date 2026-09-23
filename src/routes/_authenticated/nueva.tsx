@@ -181,10 +181,11 @@ function NuevaEvaluacion() {
   );
 
   // Bloques secuenciales de la matriz activa: 00 Comercio → 08 Disciplina.
+  // `answers` resuelve las preguntas condicionales (modo de entrada, variantes).
   const blocks = useMemo<EvaluationBlock[]>(() => {
     void catalog.stamp;
-    return evaluationBlocks(trade.setup);
-  }, [trade.setup, catalog.stamp]);
+    return evaluationBlocks(trade.setup, answers);
+  }, [trade.setup, answers, catalog.stamp]);
 
   // Estilo declarado en el bloque 00: resuelve la temporalidad de cada rol.
   const tradingStyle = tradingStyleFromAnswers(answers);

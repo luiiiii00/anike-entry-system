@@ -2606,7 +2606,6 @@ export function missingInBlock(
     .map((q) => q.id);
 }
 
-
 /** El bloque está completo: no se puede avanzar hasta que lo esté. */
 export function blockComplete(
   answers: Record<string, string>,
@@ -2649,7 +2648,7 @@ export function missingActiveAnswers(
       s.groups.flatMap((g) => g.questions.map((q) => q.id)),
     ),
   );
-  return getActiveQuestionsBySetup(setupId)
+  return filterByConditions(getActiveQuestionsBySetup(setupId), answers)
     .filter((q) => options?.includePostTrade === true || !postTradeIds.has(q.id))
     .filter((q) => {
       const value = answers[q.id];

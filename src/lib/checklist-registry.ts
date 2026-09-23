@@ -98,10 +98,13 @@ export type RegistryRecord = {
   concept: string;
   /** Texto definitivo tal y como lo ve el trader. */
   text: string;
+  /** Ayuda mostrada junto al reactivo (informativa). */
+  hint: string | null;
   /** Condición de activación. `null` = siempre activo dentro de su setup. */
   condition: string | null;
   condition_type: RegistryConditionType;
   options: RegistryOption[];
+
   /** Peso interno dentro de su bloque (equiponderado en el motor actual). */
   internal_weight: number;
   core_target: { block: SectionId; weight: number; stage: "PRE_TRADE" | "POST_TRADE" };
@@ -188,11 +191,40 @@ const CONDITIONAL_TRIGGERS = new Set([
 /** Reactivos cuyo valor real lo calcula el motor (AUTO), no el criterio subjetivo. */
 const AUTO_QUESTIONS = new Set(["r_rr"]);
 
+/**
+ * Reactivos declarados como VALIDATION por contrato: puntúan y pueden dejar la
+ * evaluación CONDICIONAL, pero NUNCA bloquean por sí mismos (NO_HARD).
+ */
+const DECLARED_VALIDATION_IDS = new Set(["s05_pullback_criteria", "s05_deep_pullback"]);
+
+/** Fuente documental específica de un reactivo (prioridad sobre la del setup). */
+const SOURCE_OVERRIDES: Record<string, string> = {
+  s03_entry_mode: "ANIKE EJEPIKA — S03/S05 transcripción",
+  s03_mini_confirmation: "ANIKE EJEPIKA — S03/S05 transcripción",
+  s03_retest_on_level: "ANIKE EJEPIKA — S03/S05 transcripción",
+  s03_retest_reaction: "ANIKE EJEPIKA — S03/S05 transcripción",
+  s03_level_as_retest: "ANIKE EJEPIKA — S03/S05 transcripción",
+  s03_confirm_direction: "ANIKE EJEPIKA — S03/S05 transcripción",
+  s03_stop_invalidation: "ANIKE EJEPIKA — S03/S05 transcripción",
+  s05_pullback_criteria: "ANIKE EJEPIKA — S03/S05 transcripción",
+  s05_pullback_type: "ANIKE EJEPIKA — S03/S05 transcripción",
+  s05_deep_pullback: "ANIKE EJEPIKA — S03/S05 transcripción",
+  s05_pullback_zone: "ANIKE EJEPIKA — S03/S05 transcripción",
+};
+
+/** Reactivos cuyo wording proviene de la transcripción normalizada. */
+const NORMALIZED_IDS = new Set(Object.keys(SOURCE_OVERRIDES));
+
 /** Conceptos semánticos declarados. Sin entrada se deriva del texto del reactivo. */
 const CONCEPTS: Record<string, string> = {
   co_instrument: "Identificación del instrumento operado",
   co_style: "Estilo de trading declarado (temporalidades de trabajo)",
   co_conditions: "Idoneidad de las condiciones de mercado",
+  s03_entry_mode: "Modo de entrada declarado (mini confirmación o retesteo opcional)",
+  s03_mini_confirmation: "Mini confirmación posterior a la ruptura (vela siguiente o tercera vela)",
+  s03_level_as_retest: "Nivel roto como zona de referencia (protección del stop)",
+  s03_stop_invalidation: "Stop Loss dentro del nivel roto, detrás de la invalidación",
+  s05_pullback_criteria: "Criterio de validez del pullback frente a la última vela del impulso",
   ctx_direction: "Dirección predominante del contexto superior",
   ctx_swings: "Secuencia de máximos y mínimos",
   ctx_aligned: "Alineación operación ↔ contexto",
@@ -280,14 +312,15 @@ function isDescriptive(factors: number[]): boolean {
   return factors.length > 0 && factors.every((f) => f === factors[0]);
 }
 
-function typeOf(id: string, meta: boolean, factors: number[]): RegistryType {
+function typeOf(id: string, meta: boolean, factors: number[], hasCondition = false): RegistryType {
   if (AUTO_QUESTIONS.has(id)) return "AUTO_VALIDATION";
   if (meta || isDescriptive(factors)) return "METADATA";
   const hard = HARD_TRIGGERS.has(id);
   const conditional = CONDITIONAL_TRIGGERS.has(id);
   if (hard && isOfficialScale(factors)) return "SCORE_VALIDATION";
   if (hard) return "HARD";
-  if (conditional) return "VALIDATION";
+  if (hasCondition) return "CONDITIONAL_SCORE";
+  if (conditional || DECLARED_VALIDATION_IDS.has(id)) return "VALIDATION";
   return "SCORE";
 }
 
@@ -339,7 +372,7 @@ function hardBehaviorOf(type: RegistryType, id: string): string {
 
 function conditionTypeOf(condition: string | null): RegistryConditionType {
   if (!condition) return "NONE";
-  return /execution_mode/.test(condition) ? "MODE" : "VARIANT";
+  return /_mode\b/.test(condition) ? "MODE" : "VARIANT";
 }
 
 const score5 = (opts: [string, string][]): RegistryOption[] =>
@@ -366,7 +399,7 @@ const DECLARED_RECORDS: Array<
     | "condition"
     | "source"
     | "options"
-  >
+  > & { hint?: string }
 > = [
   {
     setup_id: "RUPTURA_RETESTEO",
@@ -474,14 +507,23 @@ const DECLARED_RECORDS: Array<
     type: "METADATA",
     concept: "Tipo de pullback",
     text: "¿Qué tipo de pullback presenta el precio?",
+    hint: "El correctivo es el más operable; el profundo deja atrás Fibonacci 0,75, la media móvil y el FVG.",
     condition: null,
-    source: "ANIKE EJEPIKA — S05, tipo de pullback",
+    source: "ANIKE EJEPIKA — S03/S05 transcripción",
     options: meta0([
-      ["superficial", "Pullback superficial"],
-      ["moderado", "Pullback moderado"],
-      ["profundo", "Pullback profundo"],
-      ["complejo", "Pullback complejo"],
-      ["no_clasificable", "Pullback no clasificable"],
+      ["agresivo", "Pullback agresivo (pocas velas; llega a Fibonacci 0,75, media móvil o FVG)"],
+      [
+        "correctivo",
+        "Pullback correctivo (mayor retroceso; es el más operable y aprovecha la fractalidad)",
+      ],
+      [
+        "profundo",
+        "Pullback profundo (deja atrás Fibonacci, media móvil y FVG; mejor no operarlo)",
+      ],
+      ["superficial", "Pullback superficial (histórico)"],
+      ["moderado", "Pullback moderado (histórico)"],
+      ["complejo", "Pullback complejo (histórico)"],
+      ["no_clasificable", "Pullback no clasificable (histórico)"],
     ]),
   },
   {
@@ -491,8 +533,9 @@ const DECLARED_RECORDS: Array<
     type: "VALIDATION",
     concept: "Pullback profundo (validación, nunca HARD automático)",
     text: "¿El pullback profundo conserva la validez estructural del impulso?",
+    hint: "Si el pullback deja atrás Fibonacci 0,75, la media móvil y el FVG, es profundo: mejor no operarlo o usar order blocks.",
     condition: null,
-    source: "ANIKE EJEPIKA — S05, pullback profundo",
+    source: "ANIKE EJEPIKA — S03/S05 transcripción",
     options: score5([
       ["excelente", "Conserva completamente la estructura y no amenaza la invalidación"],
       ["fuerte", "Conserva la estructura con margen reducido"],
@@ -537,9 +580,11 @@ function recordFromQuestion(
   q: {
     id: string;
     label: string;
+    hint?: string;
     meta?: boolean;
     role?: TimeframeRole;
     anyTimeframe?: boolean;
+    condition?: { questionId: string; value: string };
     options: { v: string; label: string; pts: number }[];
     sectionId: SectionId;
   },
@@ -547,7 +592,8 @@ function recordFromQuestion(
 ): RegistryRecord {
   const block = blockOf(q.sectionId);
   const factors = q.options.map((o) => o.pts);
-  const type = typeOf(q.id, q.meta === true, factors);
+  const condition = q.condition ? `${q.condition.questionId} = ${q.condition.value}` : null;
+  const type = typeOf(q.id, q.meta === true, factors, condition !== null);
   const weight = CORE_WEIGHTS[q.sectionId];
   const scorable = type !== "METADATA" && type !== "AUTO";
   const officialScale = isOfficialScale(factors);
@@ -567,12 +613,13 @@ function recordFromQuestion(
     concept:
       CONCEPTS[q.id] ??
       q.label
-        .replace(/^[A-Z]+\d+\s·\s/, "")
+        .replace(/^[A-Z]+\d+[a-z]?\s·\s/, "")
         .replace(/[¿?:]/g, "")
         .trim(),
     text: q.label,
-    condition: null,
-    condition_type: "NONE",
+    hint: q.hint ?? null,
+    condition,
+    condition_type: conditionTypeOf(condition),
     options: q.options.map((o) => ({ value: o.v, label: o.label, factor: o.pts })),
     internal_weight: scorable ? 1 : 0,
     core_target: {
@@ -585,10 +632,14 @@ function recordFromQuestion(
     validation_behavior: validationBehaviorOf(type, q.id),
     hard_behavior: hardBehaviorOf(type, q.id),
     role: q.anyTimeframe ? "ANY" : (q.role ?? null),
-    source: SOURCES[setupId] ?? null,
+    source: SOURCE_OVERRIDES[q.id] ?? SOURCES[setupId] ?? null,
     active: true,
     status: pending ? "PENDIENTE_DE_FUENTE" : "COMPLETO",
-    source_status: pending ? "PENDIENTE_DE_FUENTE" : "VERIFIED",
+    source_status: pending
+      ? "PENDIENTE_DE_FUENTE"
+      : NORMALIZED_IDS.has(q.id)
+        ? "NORMALIZED"
+        : "VERIFIED",
     pending_reason: pending
       ? `Escala histórica de ${factors.length} nivel(es) (${factors.join(" / ")}): falta fuente para expresarla con los 5 factores oficiales sin inventar contenido.`
       : null,
@@ -620,6 +671,7 @@ export function buildRegistry(): RegistryRecord[] {
         type: auto.type,
         concept: auto.concept,
         text: auto.text,
+        hint: null,
         condition: null,
         condition_type: "NONE",
         options: [],
@@ -657,6 +709,7 @@ export function buildRegistry(): RegistryRecord[] {
         type: rec.type,
         concept: rec.concept,
         text: rec.text,
+        hint: rec.hint ?? null,
         condition: rec.condition,
         condition_type: conditionTypeOf(rec.condition),
         options: rec.options,

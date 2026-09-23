@@ -94,10 +94,61 @@ describe("registro técnico maestro ANIKE EJEPIKA", () => {
     const variants = records.filter(
       (r) => r.type === "CONDITIONAL_SCORE" && r.setup_id === "RUPTURA_RETESTEO",
     );
-    expect(variants.length).toBe(2);
     expect(new Set(variants.map((v) => v.condition))).toEqual(
-      new Set(["s03_break_variant = MOMENTUM", "s03_break_variant = THREE_BODY"]),
+      new Set([
+        "s03_break_variant = MOMENTUM",
+        "s03_break_variant = THREE_BODY",
+        "s03_entry_mode = MINI_CONFIRMACION",
+        "s03_entry_mode = RETESTEO",
+      ]),
     );
+    // Las dos variantes de ruptura y los dos modos de entrada son excluyentes.
+    const byCondition = (c: string) => variants.filter((v) => v.condition === c).length;
+    expect(byCondition("s03_break_variant = MOMENTUM")).toBe(1);
+    expect(byCondition("s03_break_variant = THREE_BODY")).toBe(1);
+    expect(byCondition("s03_entry_mode = MINI_CONFIRMACION")).toBe(1);
+    expect(byCondition("s03_entry_mode = RETESTEO")).toBe(2);
+  });
+
+  it("el modo de entrada de S03 es METADATA declarada y nunca bloquea", () => {
+    const mode = records.find((r) => r.question_id === "s03_entry_mode");
+    expect(mode?.type).toBe("METADATA");
+    expect(mode?.internal_weight).toBe(0);
+    expect(mode?.hard_behavior.startsWith("NO_HARD")).toBe(true);
+    expect(mode?.options.map((o) => o.value)).toEqual(["MINI_CONFIRMACION", "RETESTEO"]);
+    expect(mode?.options.every((o) => o.factor === 0)).toBe(true);
+    expect(mode?.condition_type).toBe("NONE");
+  });
+
+  it("la mini confirmación de S03 puntúa sólo con MINI_CONFIRMACION y no es HARD", () => {
+    const mini = records.find((r) => r.question_id === "s03_mini_confirmation");
+    expect(mini?.type).toBe("CONDITIONAL_SCORE");
+    expect(mini?.condition).toBe("s03_entry_mode = MINI_CONFIRMACION");
+    expect(mini?.condition_type).toBe("MODE");
+    expect(mini?.block_id).toBe("confirmacion");
+    expect(mini?.internal_weight).toBe(1);
+    expect(mini?.hard_behavior.startsWith("NO_HARD")).toBe(true);
+    expect(mini?.role).toBe("ANY");
+  });
+
+  it("el criterio de validez del pullback de S05 valida sin bloquear", () => {
+    const crit = records.find((r) => r.question_id === "s05_pullback_criteria");
+    expect(crit?.type).toBe("VALIDATION");
+    expect(crit?.block_id).toBe("estructura");
+    expect(crit?.role).toBe("INTERMEDIA");
+    expect(crit?.internal_weight).toBe(1);
+    expect(crit?.hard_behavior.startsWith("NO_HARD")).toBe(true);
+    expect(crit?.options.map((o) => o.factor)).toEqual([1, 0.75, 0.5, 0.25, 0]);
+  });
+
+  it("el tipo de pullback de S05 registra los tipos nuevos y los históricos", () => {
+    const type = records.find((r) => r.question_id === "s05_pullback_type");
+    expect(type?.type).toBe("METADATA");
+    const values = type?.options.map((o) => o.value) ?? [];
+    expect(values.slice(0, 3)).toEqual(["agresivo", "correctivo", "profundo"]);
+    expect(values).toContain("superficial");
+    expect(values).toContain("no_clasificable");
+    expect(type?.options.every((o) => o.factor === 0)).toBe(true);
   });
 
   it("el criterio de giro de S04 sólo aplica con execution_mode = GIRO", () => {
