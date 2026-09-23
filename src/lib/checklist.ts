@@ -2649,7 +2649,7 @@ export function missingActiveAnswers(
       s.groups.flatMap((g) => g.questions.map((q) => q.id)),
     ),
   );
-  return getActiveQuestionsBySetup(setupId)
+  return filterByConditions(getActiveQuestionsBySetup(setupId), answers)
     .filter((q) => options?.includePostTrade === true || !postTradeIds.has(q.id))
     .filter((q) => {
       const value = answers[q.id];

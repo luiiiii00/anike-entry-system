@@ -572,7 +572,7 @@ export function evaluate(input: {
   pointValue?: number | null;
 }): Decision {
   // El cuestionario activo lo define el setup oficial seleccionado (matriz explícita).
-  const active = input.setup ? activeQuestionIds(input.setup) : undefined;
+  const active = input.setup ? activeQuestionIds(input.setup, input.answers) : undefined;
   const { score, scoreVisible, breakdown, complete, missing } = computeScore(
     input.answers,
     active?.size ? active : undefined,
