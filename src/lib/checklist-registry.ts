@@ -215,7 +215,6 @@ const SOURCE_OVERRIDES: Record<string, string> = {
 /** Reactivos cuyo wording proviene de la transcripción normalizada. */
 const NORMALIZED_IDS = new Set(Object.keys(SOURCE_OVERRIDES));
 
-
 /** Conceptos semánticos declarados. Sin entrada se deriva del texto del reactivo. */
 const CONCEPTS: Record<string, string> = {
   co_instrument: "Identificación del instrumento operado",
@@ -313,12 +312,7 @@ function isDescriptive(factors: number[]): boolean {
   return factors.length > 0 && factors.every((f) => f === factors[0]);
 }
 
-function typeOf(
-  id: string,
-  meta: boolean,
-  factors: number[],
-  hasCondition = false,
-): RegistryType {
+function typeOf(id: string, meta: boolean, factors: number[], hasCondition = false): RegistryType {
   if (AUTO_QUESTIONS.has(id)) return "AUTO_VALIDATION";
   if (meta || isDescriptive(factors)) return "METADATA";
   const hard = HARD_TRIGGERS.has(id);
@@ -329,7 +323,6 @@ function typeOf(
   if (conditional || DECLARED_VALIDATION_IDS.has(id)) return "VALIDATION";
   return "SCORE";
 }
-
 
 function behaviorOf(type: RegistryType, id: string, weight: number): string {
   const scoreNote = `Suma al bloque CORE (${weight} pts) mediante F_block; no altera pesos ni fórmula.`;
@@ -381,7 +374,6 @@ function conditionTypeOf(condition: string | null): RegistryConditionType {
   if (!condition) return "NONE";
   return /_mode\b/.test(condition) ? "MODE" : "VARIANT";
 }
-
 
 const score5 = (opts: [string, string][]): RegistryOption[] =>
   opts.map(([value, label], i) => ({ value, label, factor: OFFICIAL_FACTORS[i]! }));
@@ -552,7 +544,6 @@ const DECLARED_RECORDS: Array<
       ["ausente", "Invalidó el impulso"],
     ]),
   },
-
 ];
 
 /** Reactivos AUTO del motor (no son preguntas): quedan registrados como tales. */
@@ -654,7 +645,6 @@ function recordFromQuestion(
       : null,
   };
 }
-
 
 /** Construye el registro maestro completo desde la matriz activa. */
 export function buildRegistry(): RegistryRecord[] {

@@ -151,7 +151,6 @@ describe("registro técnico maestro ANIKE EJEPIKA", () => {
     expect(type?.options.every((o) => o.factor === 0)).toBe(true);
   });
 
-
   it("el criterio de giro de S04 sólo aplica con execution_mode = GIRO", () => {
     const giro = records.find((r) => r.question_id === "s04_execution_direction_change");
     expect(giro?.condition).toBe("s04_execution_mode = GIRO");

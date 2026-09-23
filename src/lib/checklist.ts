@@ -2606,7 +2606,6 @@ export function missingInBlock(
     .map((q) => q.id);
 }
 
-
 /** El bloque está completo: no se puede avanzar hasta que lo esté. */
 export function blockComplete(
   answers: Record<string, string>,
