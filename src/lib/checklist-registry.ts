@@ -573,9 +573,11 @@ function recordFromQuestion(
   q: {
     id: string;
     label: string;
+    hint?: string;
     meta?: boolean;
     role?: TimeframeRole;
     anyTimeframe?: boolean;
+    condition?: { questionId: string; value: string };
     options: { v: string; label: string; pts: number }[];
     sectionId: SectionId;
   },
@@ -583,7 +585,8 @@ function recordFromQuestion(
 ): RegistryRecord {
   const block = blockOf(q.sectionId);
   const factors = q.options.map((o) => o.pts);
-  const type = typeOf(q.id, q.meta === true, factors);
+  const condition = q.condition ? `${q.condition.questionId} = ${q.condition.value}` : null;
+  const type = typeOf(q.id, q.meta === true, factors, condition !== null);
   const weight = CORE_WEIGHTS[q.sectionId];
   const scorable = type !== "METADATA" && type !== "AUTO";
   const officialScale = isOfficialScale(factors);
@@ -603,12 +606,13 @@ function recordFromQuestion(
     concept:
       CONCEPTS[q.id] ??
       q.label
-        .replace(/^[A-Z]+\d+\s·\s/, "")
+        .replace(/^[A-Z]+\d+[a-z]?\s·\s/, "")
         .replace(/[¿?:]/g, "")
         .trim(),
     text: q.label,
-    condition: null,
-    condition_type: "NONE",
+    hint: q.hint ?? null,
+    condition,
+    condition_type: conditionTypeOf(condition),
     options: q.options.map((o) => ({ value: o.v, label: o.label, factor: o.pts })),
     internal_weight: scorable ? 1 : 0,
     core_target: {
@@ -621,15 +625,20 @@ function recordFromQuestion(
     validation_behavior: validationBehaviorOf(type, q.id),
     hard_behavior: hardBehaviorOf(type, q.id),
     role: q.anyTimeframe ? "ANY" : (q.role ?? null),
-    source: SOURCES[setupId] ?? null,
+    source: SOURCE_OVERRIDES[q.id] ?? SOURCES[setupId] ?? null,
     active: true,
     status: pending ? "PENDIENTE_DE_FUENTE" : "COMPLETO",
-    source_status: pending ? "PENDIENTE_DE_FUENTE" : "VERIFIED",
+    source_status: pending
+      ? "PENDIENTE_DE_FUENTE"
+      : NORMALIZED_IDS.has(q.id)
+        ? "NORMALIZED"
+        : "VERIFIED",
     pending_reason: pending
       ? `Escala histórica de ${factors.length} nivel(es) (${factors.join(" / ")}): falta fuente para expresarla con los 5 factores oficiales sin inventar contenido.`
       : null,
   };
 }
+
 
 /** Construye el registro maestro completo desde la matriz activa. */
 export function buildRegistry(): RegistryRecord[] {
