@@ -402,7 +402,7 @@ const DECLARED_RECORDS: Array<
     | "condition"
     | "source"
     | "options"
-  >
+  > & { hint?: string }
 > = [
   {
     setup_id: "RUPTURA_RETESTEO",
