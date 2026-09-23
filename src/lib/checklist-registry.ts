@@ -308,16 +308,23 @@ function isDescriptive(factors: number[]): boolean {
   return factors.length > 0 && factors.every((f) => f === factors[0]);
 }
 
-function typeOf(id: string, meta: boolean, factors: number[]): RegistryType {
+function typeOf(
+  id: string,
+  meta: boolean,
+  factors: number[],
+  hasCondition = false,
+): RegistryType {
   if (AUTO_QUESTIONS.has(id)) return "AUTO_VALIDATION";
   if (meta || isDescriptive(factors)) return "METADATA";
   const hard = HARD_TRIGGERS.has(id);
   const conditional = CONDITIONAL_TRIGGERS.has(id);
   if (hard && isOfficialScale(factors)) return "SCORE_VALIDATION";
   if (hard) return "HARD";
-  if (conditional) return "VALIDATION";
+  if (hasCondition) return "CONDITIONAL_SCORE";
+  if (conditional || DECLARED_VALIDATION_IDS.has(id)) return "VALIDATION";
   return "SCORE";
 }
+
 
 function behaviorOf(type: RegistryType, id: string, weight: number): string {
   const scoreNote = `Suma al bloque CORE (${weight} pts) mediante F_block; no altera pesos ni fórmula.`;
@@ -367,8 +374,9 @@ function hardBehaviorOf(type: RegistryType, id: string): string {
 
 function conditionTypeOf(condition: string | null): RegistryConditionType {
   if (!condition) return "NONE";
-  return /execution_mode/.test(condition) ? "MODE" : "VARIANT";
+  return /_mode\b/.test(condition) ? "MODE" : "VARIANT";
 }
+
 
 const score5 = (opts: [string, string][]): RegistryOption[] =>
   opts.map(([value, label], i) => ({ value, label, factor: OFFICIAL_FACTORS[i]! }));
