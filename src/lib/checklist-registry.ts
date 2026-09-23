@@ -510,14 +510,23 @@ const DECLARED_RECORDS: Array<
     type: "METADATA",
     concept: "Tipo de pullback",
     text: "¿Qué tipo de pullback presenta el precio?",
+    hint: "El correctivo es el más operable; el profundo deja atrás Fibonacci 0,75, la media móvil y el FVG.",
     condition: null,
-    source: "ANIKE EJEPIKA — S05, tipo de pullback",
+    source: "ANIKE EJEPIKA — S03/S05 transcripción",
     options: meta0([
-      ["superficial", "Pullback superficial"],
-      ["moderado", "Pullback moderado"],
-      ["profundo", "Pullback profundo"],
-      ["complejo", "Pullback complejo"],
-      ["no_clasificable", "Pullback no clasificable"],
+      ["agresivo", "Pullback agresivo (pocas velas; llega a Fibonacci 0,75, media móvil o FVG)"],
+      [
+        "correctivo",
+        "Pullback correctivo (mayor retroceso; es el más operable y aprovecha la fractalidad)",
+      ],
+      [
+        "profundo",
+        "Pullback profundo (deja atrás Fibonacci, media móvil y FVG; mejor no operarlo)",
+      ],
+      ["superficial", "Pullback superficial (histórico)"],
+      ["moderado", "Pullback moderado (histórico)"],
+      ["complejo", "Pullback complejo (histórico)"],
+      ["no_clasificable", "Pullback no clasificable (histórico)"],
     ]),
   },
   {
@@ -527,8 +536,9 @@ const DECLARED_RECORDS: Array<
     type: "VALIDATION",
     concept: "Pullback profundo (validación, nunca HARD automático)",
     text: "¿El pullback profundo conserva la validez estructural del impulso?",
+    hint: "Si el pullback deja atrás Fibonacci 0,75, la media móvil y el FVG, es profundo: mejor no operarlo o usar order blocks.",
     condition: null,
-    source: "ANIKE EJEPIKA — S05, pullback profundo",
+    source: "ANIKE EJEPIKA — S03/S05 transcripción",
     options: score5([
       ["excelente", "Conserva completamente la estructura y no amenaza la invalidación"],
       ["fuerte", "Conserva la estructura con margen reducido"],
@@ -537,6 +547,7 @@ const DECLARED_RECORDS: Array<
       ["ausente", "Invalidó el impulso"],
     ]),
   },
+
 ];
 
 /** Reactivos AUTO del motor (no son preguntas): quedan registrados como tales. */
