@@ -98,10 +98,13 @@ export type RegistryRecord = {
   concept: string;
   /** Texto definitivo tal y como lo ve el trader. */
   text: string;
+  /** Ayuda mostrada junto al reactivo (informativa). */
+  hint: string | null;
   /** Condición de activación. `null` = siempre activo dentro de su setup. */
   condition: string | null;
   condition_type: RegistryConditionType;
   options: RegistryOption[];
+
   /** Peso interno dentro de su bloque (equiponderado en el motor actual). */
   internal_weight: number;
   core_target: { block: SectionId; weight: number; stage: "PRE_TRADE" | "POST_TRADE" };
@@ -187,6 +190,31 @@ const CONDITIONAL_TRIGGERS = new Set([
 
 /** Reactivos cuyo valor real lo calcula el motor (AUTO), no el criterio subjetivo. */
 const AUTO_QUESTIONS = new Set(["r_rr"]);
+
+/**
+ * Reactivos declarados como VALIDATION por contrato: puntúan y pueden dejar la
+ * evaluación CONDICIONAL, pero NUNCA bloquean por sí mismos (NO_HARD).
+ */
+const DECLARED_VALIDATION_IDS = new Set(["s05_pullback_criteria", "s05_deep_pullback"]);
+
+/** Fuente documental específica de un reactivo (prioridad sobre la del setup). */
+const SOURCE_OVERRIDES: Record<string, string> = {
+  s03_entry_mode: "ANIKE EJEPIKA — S03/S05 transcripción",
+  s03_mini_confirmation: "ANIKE EJEPIKA — S03/S05 transcripción",
+  s03_retest_on_level: "ANIKE EJEPIKA — S03/S05 transcripción",
+  s03_retest_reaction: "ANIKE EJEPIKA — S03/S05 transcripción",
+  s03_level_as_retest: "ANIKE EJEPIKA — S03/S05 transcripción",
+  s03_confirm_direction: "ANIKE EJEPIKA — S03/S05 transcripción",
+  s03_stop_invalidation: "ANIKE EJEPIKA — S03/S05 transcripción",
+  s05_pullback_criteria: "ANIKE EJEPIKA — S03/S05 transcripción",
+  s05_pullback_type: "ANIKE EJEPIKA — S03/S05 transcripción",
+  s05_deep_pullback: "ANIKE EJEPIKA — S03/S05 transcripción",
+  s05_pullback_zone: "ANIKE EJEPIKA — S03/S05 transcripción",
+};
+
+/** Reactivos cuyo wording proviene de la transcripción normalizada. */
+const NORMALIZED_IDS = new Set(Object.keys(SOURCE_OVERRIDES));
+
 
 /** Conceptos semánticos declarados. Sin entrada se deriva del texto del reactivo. */
 const CONCEPTS: Record<string, string> = {
