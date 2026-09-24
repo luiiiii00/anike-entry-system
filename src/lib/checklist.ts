@@ -83,8 +83,32 @@ export type Question = {
    * No cambia pesos CORE, fórmula, gates, HARD rules ni estados.
    */
   condition?: { questionId: string; value: string };
+  /**
+   * Tipo declarado por la ESPECIFICACIÓN MAESTRA (S01–S05). Sin `kind` el tipo
+   * se deriva como hasta ahora (matriz original / preguntas históricas).
+   */
+  kind?: QuestionKind;
+  /** VALIDATION pura: se responde y valida, pero NUNCA puntúa. */
+  validationOnly?: boolean;
+  /**
+   * Las 5 opciones no vienen definidas en la especificación maestra: se usa la
+   * escala genérica oficial y el registro la marca PENDIENTE_DE_FUENTE.
+   */
+  pendingScale?: boolean;
   options: Option[];
 };
+
+export type QuestionKind =
+  | "METADATA"
+  | "SCORE"
+  | "SCORE_VALIDATION"
+  | "SCORE_AUTO_VALIDATION"
+  | "CONDITIONAL_SCORE"
+  | "CONDITIONAL_VALIDATION"
+  | "VALIDATION";
+
+/** Valor comodín de condición: "cualquier opción seleccionada". */
+export const ANY_CONDITION_VALUE = "*";
 
 export type SectionId =
   | "comercio"
