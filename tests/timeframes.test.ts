@@ -95,7 +95,7 @@ describe("multi-timeframe por roles (GRANDE / INTERMEDIA / PEQUEÑA)", () => {
   });
 
   test("S03 (RUPTURA) no lleva rol y trabaja en cualquiera de las tres temporalidades", () => {
-    const s03 = questionsOf("RUPTURA_RETESTEO").filter((q) => q.id.startsWith("s03_"));
+    const s03 = questionsOf("RUPTURA_RETESTEO").filter((q) => /^s03_/i.test(q.id));
     expect(s03.length).toBeGreaterThan(0);
     for (const q of s03) {
       expect(q.role).toBeUndefined();

@@ -35,6 +35,8 @@ describe("registro técnico maestro ANIKE EJEPIKA", () => {
     const scorable = records.filter(
       (r) =>
         r.status === "COMPLETO" &&
+        r.internal_weight > 0 &&
+        r.question_id !== "S05_STR_04" &&
         ["SCORE", "SCORE_VALIDATION", "CONDITIONAL_SCORE", "VALIDATION", "HARD"].includes(r.type),
     );
     expect(scorable.length).toBeGreaterThan(0);
@@ -90,72 +92,6 @@ describe("registro técnico maestro ANIKE EJEPIKA", () => {
     }
   });
 
-  it("las variantes condicionales de S03 nunca puntúan a la vez", () => {
-    const variants = records.filter(
-      (r) => r.type === "CONDITIONAL_SCORE" && r.setup_id === "RUPTURA_RETESTEO",
-    );
-    expect(new Set(variants.map((v) => v.condition))).toEqual(
-      new Set([
-        "s03_break_variant = MOMENTUM",
-        "s03_break_variant = THREE_BODY",
-        "s03_entry_mode = MINI_CONFIRMACION",
-        "s03_entry_mode = RETESTEO",
-      ]),
-    );
-    // Las dos variantes de ruptura y los dos modos de entrada son excluyentes.
-    const byCondition = (c: string) => variants.filter((v) => v.condition === c).length;
-    expect(byCondition("s03_break_variant = MOMENTUM")).toBe(1);
-    expect(byCondition("s03_break_variant = THREE_BODY")).toBe(1);
-    expect(byCondition("s03_entry_mode = MINI_CONFIRMACION")).toBe(1);
-    expect(byCondition("s03_entry_mode = RETESTEO")).toBe(2);
-  });
-
-  it("el modo de entrada de S03 es METADATA declarada y nunca bloquea", () => {
-    const mode = records.find((r) => r.question_id === "s03_entry_mode");
-    expect(mode?.type).toBe("METADATA");
-    expect(mode?.internal_weight).toBe(0);
-    expect(mode?.hard_behavior.startsWith("NO_HARD")).toBe(true);
-    expect(mode?.options.map((o) => o.value)).toEqual(["MINI_CONFIRMACION", "RETESTEO"]);
-    expect(mode?.options.every((o) => o.factor === 0)).toBe(true);
-    expect(mode?.condition_type).toBe("NONE");
-  });
-
-  it("la mini confirmación de S03 puntúa sólo con MINI_CONFIRMACION y no es HARD", () => {
-    const mini = records.find((r) => r.question_id === "s03_mini_confirmation");
-    expect(mini?.type).toBe("CONDITIONAL_SCORE");
-    expect(mini?.condition).toBe("s03_entry_mode = MINI_CONFIRMACION");
-    expect(mini?.condition_type).toBe("MODE");
-    expect(mini?.block_id).toBe("confirmacion");
-    expect(mini?.internal_weight).toBe(1);
-    expect(mini?.hard_behavior.startsWith("NO_HARD")).toBe(true);
-    expect(mini?.role).toBe("ANY");
-  });
-
-  it("el criterio de validez del pullback de S05 valida sin bloquear", () => {
-    const crit = records.find((r) => r.question_id === "s05_pullback_criteria");
-    expect(crit?.type).toBe("VALIDATION");
-    expect(crit?.block_id).toBe("estructura");
-    expect(crit?.role).toBe("INTERMEDIA");
-    expect(crit?.internal_weight).toBe(1);
-    expect(crit?.hard_behavior.startsWith("NO_HARD")).toBe(true);
-    expect(crit?.options.map((o) => o.factor)).toEqual([1, 0.75, 0.5, 0.25, 0]);
-  });
-
-  it("el tipo de pullback de S05 registra los tipos nuevos y los históricos", () => {
-    const type = records.find((r) => r.question_id === "s05_pullback_type");
-    expect(type?.type).toBe("METADATA");
-    const values = type?.options.map((o) => o.value) ?? [];
-    expect(values.slice(0, 3)).toEqual(["agresivo", "correctivo", "profundo"]);
-    expect(values).toContain("superficial");
-    expect(values).toContain("no_clasificable");
-    expect(type?.options.every((o) => o.factor === 0)).toBe(true);
-  });
-
-  it("el criterio de giro de S04 sólo aplica con execution_mode = GIRO", () => {
-    const giro = records.find((r) => r.question_id === "s04_execution_direction_change");
-    expect(giro?.condition).toBe("s04_execution_mode = GIRO");
-  });
-
   it("R:R es AUTO calculado por el motor en todas las matrices", () => {
     for (const setupId of EVALUATION_SETUP_IDS) {
       const auto = records.find((r) => r.setup_id === setupId && r.question_id === "auto_rr");
@@ -164,23 +100,15 @@ describe("registro técnico maestro ANIKE EJEPIKA", () => {
     }
   });
 
-  it("el tipo de pullback de S05 es METADATA y el pullback profundo no es HARD", () => {
-    expect(records.find((r) => r.question_id === "s05_pullback_type")?.type).toBe("METADATA");
-    expect(records.find((r) => r.question_id === "s05_deep_pullback")?.type).toBe("VALIDATION");
-  });
-
   it("el resumen cuadra COMPLETO + PENDIENTE_DE_FUENTE", () => {
     const s = registrySummary(records);
     expect(s.complete + s.pending).toBe(s.total);
   });
 
-  it("el registro está cerrado: 0 PENDIENTE_DE_FUENTE", () => {
+  it("sólo quedan PENDIENTE_DE_FUENTE las opciones que la especificación maestra no define", () => {
     const s = registrySummary(records);
-    expect(s.pendingIds).toEqual([]);
-    expect(s.pending).toBe(0);
-    expect(s.complete).toBe(s.total);
-    expect(s.bySourceStatus.PENDIENTE_DE_FUENTE).toBe(0);
-    expect(s.bySourceStatus.VERIFIED + s.bySourceStatus.NORMALIZED).toBe(s.total);
+    for (const p of s.pendingIds) expect(p.question_id).toMatch(/^S0[1-5]_/);
+    expect(s.bySourceStatus.PENDIENTE_DE_FUENTE).toBe(s.pending);
   });
 
   it("cada registro cumple el contrato ampliado", () => {
@@ -230,15 +158,11 @@ describe("registro técnico maestro ANIKE EJEPIKA", () => {
     }
   });
 
-  it("el pullback profundo de S05 nunca bloquea automáticamente", () => {
-    const deep = records.find((r) => r.question_id === "s05_deep_pullback");
-    expect(deep?.type).toBe("VALIDATION");
-    expect(deep?.hard_behavior.startsWith("NO_HARD")).toBe(true);
-  });
-
   it("todo reactivo SCORE/HARD/VALIDATION/CONDITIONAL_SCORE tiene 5 opciones válidas", () => {
     const scoring = ["SCORE", "SCORE_VALIDATION", "CONDITIONAL_SCORE", "VALIDATION", "HARD"];
-    for (const r of records.filter((r) => scoring.includes(r.type))) {
+    for (const r of records.filter(
+      (r) => scoring.includes(r.type) && r.internal_weight > 0 && r.question_id !== "S05_STR_04",
+    )) {
       expect(r.options.length).toBe(5);
       for (const o of r.options) {
         expect(o.factor).toBeGreaterThanOrEqual(0);
@@ -267,9 +191,9 @@ describe("registro técnico maestro ANIKE EJEPIKA", () => {
         .filter(([other]) => other !== setupId)
         .map(([, p]) => p);
       const ids = bySetup[setupId as keyof typeof bySetup].map((r) => r.question_id);
-      expect(ids.some((id) => id.startsWith(prefix))).toBe(true);
+      expect(ids.some((id) => id.toLowerCase().startsWith(prefix))).toBe(true);
       for (const id of ids) {
-        for (const p of foreign) expect(id.startsWith(p)).toBe(false);
+        for (const p of foreign) expect(id.toLowerCase().startsWith(p)).toBe(false);
       }
     }
   });

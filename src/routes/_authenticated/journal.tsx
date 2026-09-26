@@ -1,3 +1,4 @@
+import { officialStateLabel } from "@/lib/scoring";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
@@ -25,7 +26,9 @@ export const Route = createFileRoute("/_authenticated/journal")({
   component: Journal,
 });
 
-const STATES = ["Todos", "SETUP A+", "SETUP A", "SETUP B", "NO TRADE"] as const;
+const STATES = ["Todos", "BORRADOR", "CONDICIONAL", "APROBADA", "NO TRADE"] as const;
+
+
 
 function Journal() {
   const { user } = useAuth();
@@ -65,7 +68,7 @@ function Journal() {
       if (from && e.trade_date < from) return false;
       if (setup !== "Todos" && e.setup !== setup) return false;
       if (direction !== "Todas" && e.direction !== direction) return false;
-      if (state !== "Todos" && e.classification !== state) return false;
+      if (state !== "Todos" && officialStateLabel(e) !== state) return false;
       return true;
     });
   }, [data, asset, from, setup, direction, state]);
@@ -264,12 +267,12 @@ function StateBadge({ e }: { e: Evaluation }) {
           ? "bg-surface-2 text-muted-foreground"
           : isNoTrade
             ? "bg-stop-soft/50 text-stop"
-            : e.classification === "SETUP B"
+            : officialStateLabel(e) !== "APROBADA"
               ? "bg-warn-soft/50 text-warn"
               : "bg-ok-soft/50 text-ok",
       )}
     >
-      {draft ? "BORRADOR" : (e.classification ?? "—")}
+      {officialStateLabel(e)}
     </span>
   );
 }

@@ -1,3 +1,4 @@
+import { officialStateLabel } from "@/lib/scoring";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -87,13 +88,13 @@ function Dashboard() {
                   {last.score ?? 0}
                   <span className="text-base text-muted-foreground"> / 100</span>
                 </p>
-                <p className="label-mono mt-1">{last.classification}</p>
+                <p className="label-mono mt-1">{officialStateLabel(last)}</p>
               </div>
             </div>
             <div className="mt-4">
               <TrafficLight
                 light={lightFor(last.classification)}
-                classification={last.classification ?? "—"}
+                classification={officialStateLabel(last)}
                 message={
                   last.decision === "registrado"
                     ? `Resultado: ${last.result_r === null ? "operación abierta" : `${Number(last.result_r).toFixed(2)}R`}`

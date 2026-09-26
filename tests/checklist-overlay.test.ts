@@ -23,7 +23,7 @@ describe("editor de preguntas (capa de edición)", () => {
     const catalog = buildChecklistCatalog(
       overlay({
         edits: {
-          s01_plan_respect: {
+          S01_DISC_01: {
             label: "¿Por qué entras realmente?",
             hint: "Sé honesto",
             options: [
@@ -34,7 +34,7 @@ describe("editor de preguntas (capa de edición)", () => {
         },
       }),
     );
-    const q = catalog.setupQuestions.REVERSION.find((x) => x.id === "s01_plan_respect")!;
+    const q = catalog.setupQuestions.REVERSION.find((x) => x.id === "S01_DISC_01")!;
     expect(q.label).toBe("¿Por qué entras realmente?");
     expect(q.hint).toBe("Sé honesto");
     expect(q.options.map((o) => o.pts)).toEqual([1, 0]);
@@ -96,7 +96,7 @@ describe("editor de preguntas (capa de edición)", () => {
   test("activar la capa cambia el cuestionario activo y la matriz sigue siendo válida", () => {
     applyChecklistOverlay(
       overlay({
-        disabled: ["s01_plan_respect"],
+        disabled: ["S01_DISC_01"],
         added: [
           {
             id: "x_extra",
@@ -112,7 +112,7 @@ describe("editor de preguntas (capa de edición)", () => {
       }),
     );
     const ids = getQuestionsForSetup("REVERSION").map((q) => q.id);
-    expect(ids).not.toContain("s01_plan_respect");
+    expect(ids).not.toContain("S01_DISC_01");
     expect(ids).toContain("x_extra");
     expect(validateSetupQuestionMatrix()).toEqual([]);
     // Los pesos y la fórmula del CORE no cambian.
