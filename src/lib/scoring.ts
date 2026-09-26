@@ -1,4 +1,10 @@
-import { activeQuestionIds, FIBO_SL_RATIO, SECTIONS, type SectionId } from "./checklist";
+import {
+  activeQuestionIds,
+  failedValidations,
+  FIBO_SL_RATIO,
+  SECTIONS,
+  type SectionId,
+} from "./checklist";
 
 export type Answers = Record<string, string>;
 
@@ -287,7 +293,7 @@ export function computeScore(answers: Answers, activeIds?: Set<string>): ScoreRe
     // entran en el cálculo, no suman ni restan puntos.
     const questions = section.groups
       .flatMap((g) => g.questions)
-      .filter((q) => q.meta !== true)
+      .filter((q) => q.meta !== true && q.validationOnly !== true)
       .filter((q) => inScope(q.id));
     const weight = section.weight;
     let got = 0;
@@ -593,6 +599,10 @@ export function evaluate(input: {
   };
   const hardRules = checkHardRules(ctx);
   const warnings = checkConditional(ctx);
+  // Validaciones del nuevo cuestionario (nunca HARD): dejan la evaluación CONDICIONAL.
+  const failedVal = failedValidations(input.answers, active?.size ? active : undefined);
+  if (failedVal.length > 0)
+    warnings.push(`Validación del setup no cumplida: ${failedVal.join(", ")}.`);
   const emotional = isEmotional(input.answers);
   const blocked = hardRules.length > 0 || emotional;
 
