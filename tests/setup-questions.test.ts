@@ -101,7 +101,8 @@ describe("seis matrices independientes (SETUP LIBRE + S01–S05)", () => {
 
   test("no hay fallback: la matriz es explícita y válida", () => {
     expect(validateSetupQuestionMatrix()).toEqual([]);
-    expect(UNUSED_QUESTION_IDS).toEqual([]);
+    // Sólo quedan fuera de toda matriz las preguntas históricas S01–S05 (lectura).
+    for (const id of UNUSED_QUESTION_IDS) expect(id).toMatch(/^s0[1-5]_/);
     expect(getQuestionsForSetup("NO_EXISTE")).toEqual([]);
     expect(getQuestionsForSetup(null)).toEqual([]);
     expect(getQuestionsForSetup(undefined)).toEqual([]);
