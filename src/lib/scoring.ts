@@ -662,3 +662,17 @@ export const FINAL_STATE_UI: Record<
   // Estado histórico: sólo lectura de evaluaciones antiguas.
   DESCARTADA: { dot: "🔴", label: "NO TRADE (histórico)", light: "stop" },
 };
+
+/** Estado oficial visible (BORRADOR/CONDICIONAL/APROBADA/NO TRADE). SETUP A+/A/B ya no se muestran. */
+export function officialStateLabel(e: {
+  status?: string | null;
+  final_state?: string | null;
+  classification?: string | null;
+  decision?: string | null;
+}): string {
+  if (e.status === "draft") return "BORRADOR";
+  if (e.classification === "NO TRADE" || e.decision === "no_trade") return "NO TRADE";
+  if (e.final_state === "DESCARTADA") return "NO TRADE";
+  if (e.final_state) return e.final_state;
+  return "HISTÓRICO";
+}

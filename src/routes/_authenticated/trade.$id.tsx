@@ -1,3 +1,4 @@
+import { officialStateLabel } from "@/lib/scoring";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -139,7 +140,7 @@ function TradeDetail() {
         <div className="space-y-2">
           <TrafficLight
             light={lightFor(data.classification)}
-            classification={data.classification ?? "NO TRADE"}
+            classification={officialStateLabel(data)}
             message={
               data.decision === "registrado" ? "Operación ejecutada." : "Operación descartada."
             }

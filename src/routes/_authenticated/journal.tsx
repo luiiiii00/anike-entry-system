@@ -1,3 +1,4 @@
+import { officialStateLabel } from "@/lib/scoring";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
@@ -27,19 +28,7 @@ export const Route = createFileRoute("/_authenticated/journal")({
 
 const STATES = ["Todos", "BORRADOR", "CONDICIONAL", "APROBADA", "NO TRADE"] as const;
 
-/** Estado oficial visible (BORRADOR/CONDICIONAL/APROBADA/NO TRADE). SETUP A+/A/B ya no se muestran. */
-function officialState(e: {
-  status?: string | null;
-  final_state?: string | null;
-  classification?: string | null;
-  decision?: string | null;
-}): string {
-  if (e.status === "draft") return "BORRADOR";
-  if (e.classification === "NO TRADE" || e.decision === "no_trade") return "NO TRADE";
-  if (e.final_state === "DESCARTADA") return "NO TRADE";
-  if (e.final_state) return e.final_state;
-  return "HISTÓRICO";
-}
+
 
 function Journal() {
   const { user } = useAuth();
@@ -79,7 +68,7 @@ function Journal() {
       if (from && e.trade_date < from) return false;
       if (setup !== "Todos" && e.setup !== setup) return false;
       if (direction !== "Todas" && e.direction !== direction) return false;
-      if (state !== "Todos" && officialState(e) !== state) return false;
+      if (state !== "Todos" && officialStateLabel(e) !== state) return false;
       return true;
     });
   }, [data, asset, from, setup, direction, state]);
@@ -278,12 +267,12 @@ function StateBadge({ e }: { e: Evaluation }) {
           ? "bg-surface-2 text-muted-foreground"
           : isNoTrade
             ? "bg-stop-soft/50 text-stop"
-            : officialState(e) !== "APROBADA"
+            : officialStateLabel(e) !== "APROBADA"
               ? "bg-warn-soft/50 text-warn"
               : "bg-ok-soft/50 text-ok",
       )}
     >
-      {officialState(e)}
+      {officialStateLabel(e)}
     </span>
   );
 }
