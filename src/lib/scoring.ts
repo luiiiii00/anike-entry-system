@@ -291,10 +291,17 @@ export function computeScore(answers: Answers, activeIds?: Set<string>): ScoreRe
   for (const section of SECTIONS) {
     // Las preguntas de METADATA (patrón, nivel Fibonacci) son descriptivas: no
     // entran en el cálculo, no suman ni restan puntos.
-    const questions = section.groups
+    const inBlock = section.groups
       .flatMap((g) => g.questions)
-      .filter((q) => q.meta !== true && q.validationOnly !== true)
+      .filter((q) => q.meta !== true)
       .filter((q) => inScope(q.id));
+    // VALIDATION pura: obligatoria para la completitud, pero NUNCA puntúa.
+    for (const q of inBlock) {
+      if (q.validationOnly !== true || section.postTrade) continue;
+      const v = answers[q.id];
+      if (v === undefined || v === "") missing.push(q.id);
+    }
+    const questions = inBlock.filter((q) => q.validationOnly !== true);
     const weight = section.weight;
     let got = 0;
     let max = 0;
