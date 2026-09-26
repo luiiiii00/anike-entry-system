@@ -285,11 +285,11 @@ const CONCEPTS: Record<string, string> = {
 /** Referencias de fuente conocidas del material ANIKE EJEPIKA. */
 const SOURCES: Record<string, string> = {
   FREE: "ANIKE EJEPIKA — Matriz original de evaluación (cuestionario base CORE)",
-  REVERSION: "ANIKE EJEPIKA — Matriz definitiva de setups, bloque S01 (R1–R13)",
-  CONTINUACION: "ANIKE EJEPIKA — Matriz definitiva de setups, bloque S02 (C1–C12)",
-  RUPTURA_RETESTEO: "ANIKE EJEPIKA — Matriz definitiva de setups, bloque S03 (RR1–RR12)",
-  ZONA_FIBONACCI: "ANIKE EJEPIKA — Matriz definitiva de setups, bloque S04 (ZF1–ZF13)",
-  IMPULSO_PULLBACK: "ANIKE EJEPIKA — Matriz definitiva de setups, bloque S05 (IP1–IP12)",
+  REVERSION: "ANIKE EJEPIKA — PROMPT BOSS MAESTRO, matriz S01",
+  CONTINUACION: "ANIKE EJEPIKA — PROMPT BOSS MAESTRO, matriz S02",
+  RUPTURA_RETESTEO: "ANIKE EJEPIKA — PROMPT BOSS MAESTRO, matriz S03",
+  ZONA_FIBONACCI: "ANIKE EJEPIKA — PROMPT BOSS MAESTRO, matriz S04",
+  IMPULSO_PULLBACK: "ANIKE EJEPIKA — PROMPT BOSS MAESTRO, matriz S05",
 };
 
 function blockOf(sectionId: SectionId) {
