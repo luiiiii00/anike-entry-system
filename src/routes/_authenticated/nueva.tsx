@@ -15,6 +15,7 @@ import {
   SECTIONS,
   SESSIONS,
   answersForSetup,
+  pruneInactiveAnswers,
   evaluationBlocks,
   getActiveQuestionsBySetup,
   missingActiveAnswers,
@@ -195,7 +196,8 @@ function NuevaEvaluacion() {
 
   function setAnswer(qid: string, value: string) {
     setBlockError(null);
-    setAnswers((prev) => ({ ...prev, [qid]: value }));
+    // Cambiar una metadata condicional limpia las respuestas incompatibles.
+    setAnswers((prev) => pruneInactiveAnswers({ ...prev, [qid]: value }, trade.setup));
   }
 
   function goTo(next: number) {
@@ -1030,7 +1032,7 @@ function ResultStep({
           </div>
           <TrafficLight
             light={decision.light}
-            classification={decision.classification}
+            classification={FINAL_STATE_UI[decision.finalState].label}
             message={decision.message}
           />
         </div>
@@ -1108,7 +1110,6 @@ function ResultStep({
       <div className="panel divide-y divide-border">
         {/* Score visible = floor del interno; la decisión usa el interno con decimales. */}
         <Row label="Score" value={`${decision.scoreVisible} / 100`} />
-        <Row label="Clasificación" value={decision.classification} />
         <Row
           label="Estado final"
           value={`${FINAL_STATE_UI[decision.finalState].dot} ${FINAL_STATE_UI[decision.finalState].label}`}
