@@ -28,6 +28,7 @@ import {
   setupLabel,
   type EvaluationSetupId,
   type SectionId,
+  type QuestionKind,
   type TimeframeRole,
 } from "./checklist";
 
@@ -312,6 +313,20 @@ function isDescriptive(factors: number[]): boolean {
   return factors.length > 0 && factors.every((f) => f === factors[0]);
 }
 
+/** Tipos declarados por la especificación maestra (S01–S05) → tipo de registro. */
+const KIND_TO_TYPE: Record<QuestionKind, RegistryType> = {
+  METADATA: "METADATA",
+  SCORE: "SCORE",
+  SCORE_VALIDATION: "SCORE_VALIDATION",
+  SCORE_AUTO_VALIDATION: "SCORE_VALIDATION",
+  CONDITIONAL_SCORE: "CONDITIONAL_SCORE",
+  CONDITIONAL_VALIDATION: "VALIDATION",
+  VALIDATION: "VALIDATION",
+};
+
+/** IP7: escala EXACTA de 4 niveles definida por la especificación maestra. */
+export const EXACT_SPEC_SCALES: Record<string, number[]> = { S05_STR_04: [1, 0.75, 0.5, 0] };
+
 function typeOf(id: string, meta: boolean, factors: number[], hasCondition = false): RegistryType {
   if (AUTO_QUESTIONS.has(id)) return "AUTO_VALIDATION";
   if (meta || isDescriptive(factors)) return "METADATA";
@@ -322,6 +337,26 @@ function typeOf(id: string, meta: boolean, factors: number[], hasCondition = fal
   if (hasCondition) return "CONDITIONAL_SCORE";
   if (conditional || DECLARED_VALIDATION_IDS.has(id)) return "VALIDATION";
   return "SCORE";
+}
+
+function specBehaviorOf(kind: QuestionKind, weight: number): string {
+  const note = `Suma al bloque CORE (${weight} pts) mediante F_block; no altera pesos ni fórmula.`;
+  switch (kind) {
+    case "METADATA":
+      return "Descriptivo: no suma ni resta puntos, no valida ni bloquea.";
+    case "VALIDATION":
+      return "Validación pura (Sí/No): no puntúa; si no se cumple deja la evaluación CONDICIONAL.";
+    case "CONDITIONAL_VALIDATION":
+      return "Validación pura (Sí/No) sólo cuando su condición está activa; no puntúa; si no se cumple deja la evaluación CONDICIONAL.";
+    case "CONDITIONAL_SCORE":
+      return `Puntúa sólo cuando su condición está activa. ${note}`;
+    case "SCORE_VALIDATION":
+      return `Puntúa y valida: con factor 0 deja la evaluación CONDICIONAL (no HARD). ${note}`;
+    case "SCORE_AUTO_VALIDATION":
+      return `Puntúa y valida; además el motor comprueba automáticamente el riesgo % contra el límite del plan (HARD existente risk_over_limit). ${note}`;
+    default:
+      return note;
+  }
 }
 
 function behaviorOf(type: RegistryType, id: string, weight: number): string {
@@ -372,7 +407,7 @@ function hardBehaviorOf(type: RegistryType, id: string): string {
 
 function conditionTypeOf(condition: string | null): RegistryConditionType {
   if (!condition) return "NONE";
-  return /_mode\b/.test(condition) ? "MODE" : "VARIANT";
+  return /_mode\b/i.test(condition) ? "MODE" : "VARIANT";
 }
 
 const score5 = (opts: [string, string][]): RegistryOption[] =>
@@ -403,146 +438,14 @@ const DECLARED_RECORDS: Array<
 > = [
   {
     setup_id: "RUPTURA_RETESTEO",
-    question_id: "s03_break_variant",
-    block_id: "estructura",
-    type: "METADATA",
-    concept: "Variante de ruptura declarada (MOMENTUM o THREE_BODY)",
-    text: "¿Qué variante de ruptura se utilizará?",
+    question_id: "S03_PATH_RR",
+    block_id: "recorrido",
+    type: "AUTO",
+    concept: "R:R del objetivo calculado por el motor",
+    text: "R:R del objetivo calculado por el motor",
     condition: null,
-    source: "ANIKE EJEPIKA — S03 RUPTURA: variantes MOMENTUM / THREE_BODY",
-    options: meta0([
-      ["MOMENTUM", "MOMENTUM"],
-      ["THREE_BODY", "THREE_BODY"],
-    ]),
-  },
-  {
-    setup_id: "RUPTURA_RETESTEO",
-    question_id: "s03_momentum_quality",
-    block_id: "confirmacion",
-    type: "CONDITIONAL_SCORE",
-    concept: "Calidad de la ruptura por momentum",
-    text: "¿Qué tan fuerte y válida es la ruptura por momentum?",
-    condition: "s03_break_variant = MOMENTUM",
-    source: "ANIKE EJEPIKA — S03 RUPTURA, variante MOMENTUM",
-    options: score5([
-      ["excelente", "Impulso fuerte, cierre limpio y ruptura inequívoca"],
-      ["fuerte", "Impulso claro y ruptura válida"],
-      ["parcial", "Ruptura moderada"],
-      ["debil", "Ruptura débil/dudosa"],
-      ["ausente", "No existe ruptura válida por momentum"],
-    ]),
-  },
-  {
-    setup_id: "RUPTURA_RETESTEO",
-    question_id: "s03_three_body_quality",
-    block_id: "confirmacion",
-    type: "CONDITIONAL_SCORE",
-    concept: "Calidad de la ruptura de tres cuerpos",
-    text: "¿Qué tan válida es la ruptura formada por tres cuerpos?",
-    condition: "s03_break_variant = THREE_BODY",
-    source: "ANIKE EJEPIKA — S03 RUPTURA, variante THREE_BODY",
-    options: score5([
-      ["excelente", "Secuencia completa, clara y con cierre válido"],
-      ["fuerte", "Secuencia clara con pequeña imperfección"],
-      ["parcial", "Secuencia parcialmente formada"],
-      ["debil", "Secuencia débil/dudosa"],
-      ["ausente", "No existe una ruptura válida de tres cuerpos"],
-    ]),
-  },
-  {
-    setup_id: "ZONA_FIBONACCI",
-    question_id: "s04_execution_mode",
-    block_id: "ejecucion",
-    type: "METADATA",
-    concept: "Modo de ejecución declarado (incluye GIRO)",
-    text: "¿Qué modo de ejecución se utilizará?",
-    condition: null,
-    source: "ANIKE EJEPIKA — S04, execution_mode",
-    options: meta0([
-      ["GIRO", "GIRO"],
-      ["CONTINUACION", "CONTINUACIÓN"],
-      ["REACCION_EN_ZONA", "REACCIÓN EN ZONA"],
-      ["RUPTURA_RETESTEO", "RUPTURA/RETESTEO"],
-      ["OTRO", "OTRO MODO DECLARADO"],
-    ]),
-  },
-  {
-    setup_id: "ZONA_FIBONACCI",
-    question_id: "s04_execution_direction_change",
-    block_id: "confirmacion",
-    type: "CONDITIONAL_SCORE",
-    concept: "Cambio de dirección en la temporalidad de ejecución",
-    text: "¿Qué tan clara es la confirmación del cambio de dirección en la temporalidad de ejecución?",
-    condition: "s04_execution_mode = GIRO",
-    source: "ANIKE EJEPIKA — S04, condición execution_mode = GIRO",
-    options: score5([
-      ["excelente", "Cambio de dirección claramente confirmado"],
-      ["fuerte", "Cambio fuertemente confirmado"],
-      ["parcial", "Cambio parcialmente confirmado"],
-      ["debil", "Cambio débil/en desarrollo"],
-      ["ausente", "No existe confirmación de cambio de dirección"],
-    ]),
-  },
-  {
-    setup_id: "ZONA_FIBONACCI",
-    question_id: "s04_five_stage_sequence",
-    block_id: "estructura",
-    type: "VALIDATION",
-    concept: "Secuencia de cinco etapas (validación, sin doble puntuación)",
-    text: "¿Qué tan completa está la secuencia de cinco etapas exigida para S04?",
-    condition: null,
-    source: "ANIKE EJEPIKA — S04, secuencia de cinco etapas",
-    options: score5([
-      ["excelente", "Las cinco etapas están completas y en orden"],
-      ["fuerte", "Cuatro etapas completas y la quinta en confirmación clara"],
-      ["parcial", "Tres etapas completas"],
-      ["debil", "Una o dos etapas completas"],
-      ["ausente", "Secuencia ausente o inválida"],
-    ]),
-  },
-  {
-    setup_id: "IMPULSO_PULLBACK",
-    question_id: "s05_pullback_type",
-    block_id: "zona",
-    type: "METADATA",
-    concept: "Tipo de pullback",
-    text: "¿Qué tipo de pullback presenta el precio?",
-    hint: "El correctivo es el más operable; el profundo deja atrás Fibonacci 0,75, la media móvil y el FVG.",
-    condition: null,
-    source: "ANIKE EJEPIKA — S03/S05 transcripción",
-    options: meta0([
-      ["agresivo", "Pullback agresivo (pocas velas; llega a Fibonacci 0,75, media móvil o FVG)"],
-      [
-        "correctivo",
-        "Pullback correctivo (mayor retroceso; es el más operable y aprovecha la fractalidad)",
-      ],
-      [
-        "profundo",
-        "Pullback profundo (deja atrás Fibonacci, media móvil y FVG; mejor no operarlo)",
-      ],
-      ["superficial", "Pullback superficial (histórico)"],
-      ["moderado", "Pullback moderado (histórico)"],
-      ["complejo", "Pullback complejo (histórico)"],
-      ["no_clasificable", "Pullback no clasificable (histórico)"],
-    ]),
-  },
-  {
-    setup_id: "IMPULSO_PULLBACK",
-    question_id: "s05_deep_pullback",
-    block_id: "estructura",
-    type: "VALIDATION",
-    concept: "Pullback profundo (validación, nunca HARD automático)",
-    text: "¿El pullback profundo conserva la validez estructural del impulso?",
-    hint: "Si el pullback deja atrás Fibonacci 0,75, la media móvil y el FVG, es profundo: mejor no operarlo o usar order blocks.",
-    condition: null,
-    source: "ANIKE EJEPIKA — S03/S05 transcripción",
-    options: score5([
-      ["excelente", "Conserva completamente la estructura y no amenaza la invalidación"],
-      ["fuerte", "Conserva la estructura con margen reducido"],
-      ["parcial", "Se acerca a la invalidación pero todavía conserva la tesis"],
-      ["debil", "Está muy cerca de invalidar la estructura"],
-      ["ausente", "Invalidó el impulso"],
-    ]),
+    source: "ANIKE EJEPIKA — PROMPT BOSS MAESTRO, S03 Recorrido",
+    options: [],
   },
 ];
 
@@ -585,6 +488,9 @@ function recordFromQuestion(
     role?: TimeframeRole;
     anyTimeframe?: boolean;
     condition?: { questionId: string; value: string };
+    kind?: QuestionKind;
+    validationOnly?: boolean;
+    pendingScale?: boolean;
     options: { v: string; label: string; pts: number }[];
     sectionId: SectionId;
   },
@@ -593,11 +499,15 @@ function recordFromQuestion(
   const block = blockOf(q.sectionId);
   const factors = q.options.map((o) => o.pts);
   const condition = q.condition ? `${q.condition.questionId} = ${q.condition.value}` : null;
-  const type = typeOf(q.id, q.meta === true, factors, condition !== null);
+  const type = q.kind ? KIND_TO_TYPE[q.kind] : typeOf(q.id, q.meta === true, factors, condition !== null);
   const weight = CORE_WEIGHTS[q.sectionId];
-  const scorable = type !== "METADATA" && type !== "AUTO";
-  const officialScale = isOfficialScale(factors);
-  const pending = scorable && type !== "AUTO_VALIDATION" && !officialScale;
+  const scorable = type !== "METADATA" && type !== "AUTO" && q.validationOnly !== true;
+  const exact = EXACT_SPEC_SCALES[q.id];
+  const officialScale =
+    isOfficialScale(factors) ||
+    (exact !== undefined && exact.length === factors.length && exact.every((f, i) => f === factors[i]));
+  const specPending = q.pendingScale === true;
+  const pending = specPending || (scorable && type !== "AUTO_VALIDATION" && !officialScale);
   return {
     setup_id: setupId,
     setup_code: SETUP_CODE[setupId],
@@ -627,10 +537,18 @@ function recordFromQuestion(
       weight,
       stage: block.postTrade ? "POST_TRADE" : "PRE_TRADE",
     },
-    behavior: behaviorOf(type, q.id, weight),
-    score_behavior: scoreBehaviorOf(type, weight),
-    validation_behavior: validationBehaviorOf(type, q.id),
-    hard_behavior: hardBehaviorOf(type, q.id),
+    behavior: q.kind
+      ? specBehaviorOf(q.kind, weight)
+      : behaviorOf(type, q.id, weight),
+    score_behavior: q.validationOnly
+      ? "NO_SCORE: validación pura, no aporta puntos."
+      : scoreBehaviorOf(type, weight),
+    validation_behavior: q.kind
+      ? /VALIDATION/.test(q.kind)
+        ? "VALIDA: si no se cumple deja la evaluación CONDICIONAL (nunca NO TRADE)."
+        : "NO_VALIDA: no genera aviso condicional."
+      : validationBehaviorOf(type, q.id),
+    hard_behavior: q.kind ? "NO_HARD: nunca bloquea por sí mismo." : hardBehaviorOf(type, q.id),
     role: q.anyTimeframe ? "ANY" : (q.role ?? null),
     source: SOURCE_OVERRIDES[q.id] ?? SOURCES[setupId] ?? null,
     active: true,
@@ -640,7 +558,9 @@ function recordFromQuestion(
       : NORMALIZED_IDS.has(q.id)
         ? "NORMALIZED"
         : "VERIFIED",
-    pending_reason: pending
+    pending_reason: specPending
+      ? "La especificación maestra define el texto pero no las 5 opciones: se usa la escala genérica Claramente / Mayormente / Parcialmente / Débilmente / No hasta recibir la fuente."
+      : pending
       ? `Escala histórica de ${factors.length} nivel(es) (${factors.join(" / ")}): falta fuente para expresarla con los 5 factores oficiales sin inventar contenido.`
       : null,
   };
@@ -801,7 +721,7 @@ export function registryIssues(records = buildRegistry()): string[] {
 
     // Aislamiento: ningún setup puede heredar reactivos exclusivos de otro.
     for (const [setupId, prefix] of Object.entries(setupPrefix)) {
-      if (prefix && r.question_id.startsWith(prefix) && r.setup_id !== setupId) {
+      if (prefix && r.question_id.toLowerCase().startsWith(prefix) && r.setup_id !== setupId) {
         problems.push(`${key}: reactivo exclusivo de ${setupId} presente en ${r.setup_id}`);
       }
     }
@@ -814,7 +734,7 @@ export function registryIssues(records = buildRegistry()): string[] {
       problems.push(`${key}: destino CORE inconsistente con el peso del bloque`);
     }
 
-    if (r.condition !== null && !/^[a-z0-9_]+ (=|!=) [A-Z_]+$/.test(r.condition)) {
+    if (r.condition !== null && !/^[A-Za-z0-9_]+ (=|!=) ([A-Z_]+|\*)$/.test(r.condition)) {
       problems.push(`${key}: condición con formato inválido: ${r.condition}`);
     }
     if ((r.condition === null) !== (r.condition_type === "NONE")) {
@@ -842,9 +762,11 @@ export function registryIssues(records = buildRegistry()): string[] {
       r.type === "CONDITIONAL_SCORE" ||
       r.type === "VALIDATION" ||
       r.type === "HARD";
-    if (scoring && r.status === "COMPLETO") {
+    if (scoring && r.status === "COMPLETO" && r.internal_weight > 0) {
       const factors = r.options.map((o) => o.factor);
-      if (!isOfficialScale(factors)) {
+      const exact = EXACT_SPEC_SCALES[r.question_id];
+      const exactOk = exact !== undefined && exact.join() === factors.join();
+      if (!isOfficialScale(factors) && !exactOk) {
         problems.push(`${key}: reactivo puntuable COMPLETO sin los 5 factores oficiales`);
       }
       for (let i = 1; i < factors.length; i += 1) {
