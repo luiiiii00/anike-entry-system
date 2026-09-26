@@ -633,7 +633,7 @@ export function buildRegistry(): RegistryRecord[] {
         condition: rec.condition,
         condition_type: conditionTypeOf(rec.condition),
         options: rec.options,
-        internal_weight: rec.type === "METADATA" ? 0 : 1,
+        internal_weight: rec.type === "METADATA" || rec.type === "AUTO" ? 0 : 1,
         core_target: {
           block: rec.block_id,
           weight: CORE_WEIGHTS[rec.block_id],
