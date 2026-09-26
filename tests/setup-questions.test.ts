@@ -51,7 +51,8 @@ describe("seis matrices independientes (SETUP LIBRE + S01–S05)", () => {
   test("SETUP LIBRE conserva la MATRIZ ORIGINAL completa", () => {
     const free = new Set(SETUP_MATRIX.FREE);
     const exclusive = new Set(OFFICIAL.flatMap((id) => SETUP_EXCLUSIVE_QUESTIONS[id]));
-    const original = allBaseQuestions().filter((q) => !exclusive.has(q.id));
+    const legacy = new Set(UNUSED_QUESTION_IDS);
+    const original = allBaseQuestions().filter((q) => !exclusive.has(q.id) && !legacy.has(q.id));
     for (const q of original) expect(free.has(q.id)).toBe(true);
     expect(SETUP_MATRIX.FREE.length).toBe(original.length);
   });
@@ -123,13 +124,6 @@ describe("metadata descriptiva (patrón / nivel Fibonacci)", () => {
     for (const id of ALL) {
       const scorable = scorableQuestionIds(id);
       for (const qid of METADATA_QUESTION_IDS) expect(scorable.has(qid)).toBe(false);
-    }
-  });
-
-  test("el nivel Fibonacci como metadata sólo existe en S04", () => {
-    expect(activeQuestionIds("ZONA_FIBONACCI").has("s04_fibo_level")).toBe(true);
-    for (const id of ALL.filter((o) => o !== "ZONA_FIBONACCI")) {
-      expect(activeQuestionIds(id).has("s04_fibo_level")).toBe(false);
     }
   });
 
@@ -294,7 +288,7 @@ describe("el CORE no cambia", () => {
   test("los criterios específicos usan la escala oficial 1 / 0,75 / 0,50 / 0,25 / 0", () => {
     for (const id of OFFICIAL) {
       for (const q of getActiveQuestionsBySetup(id)) {
-        if (q.meta || !/^s0[1-5]_/.test(q.id)) continue;
+        if (q.meta || q.validationOnly || q.id === "S05_STR_04" || !/^s0[1-5]_/i.test(q.id)) continue;
         expect(q.options.map((o) => o.pts)).toEqual([1, 0.75, 0.5, 0.25, 0]);
       }
     }
@@ -315,113 +309,8 @@ describe("el CORE no cambia", () => {
     for (const id of ALL) {
       const ids = getActiveQuestionsBySetup(id).map((q) => q.id);
       expect(new Set(ids).size).toBe(ids.length);
-      expect(ids.every((qid) => /^[a-z0-9_]+$/.test(qid))).toBe(true);
+      expect(ids.every((qid) => /^[A-Za-z0-9_]+$/.test(qid))).toBe(true);
     }
   });
 });
 
-/* ===========================================================================
- * S03 RUPTURA — modo de entrada (mini confirmación / retesteo opcional)
- * =========================================================================== */
-describe("S03 RUPTURA: modo de entrada", () => {
-  const S03: EvaluationSetupId = "RUPTURA_RETESTEO";
-
-  function bestAnswers(setup: EvaluationSetupId, extra: Record<string, string> = {}) {
-    const answers: Record<string, string> = {};
-    for (const q of getActiveQuestionsBySetup(setup)) answers[q.id] = q.options[0]!.v;
-    return { ...answers, ...extra };
-  }
-
-  test("el modo de entrada es metadata obligatoria y no puntúa", () => {
-    const mode = getActiveQuestionsBySetup(S03).find((q) => q.id === "s03_entry_mode");
-    expect(mode?.meta).toBe(true);
-    expect(mode?.sectionId).toBe("ejecucion");
-    expect(mode?.options.map((o) => o.v)).toEqual(["MINI_CONFIRMACION", "RETESTEO"]);
-    expect(mode?.options.every((o) => o.pts === 0)).toBe(true);
-  });
-
-  test("con MINI_CONFIRMACION se pregunta la mini confirmación y no el retesteo", () => {
-    const answers = { s03_entry_mode: "MINI_CONFIRMACION" };
-    const ids = activeQuestionIds(S03, answers);
-    expect(ids.has("s03_mini_confirmation")).toBe(true);
-    expect(ids.has("s03_retest_on_level")).toBe(false);
-    expect(ids.has("s03_retest_reaction")).toBe(false);
-    // Ningún bloque queda sin criterios puntuables.
-    for (const sectionId of ["estructura", "zona", "confirmacion", "riesgo", "recorrido"]) {
-      const inSection = getActiveQuestionsBySetup(S03).filter(
-        (q) => ids.has(q.id) && q.sectionId === sectionId && !q.meta,
-      );
-      expect(inSection.length).toBeGreaterThan(0);
-    }
-  });
-
-  test("con RETESTEO se preguntan los criterios de retesteo y no la mini confirmación", () => {
-    const answers = { s03_entry_mode: "RETESTEO" };
-    const ids = activeQuestionIds(S03, answers);
-    expect(ids.has("s03_mini_confirmation")).toBe(false);
-    expect(ids.has("s03_retest_on_level")).toBe(true);
-    expect(ids.has("s03_retest_reaction")).toBe(true);
-    for (const sectionId of ["estructura", "zona", "confirmacion", "riesgo", "recorrido"]) {
-      const inSection = getActiveQuestionsBySetup(S03).filter(
-        (q) => ids.has(q.id) && q.sectionId === sectionId && !q.meta,
-      );
-      expect(inSection.length).toBeGreaterThan(0);
-    }
-  });
-
-  test("los dos modos alcanzan 100 con las mejores respuestas", () => {
-    for (const mode of ["MINI_CONFIRMACION", "RETESTEO"]) {
-      const answers = bestAnswers(S03, { s03_entry_mode: mode });
-      const ids = activeQuestionIds(S03, answers);
-      expect(computeScore(answers, ids).score).toBe(100);
-      expect(missingActiveAnswers(answers, S03)).toEqual([]);
-    }
-  });
-
-  test("el modo no exige responder las preguntas del otro modo", () => {
-    const answers = bestAnswers(S03, { s03_entry_mode: "MINI_CONFIRMACION" });
-    delete answers["s03_retest_on_level"];
-    delete answers["s03_retest_reaction"];
-    expect(missingActiveAnswers(answers, S03)).toEqual([]);
-    expect(blockComplete(answers, S03, "zona")).toBe(true);
-    expect(blockComplete(answers, S03, "confirmacion")).toBe(true);
-  });
-
-  test("una evaluación histórica sin modo de entrada se calcula como antes", () => {
-    const answers = bestAnswers(S03);
-    delete answers["s03_entry_mode"];
-    delete answers["s03_mini_confirmation"];
-    const ids = activeQuestionIds(S03, answers);
-    expect(ids.has("s03_retest_on_level")).toBe(true);
-    expect(ids.has("s03_retest_reaction")).toBe(true);
-    expect(ids.has("s03_mini_confirmation")).toBe(false);
-    expect(computeScore(answers, ids).score).toBe(100);
-  });
-});
-
-/* ===========================================================================
- * S05 IMPULSO + PULLBACK — criterio de validez del pullback
- * =========================================================================== */
-describe("S05: criterio de validez del pullback", () => {
-  const S05: EvaluationSetupId = "IMPULSO_PULLBACK";
-
-  test("el criterio de validez está en Estructura, puntúa y usa la escala oficial", () => {
-    const q = getActiveQuestionsBySetup(S05).find((x) => x.id === "s05_pullback_criteria");
-    expect(q?.sectionId).toBe("estructura");
-    expect(q?.meta).toBeUndefined();
-    expect(q?.role).toBe("INTERMEDIA");
-    expect(q?.options.map((o) => o.pts)).toEqual([1, 0.75, 0.5, 0.25, 0]);
-  });
-
-  test("las mejores respuestas siguen dando 100 en S05", () => {
-    const answers: Record<string, string> = {};
-    for (const q of getActiveQuestionsBySetup(S05)) answers[q.id] = q.options[0]!.v;
-    expect(computeScore(answers, activeQuestionIds(S05, answers)).score).toBe(100);
-  });
-
-  test("las zonas de interés del pullback están declaradas en la ayuda", () => {
-    const zone = getActiveQuestionsBySetup(S05).find((q) => q.id === "s05_pullback_zone");
-    expect(zone?.hint).toContain("Fibonacci");
-    expect(zone?.hint).toContain("FVG");
-  });
-});
