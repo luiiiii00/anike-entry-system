@@ -202,7 +202,6 @@ function TradeDetail() {
         currency={settings?.currency ?? "USD"}
       />
 
-
       <AnikeAiPanel
         variant="evaluation"
         evaluationId={id}

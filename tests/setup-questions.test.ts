@@ -289,7 +289,8 @@ describe("el CORE no cambia", () => {
   test("los criterios específicos usan la escala oficial 1 / 0,75 / 0,50 / 0,25 / 0", () => {
     for (const id of OFFICIAL) {
       for (const q of getActiveQuestionsBySetup(id)) {
-        if (q.meta || q.validationOnly || q.id === "S05_STR_04" || !/^s0[1-5]_/i.test(q.id)) continue;
+        if (q.meta || q.validationOnly || q.id === "S05_STR_04" || !/^s0[1-5]_/i.test(q.id))
+          continue;
         expect(q.options.map((o) => o.pts)).toEqual([1, 0.75, 0.5, 0.25, 0]);
       }
     }
@@ -314,4 +315,3 @@ describe("el CORE no cambia", () => {
     }
   });
 });
-
