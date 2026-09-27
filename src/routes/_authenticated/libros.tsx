@@ -60,7 +60,10 @@ function Libros() {
           const extras = (docs ?? []).filter((d) => d.block === block.id);
           const count = block.docs.filter((d) => d.asset).length + extras.length;
           return (
-            <section key={block.id} className="overflow-hidden rounded-xl border border-border bg-surface/60">
+            <section
+              key={block.id}
+              className="overflow-hidden rounded-xl border border-border bg-surface/60"
+            >
               <button
                 onClick={() => setOpen(isOpen ? null : block.id)}
                 aria-expanded={isOpen}
@@ -204,7 +207,13 @@ function AdminUpload({ userId }: { userId: string }) {
 
   const upload = useMutation({
     mutationFn: () =>
-      uploadLibraryDoc({ userId, block, title: title.trim(), description: description.trim(), file: file! }),
+      uploadLibraryDoc({
+        userId,
+        block,
+        title: title.trim(),
+        description: description.trim(),
+        file: file!,
+      }),
     onSuccess: () => {
       toast.success("PDF agregado a la biblioteca.");
       setTitle("");

@@ -28,8 +28,6 @@ export const Route = createFileRoute("/_authenticated/journal")({
 
 const STATES = ["Todos", "BORRADOR", "CONDICIONAL", "APROBADA", "NO TRADE"] as const;
 
-
-
 function Journal() {
   const { user } = useAuth();
   const { data, isLoading } = useQuery({
@@ -42,7 +40,6 @@ function Journal() {
     queryFn: fetchAnalyzedEvaluationIds,
     enabled: !!user,
   });
-
 
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -119,7 +116,6 @@ function Journal() {
                 {s.label}
               </option>
             ))}
-
           </select>
         </label>
 
@@ -174,26 +170,42 @@ function Journal() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left">
-                  {["Fecha", "Activo", "Dir", "Setup", "Score", "Riesgo", "R:R", "R", "$", "Disc.", "Estado", "ANIKE IA"].map(
-                    (h) => (
-                      <th key={h} className="label-mono px-3 py-3 font-normal">
-                        {h}
-                      </th>
-                    ),
-                  )}
+                  {[
+                    "Fecha",
+                    "Activo",
+                    "Dir",
+                    "Setup",
+                    "Score",
+                    "Riesgo",
+                    "R:R",
+                    "R",
+                    "$",
+                    "Disc.",
+                    "Estado",
+                    "ANIKE IA",
+                  ].map((h) => (
+                    <th key={h} className="label-mono px-3 py-3 font-normal">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
 
               <tbody>
                 {rows.map((e) => (
-                  <tr key={e.id} className="border-b border-border/60 last:border-0 hover:bg-surface-2">
+                  <tr
+                    key={e.id}
+                    className="border-b border-border/60 last:border-0 hover:bg-surface-2"
+                  >
                     <td className="px-3 py-3 font-mono text-xs">{e.trade_date}</td>
                     <td className="px-3 py-3">
                       <Link to="/trade/$id" params={{ id: e.id }} className="text-primary">
                         {e.asset ?? "—"}
                       </Link>
                     </td>
-                    <td className={cn("px-3 py-3", e.direction === "SHORT" ? "text-stop" : "text-ok")}>
+                    <td
+                      className={cn("px-3 py-3", e.direction === "SHORT" ? "text-stop" : "text-ok")}
+                    >
                       {e.direction ?? "—"}
                     </td>
                     <td className="px-3 py-3">{setupLabel(e.setup)}</td>
@@ -223,7 +235,6 @@ function Journal() {
                       </Link>
                     </td>
                   </tr>
-
                 ))}
               </tbody>
             </table>
@@ -251,7 +262,6 @@ function fix2(v: number | null | undefined) {
 }
 
 function rTone(v: number | null) {
-
   if (v === null || v === undefined) return "";
   return v > 0 ? "text-ok" : v < 0 ? "text-stop" : "";
 }
@@ -302,7 +312,6 @@ function MobileCard({ e, analyzed }: { e: Evaluation; analyzed: boolean }) {
         <span>{e.emotional_stop ? "Disciplina: REVISAR" : "Disciplina: OK"}</span>
         <span className="text-primary">🤖 {analyzed ? "VER ANÁLISIS" : "ANALIZAR CON IA"}</span>
       </div>
-
     </Link>
   );
 }

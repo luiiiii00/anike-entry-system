@@ -150,8 +150,6 @@ function Perfil() {
         </div>
       </div>
 
-
-
       <ProtectionLog />
 
       <button

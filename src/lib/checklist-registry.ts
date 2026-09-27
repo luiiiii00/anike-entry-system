@@ -499,13 +499,17 @@ function recordFromQuestion(
   const block = blockOf(q.sectionId);
   const factors = q.options.map((o) => o.pts);
   const condition = q.condition ? `${q.condition.questionId} = ${q.condition.value}` : null;
-  const type = q.kind ? KIND_TO_TYPE[q.kind] : typeOf(q.id, q.meta === true, factors, condition !== null);
+  const type = q.kind
+    ? KIND_TO_TYPE[q.kind]
+    : typeOf(q.id, q.meta === true, factors, condition !== null);
   const weight = CORE_WEIGHTS[q.sectionId];
   const scorable = type !== "METADATA" && type !== "AUTO" && q.validationOnly !== true;
   const exact = EXACT_SPEC_SCALES[q.id];
   const officialScale =
     isOfficialScale(factors) ||
-    (exact !== undefined && exact.length === factors.length && exact.every((f, i) => f === factors[i]));
+    (exact !== undefined &&
+      exact.length === factors.length &&
+      exact.every((f, i) => f === factors[i]));
   const specPending = q.pendingScale === true;
   const pending = specPending || (scorable && type !== "AUTO_VALIDATION" && !officialScale);
   return {
@@ -537,9 +541,7 @@ function recordFromQuestion(
       weight,
       stage: block.postTrade ? "POST_TRADE" : "PRE_TRADE",
     },
-    behavior: q.kind
-      ? specBehaviorOf(q.kind, weight)
-      : behaviorOf(type, q.id, weight),
+    behavior: q.kind ? specBehaviorOf(q.kind, weight) : behaviorOf(type, q.id, weight),
     score_behavior: q.validationOnly
       ? "NO_SCORE: validación pura, no aporta puntos."
       : scoreBehaviorOf(type, weight),
@@ -561,8 +563,8 @@ function recordFromQuestion(
     pending_reason: specPending
       ? "La especificación maestra define el texto pero no las 5 opciones: se usa la escala genérica Claramente / Mayormente / Parcialmente / Débilmente / No hasta recibir la fuente."
       : pending
-      ? `Escala histórica de ${factors.length} nivel(es) (${factors.join(" / ")}): falta fuente para expresarla con los 5 factores oficiales sin inventar contenido.`
-      : null,
+        ? `Escala histórica de ${factors.length} nivel(es) (${factors.join(" / ")}): falta fuente para expresarla con los 5 factores oficiales sin inventar contenido.`
+        : null,
   };
 }
 

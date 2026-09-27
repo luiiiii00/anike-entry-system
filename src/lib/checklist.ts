@@ -2104,117 +2104,220 @@ const ANY_PATTERN = (questionId: string) => ({ questionId, value: ANY_CONDITION_
 const SETUP_SPECIFIC: SetupSpecificBlock[] = [
   // ---------------------------------------------------------------- S01
   specBlock("REVERSION", S01, "contexto", "Contexto", [
-    sq("S01_CTX_01", "¿Existe una tendencia o movimiento previo claramente definido que pueda ser revertido?"),
-    sq("S01_CTX_02", "¿El movimiento previo muestra señales de desaceleración o pérdida de continuidad?"),
+    sq(
+      "S01_CTX_01",
+      "¿Existe una tendencia o movimiento previo claramente definido que pueda ser revertido?",
+    ),
+    sq(
+      "S01_CTX_02",
+      "¿El movimiento previo muestra señales de desaceleración o pérdida de continuidad?",
+    ),
   ]),
   specBlock("REVERSION", S01, "estructura", "Estructura", [
-    sq("S01_STR_01", "¿Existe un nivel estructural relevante que esté siendo atacado por el precio?"),
-    sq("S01_STR_02", "¿El movimiento muestra una alteración observable de la estructura dominante?"),
-    sv("S01_STR_03", "¿La estructura de la reversión permanece válida hasta el momento de la entrada?"),
+    sq(
+      "S01_STR_01",
+      "¿Existe un nivel estructural relevante que esté siendo atacado por el precio?",
+    ),
+    sq(
+      "S01_STR_02",
+      "¿El movimiento muestra una alteración observable de la estructura dominante?",
+    ),
+    sv(
+      "S01_STR_03",
+      "¿La estructura de la reversión permanece válida hasta el momento de la entrada?",
+    ),
     {
       id: "S01_PATTERN_TYPE",
-      label: "¿Qué patrón de reversión de la biblioteca ANIKE EJEPIKA se identifica en la operación?",
+      label:
+        "¿Qué patrón de reversión de la biblioteca ANIKE EJEPIKA se identifica en la operación?",
       hint: "Descriptivo: no suma puntos.",
       meta: true,
       kind: "METADATA",
       options: REVERSAL_PATTERNS,
     },
-    sq("S01_PAT_01", "¿El patrón identificado conserva las características esenciales de una reversión?", {
-      kind: "CONDITIONAL_SCORE",
-      condition: ANY_PATTERN("S01_PATTERN_TYPE"),
-    }),
-    sq("S01_PAT_02", "¿El patrón muestra evidencia de pérdida de continuidad de la tendencia previa?", {
-      kind: "CONDITIONAL_SCORE",
-      condition: ANY_PATTERN("S01_PATTERN_TYPE"),
-    }),
+    sq(
+      "S01_PAT_01",
+      "¿El patrón identificado conserva las características esenciales de una reversión?",
+      {
+        kind: "CONDITIONAL_SCORE",
+        condition: ANY_PATTERN("S01_PATTERN_TYPE"),
+      },
+    ),
+    sq(
+      "S01_PAT_02",
+      "¿El patrón muestra evidencia de pérdida de continuidad de la tendencia previa?",
+      {
+        kind: "CONDITIONAL_SCORE",
+        condition: ANY_PATTERN("S01_PATTERN_TYPE"),
+      },
+    ),
   ]),
   specBlock("REVERSION", S01, "zona", "Zona", [
     sq("S01_ZONE_01", "¿La estructura de reversión está ubicada en una zona técnica relevante?"),
-    sq("S01_ZONE_02", "¿La zona de reversión es coherente con el contexto y la estructura analizados?"),
+    sq(
+      "S01_ZONE_02",
+      "¿La zona de reversión es coherente con el contexto y la estructura analizados?",
+    ),
   ]),
   specBlock("REVERSION", S01, "confirmacion", "Confirmación", [
     sq("S01_CONF_01", "¿Existe una confirmación objetiva del cambio de dirección?"),
-    sq("S01_CONF_02", "¿La confirmación modifica la estructura relevante que sostenía la tendencia anterior?"),
-    sq("S01_CONF_03", "¿La temporalidad de ejecución confirma el final del movimiento contrario antes de la entrada?"),
+    sq(
+      "S01_CONF_02",
+      "¿La confirmación modifica la estructura relevante que sostenía la tendencia anterior?",
+    ),
+    sq(
+      "S01_CONF_03",
+      "¿La temporalidad de ejecución confirma el final del movimiento contrario antes de la entrada?",
+    ),
   ]),
   specBlock("REVERSION", S01, "riesgo", "Riesgo", [
-    sv("S01_RISK_01", "¿El Stop Loss está situado detrás del nivel de invalidación estructural de la reversión?"),
-    sav("S01_RISK_02", "¿El riesgo monetario calculado está dentro del límite definido por el plan?"),
+    sv(
+      "S01_RISK_01",
+      "¿El Stop Loss está situado detrás del nivel de invalidación estructural de la reversión?",
+    ),
+    sav(
+      "S01_RISK_02",
+      "¿El riesgo monetario calculado está dentro del límite definido por el plan?",
+    ),
   ]),
   specBlock("REVERSION", S01, "recorrido", "Recorrido", [
-    sq("S01_PATH_01", "¿Existe recorrido suficiente desde la entrada hasta el objetivo antes de una zona opuesta relevante?"),
+    sq(
+      "S01_PATH_01",
+      "¿Existe recorrido suficiente desde la entrada hasta el objetivo antes de una zona opuesta relevante?",
+    ),
     sq("S01_PATH_02", "¿El objetivo tiene una referencia técnica claramente identificable?"),
   ]),
   specBlock("REVERSION", S01, "ejecucion", "Ejecución", [
-    sq("S01_EXEC_01", "¿La entrada se realiza después de la confirmación y no únicamente porque apareció el patrón?"),
-    sq("S01_EXEC_02", "¿La entrada utiliza la temporalidad de ejecución para mejorar la precisión sin contradecir la estructura superior?"),
+    sq(
+      "S01_EXEC_01",
+      "¿La entrada se realiza después de la confirmación y no únicamente porque apareció el patrón?",
+    ),
+    sq(
+      "S01_EXEC_02",
+      "¿La entrada utiliza la temporalidad de ejecución para mejorar la precisión sin contradecir la estructura superior?",
+    ),
   ]),
   specBlock("REVERSION", S01, "disciplina", "Disciplina", [
-    sv("S01_DISC_01", "¿La operación respeta las condiciones previamente definidas para la reversión?"),
-    sq("S01_DISC_02", "¿La entrada evita anticipar la reversión únicamente por la expectativa de que el patrón deba revertir?"),
+    sv(
+      "S01_DISC_01",
+      "¿La operación respeta las condiciones previamente definidas para la reversión?",
+    ),
+    sq(
+      "S01_DISC_02",
+      "¿La entrada evita anticipar la reversión únicamente por la expectativa de que el patrón deba revertir?",
+    ),
   ]),
 
   // ---------------------------------------------------------------- S02
   specBlock("CONTINUACION", S02, "contexto", "Contexto", [
     sq("S02_CTX_01", "¿Existe una tendencia dominante claramente definida?"),
-    sq("S02_CTX_02", "¿La dirección de la temporalidad grande favorece la continuación de la tendencia?"),
+    sq(
+      "S02_CTX_02",
+      "¿La dirección de la temporalidad grande favorece la continuación de la tendencia?",
+    ),
   ]),
   specBlock("CONTINUACION", S02, "estructura", "Estructura", [
     sq("S02_STR_01", "¿Existe un impulso previo suficientemente claro?"),
     sv("S02_STR_02", "¿La corrección posterior conserva la estructura principal del movimiento?"),
-    sq("S02_STR_03", "¿El movimiento correctivo mantiene una proporción razonable respecto al impulso previo?", {
-      hint: "No existe una proporción rígida universal.",
-    }),
+    sq(
+      "S02_STR_03",
+      "¿El movimiento correctivo mantiene una proporción razonable respecto al impulso previo?",
+      {
+        hint: "No existe una proporción rígida universal.",
+      },
+    ),
     {
       id: "S02_PATTERN_TYPE",
-      label: "¿Qué patrón de continuación de la biblioteca ANIKE EJEPIKA se identifica en la operación?",
+      label:
+        "¿Qué patrón de continuación de la biblioteca ANIKE EJEPIKA se identifica en la operación?",
       hint: "Descriptivo: no suma puntos.",
       meta: true,
       kind: "METADATA",
       options: CONTINUATION_PATTERNS,
     },
-    sq("S02_PAT_01", "¿El patrón identificado conserva las características esenciales de una continuación?", {
-      kind: "CONDITIONAL_SCORE",
-      condition: ANY_PATTERN("S02_PATTERN_TYPE"),
-    }),
-    sq("S02_PAT_02", "¿La corrección mantiene un comportamiento relativamente neutro sin adquirir un protagonismo excesivo frente al impulso?"),
-    sq("S02_PAT_03", "¿La estructura de continuación conserva suficientes interacciones con sus límites para considerarse válida?", {
-      kind: "CONDITIONAL_SCORE",
-      hint: "No se exige un número fijo de toques.",
-      condition: ANY_PATTERN("S02_PATTERN_TYPE"),
-    }),
+    sq(
+      "S02_PAT_01",
+      "¿El patrón identificado conserva las características esenciales de una continuación?",
+      {
+        kind: "CONDITIONAL_SCORE",
+        condition: ANY_PATTERN("S02_PATTERN_TYPE"),
+      },
+    ),
+    sq(
+      "S02_PAT_02",
+      "¿La corrección mantiene un comportamiento relativamente neutro sin adquirir un protagonismo excesivo frente al impulso?",
+    ),
+    sq(
+      "S02_PAT_03",
+      "¿La estructura de continuación conserva suficientes interacciones con sus límites para considerarse válida?",
+      {
+        kind: "CONDITIONAL_SCORE",
+        hint: "No se exige un número fijo de toques.",
+        condition: ANY_PATTERN("S02_PATTERN_TYPE"),
+      },
+    ),
   ]),
   specBlock("CONTINUACION", S02, "zona", "Zona", [
-    sq("S02_ZONE_01", "¿La estructura de continuación es coherente con la zona donde está situada?"),
-    sq("S02_ZONE_02", "¿Las condiciones de las otras temporalidades respaldan la hipótesis de continuación?"),
+    sq(
+      "S02_ZONE_01",
+      "¿La estructura de continuación es coherente con la zona donde está situada?",
+    ),
+    sq(
+      "S02_ZONE_02",
+      "¿Las condiciones de las otras temporalidades respaldan la hipótesis de continuación?",
+    ),
   ]),
   specBlock("CONTINUACION", S02, "confirmacion", "Confirmación", [
     sq("S02_CONF_01", "¿Existe una confirmación de que la corrección está terminando?"),
     sq("S02_CONF_02", "¿El precio vuelve a mostrar intención en la dirección de la tendencia?"),
-    sq("S02_CONF_03", "¿La temporalidad de ejecución confirma la continuación antes de la entrada?"),
+    sq(
+      "S02_CONF_03",
+      "¿La temporalidad de ejecución confirma la continuación antes de la entrada?",
+    ),
   ]),
   specBlock("CONTINUACION", S02, "riesgo", "Riesgo", [
-    sv("S02_RISK_01", "¿El Stop Loss está situado detrás del nivel de invalidación estructural de la continuación?"),
+    sv(
+      "S02_RISK_01",
+      "¿El Stop Loss está situado detrás del nivel de invalidación estructural de la continuación?",
+    ),
     sav("S02_RISK_02", "¿El riesgo monetario calculado respeta el límite establecido por el plan?"),
   ]),
   specBlock("CONTINUACION", S02, "recorrido", "Recorrido", [
-    sq("S02_PATH_01", "¿Existe recorrido suficiente para continuar el movimiento antes de una zona opuesta relevante?"),
+    sq(
+      "S02_PATH_01",
+      "¿Existe recorrido suficiente para continuar el movimiento antes de una zona opuesta relevante?",
+    ),
     sq("S02_PATH_02", "¿El objetivo tiene una referencia técnica claramente identificable?"),
   ]),
   specBlock("CONTINUACION", S02, "ejecucion", "Ejecución", [
     sq("S02_EXEC_01", "¿La entrada se produce después de la confirmación de la continuación?"),
-    sq("S02_EXEC_02", "¿La entrada evita perseguir un movimiento que ya se encuentra excesivamente extendido?"),
+    sq(
+      "S02_EXEC_02",
+      "¿La entrada evita perseguir un movimiento que ya se encuentra excesivamente extendido?",
+    ),
   ]),
   specBlock("CONTINUACION", S02, "disciplina", "Disciplina", [
-    sv("S02_DISC_01", "¿La operación respeta las reglas previamente definidas para la continuación?"),
+    sv(
+      "S02_DISC_01",
+      "¿La operación respeta las reglas previamente definidas para la continuación?",
+    ),
   ]),
 
   // ---------------------------------------------------------------- S03
   specBlock("RUPTURA_RETESTEO", S03, "contexto", "Contexto", [
-    sq("S03_CTX_01", "¿El precio llega a un nivel de soporte o resistencia claramente identificable?"),
+    sq(
+      "S03_CTX_01",
+      "¿El precio llega a un nivel de soporte o resistencia claramente identificable?",
+    ),
     sq("S03_CTX_02", "¿El nivel presenta relevancia por reacciones previas del precio?"),
-    sq("S03_CTX_03", "¿La ubicación actual del precio justifica prestar atención a una posible ruptura?"),
-    sq("S03_CTX_04", "¿El contexto de las temporalidades superiores es coherente con la operación?"),
+    sq(
+      "S03_CTX_03",
+      "¿La ubicación actual del precio justifica prestar atención a una posible ruptura?",
+    ),
+    sq(
+      "S03_CTX_04",
+      "¿El contexto de las temporalidades superiores es coherente con la operación?",
+    ),
   ]),
   specBlock("RUPTURA_RETESTEO", S03, "estructura", "Estructura", [
     sv("S03_STR_01", "¿El precio rompe efectivamente el nivel de soporte o resistencia?"),
@@ -2229,35 +2332,63 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
         { v: "THREE_BODY", label: "THREE BODY" },
       ]),
     },
-    sq("S03_STR_02", "¿La ruptura presenta una vela de momentum cuya mayor parte del cuerpo se encuentra fuera del nivel?", {
-      kind: "CONDITIONAL_SCORE",
-      condition: { questionId: "S03_BREAK_VARIANT", value: "MOMENTUM" },
-    }),
-    sq("S03_STR_03", "¿La ruptura presenta una secuencia de tres velas de cuerpo en la misma dirección?", {
-      kind: "CONDITIONAL_SCORE",
-      condition: { questionId: "S03_BREAK_VARIANT", value: "THREE_BODY" },
-    }),
+    sq(
+      "S03_STR_02",
+      "¿La ruptura presenta una vela de momentum cuya mayor parte del cuerpo se encuentra fuera del nivel?",
+      {
+        kind: "CONDITIONAL_SCORE",
+        condition: { questionId: "S03_BREAK_VARIANT", value: "MOMENTUM" },
+      },
+    ),
+    sq(
+      "S03_STR_03",
+      "¿La ruptura presenta una secuencia de tres velas de cuerpo en la misma dirección?",
+      {
+        kind: "CONDITIONAL_SCORE",
+        condition: { questionId: "S03_BREAK_VARIANT", value: "THREE_BODY" },
+      },
+    ),
     sq("S03_STR_04", "¿La ruptura mantiene continuidad después de superar el nivel?"),
   ]),
   specBlock("RUPTURA_RETESTEO", S03, "zona", "Zona", [
     sq("S03_ZONE_01", "¿El soporte o resistencia roto constituye un nivel técnicamente relevante?"),
-    sq("S03_ZONE_02", "¿La ruptura se produce desde una ubicación coherente con el contexto analizado?"),
+    sq(
+      "S03_ZONE_02",
+      "¿La ruptura se produce desde una ubicación coherente con el contexto analizado?",
+    ),
   ]),
   specBlock("RUPTURA_RETESTEO", S03, "confirmacion", "Confirmación", [
-    vq("S03_CONF_01", "Si la ruptura utiliza una vela de momentum, ¿la vela siguiente inicia en la misma dirección?", {
-      kind: "CONDITIONAL_VALIDATION",
-      condition: { questionId: "S03_BREAK_VARIANT", value: "MOMENTUM" },
-    }),
-    vq("S03_CONF_02", "Si la ruptura utiliza la secuencia de tres velas, ¿la tercera vela confirma la continuidad del movimiento?", {
-      kind: "CONDITIONAL_VALIDATION",
-      condition: { questionId: "S03_BREAK_VARIANT", value: "THREE_BODY" },
-    }),
-    sq("S03_CONF_03", "¿La confirmación demuestra continuidad del movimiento y no únicamente una superación del nivel?"),
+    vq(
+      "S03_CONF_01",
+      "Si la ruptura utiliza una vela de momentum, ¿la vela siguiente inicia en la misma dirección?",
+      {
+        kind: "CONDITIONAL_VALIDATION",
+        condition: { questionId: "S03_BREAK_VARIANT", value: "MOMENTUM" },
+      },
+    ),
+    vq(
+      "S03_CONF_02",
+      "Si la ruptura utiliza la secuencia de tres velas, ¿la tercera vela confirma la continuidad del movimiento?",
+      {
+        kind: "CONDITIONAL_VALIDATION",
+        condition: { questionId: "S03_BREAK_VARIANT", value: "THREE_BODY" },
+      },
+    ),
+    sq(
+      "S03_CONF_03",
+      "¿La confirmación demuestra continuidad del movimiento y no únicamente una superación del nivel?",
+    ),
     sq("S03_CONF_04", "¿La temporalidad de ejecución confirma el movimiento antes de la entrada?"),
   ]),
   specBlock("RUPTURA_RETESTEO", S03, "riesgo", "Riesgo", [
-    sv("S03_RISK_01", "¿El Stop Loss está colocado por dentro del nivel de ruptura, de acuerdo con la metodología del setup?"),
-    sav("S03_RISK_02", "¿El riesgo monetario calculado se encuentra dentro del límite definido por el plan?"),
+    sv(
+      "S03_RISK_01",
+      "¿El Stop Loss está colocado por dentro del nivel de ruptura, de acuerdo con la metodología del setup?",
+    ),
+    sav(
+      "S03_RISK_02",
+      "¿El riesgo monetario calculado se encuentra dentro del límite definido por el plan?",
+    ),
   ]),
   specBlock("RUPTURA_RETESTEO", S03, "recorrido", "Recorrido", [
     sq("S03_PATH_01", "¿Existe recorrido suficiente desde la entrada hasta el objetivo?", {
@@ -2267,35 +2398,66 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
   specBlock("RUPTURA_RETESTEO", S03, "ejecucion", "Ejecución", [
     sq("S03_EXEC_01", "¿La entrada se ejecuta después de la confirmación?"),
     sq("S03_EXEC_02", "¿La entrada evita perseguir el precio después de una ruptura ya extendida?"),
-    sv("S03_EXEC_03", "¿Las condiciones de la ruptura continúan siendo válidas en el momento exacto de la entrada?"),
+    sv(
+      "S03_EXEC_03",
+      "¿Las condiciones de la ruptura continúan siendo válidas en el momento exacto de la entrada?",
+    ),
   ]),
   specBlock("RUPTURA_RETESTEO", S03, "disciplina", "Disciplina", [
-    sv("S03_DISC_01", "¿La operación se ejecuta siguiendo las reglas predefinidas del setup RUPTURA?"),
-    sq("S03_DISC_02", "¿La operación evita una entrada anticipada basada únicamente en la expectativa de que la ruptura continuará?"),
+    sv(
+      "S03_DISC_01",
+      "¿La operación se ejecuta siguiendo las reglas predefinidas del setup RUPTURA?",
+    ),
+    sq(
+      "S03_DISC_02",
+      "¿La operación evita una entrada anticipada basada únicamente en la expectativa de que la ruptura continuará?",
+    ),
   ]),
 
   // ---------------------------------------------------------------- S04
   specBlock("ZONA_FIBONACCI", S04, "contexto", "Contexto", [
-    sq("S04_CTX_01", "¿Existe un soporte o resistencia claramente identificable en la temporalidad mayor?"),
+    sq(
+      "S04_CTX_01",
+      "¿Existe un soporte o resistencia claramente identificable en la temporalidad mayor?",
+    ),
     sq("S04_CTX_02", "¿El nivel presenta reacciones previas relevantes del precio?"),
-    sq("S04_CTX_03", "¿El contexto del mercado proporciona una dirección coherente para la operación?"),
+    sq(
+      "S04_CTX_03",
+      "¿El contexto del mercado proporciona una dirección coherente para la operación?",
+    ),
   ]),
   specBlock("ZONA_FIBONACCI", S04, "estructura", "Estructura", [
     sq("S04_STR_01", "¿Existe un cambio de tendencia observable en la temporalidad de ejecución?"),
-    sq("S04_STR_02", "¿El cambio de tendencia presenta una modificación observable de los máximos y mínimos relevantes?"),
-    sq("S04_STR_03", "¿Existe un impulso claramente identificable que permita realizar la medición de Fibonacci?"),
+    sq(
+      "S04_STR_02",
+      "¿El cambio de tendencia presenta una modificación observable de los máximos y mínimos relevantes?",
+    ),
+    sq(
+      "S04_STR_03",
+      "¿Existe un impulso claramente identificable que permita realizar la medición de Fibonacci?",
+    ),
   ]),
   specBlock("ZONA_FIBONACCI", S04, "zona", "Zona", [
-    sv("S04_ZONE_01", "¿El retroceso de Fibonacci está correctamente trazado desde el inicio hasta el final del impulso relevante?"),
+    sv(
+      "S04_ZONE_01",
+      "¿El retroceso de Fibonacci está correctamente trazado desde el inicio hasta el final del impulso relevante?",
+    ),
     sq("S04_ZONE_02", "¿El precio alcanza la zona de retroceso 0.618?", {
       hint: "0.618 es la ZONA de retroceso (llegada al nivel).",
     }),
     sq("S04_ZONE_03", "¿El retroceso se encuentra dentro de una zona de confluencia relevante?"),
     {
       id: "S04_ZONE_04",
-      label: "¿La zona de Fibonacci es tratada como un área de influencia y no como un precio exacto?",
+      label:
+        "¿La zona de Fibonacci es tratada como un área de influencia y no como un precio exacto?",
       kind: "SCORE",
-      options: f5("Correctamente", "Casi completamente", "Parcialmente", "Débilmente", "Se considera un precio exacto"),
+      options: f5(
+        "Correctamente",
+        "Casi completamente",
+        "Parcialmente",
+        "Débilmente",
+        "Se considera un precio exacto",
+      ),
     },
   ]),
   specBlock("ZONA_FIBONACCI", S04, "confirmacion", "Confirmación", [
@@ -2313,37 +2475,73 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
         { v: "GIRO", label: "GIRO" },
       ]),
     },
-    vq("S04_CONF_02", "Si la ejecución es en el GIRO, ¿el precio muestra un cambio de dirección en la temporalidad de ejecución?", {
-      kind: "CONDITIONAL_VALIDATION",
-      condition: { questionId: "S04_EXEC_MODE", value: "GIRO" },
-    }),
+    vq(
+      "S04_CONF_02",
+      "Si la ejecución es en el GIRO, ¿el precio muestra un cambio de dirección en la temporalidad de ejecución?",
+      {
+        kind: "CONDITIONAL_VALIDATION",
+        condition: { questionId: "S04_EXEC_MODE", value: "GIRO" },
+      },
+    ),
     sq("S04_CONF_03", "¿La entrada respeta la dirección de la estructura identificada en la zona?"),
   ]),
   specBlock("ZONA_FIBONACCI", S04, "riesgo", "Riesgo", [
-    sv("S04_RISK_01", "¿El Stop Loss está situado entre los niveles 0.618 y 0.75 del retroceso de Fibonacci?"),
+    sv(
+      "S04_RISK_01",
+      "¿El Stop Loss está situado entre los niveles 0.618 y 0.75 del retroceso de Fibonacci?",
+    ),
     sv("S04_RISK_02", "¿El Stop Loss también respeta la invalidación estructural?"),
-    sav("S04_RISK_03", "¿El riesgo monetario de la operación se encuentra dentro de los límites definidos por ANIKE EJEPIKA?"),
+    sav(
+      "S04_RISK_03",
+      "¿El riesgo monetario de la operación se encuentra dentro de los límites definidos por ANIKE EJEPIKA?",
+    ),
   ]),
   specBlock("ZONA_FIBONACCI", S04, "recorrido", "Recorrido", [
-    sv("S04_PATH_01", "¿La extensión de Fibonacci está correctamente trazada utilizando los tres puntos correspondientes?", {
-      hint: "Tres puntos: inicio del impulso, final del impulso y final del retroceso.",
-    }),
+    sv(
+      "S04_PATH_01",
+      "¿La extensión de Fibonacci está correctamente trazada utilizando los tres puntos correspondientes?",
+      {
+        hint: "Tres puntos: inicio del impulso, final del impulso y final del retroceso.",
+      },
+    ),
     sv("S04_PATH_02", "¿El objetivo está proyectado hacia la extensión 1.618?", {
       hint: "1.618 es la EXTENSIÓN de Fibonacci, no 1.618R.",
     }),
-    sq("S04_PATH_03", "¿Existe suficiente recorrido desde la entrada hasta el objetivo sin una estructura contraria relevante en el camino?"),
+    sq(
+      "S04_PATH_03",
+      "¿Existe suficiente recorrido desde la entrada hasta el objetivo sin una estructura contraria relevante en el camino?",
+    ),
   ]),
   specBlock("ZONA_FIBONACCI", S04, "ejecucion", "Ejecución", [
-    sq("S04_EXEC_01", "¿La entrada se realiza después de completar las condiciones previas del setup?"),
-    sq("S04_EXEC_02", "¿La ejecución utiliza la temporalidad correspondiente definida para la operación?"),
-    sq("S04_EXEC_03", "¿La entrada evita anticipar el movimiento antes de que se cumplan las condiciones?"),
+    sq(
+      "S04_EXEC_01",
+      "¿La entrada se realiza después de completar las condiciones previas del setup?",
+    ),
+    sq(
+      "S04_EXEC_02",
+      "¿La ejecución utiliza la temporalidad correspondiente definida para la operación?",
+    ),
+    sq(
+      "S04_EXEC_03",
+      "¿La entrada evita anticipar el movimiento antes de que se cumplan las condiciones?",
+    ),
   ]),
   specBlock("ZONA_FIBONACCI", S04, "disciplina", "Disciplina", [
-    vq("S04_DISC_01", "¿La operación cumple la secuencia completa de cinco etapas definida para S04?", {
-      hint: "1) S/R en temporalidad grande · 2) cambio de tendencia en temporalidad pequeña · 3) pullback hacia 0.618 · 4) ejecución por ORDEN LÍMITE o GIRO · 5) SL 0.618–0.75 y objetivo 1.618.",
-    }),
-    sq("S04_DISC_02", "¿La operación evita utilizar Fibonacci de forma aislada, sin considerar el precio y el contexto?"),
-    sq("S04_DISC_03", "¿La operación mantiene consistencia con las reglas previamente definidas para entrada, Stop Loss y objetivo?"),
+    vq(
+      "S04_DISC_01",
+      "¿La operación cumple la secuencia completa de cinco etapas definida para S04?",
+      {
+        hint: "1) S/R en temporalidad grande · 2) cambio de tendencia en temporalidad pequeña · 3) pullback hacia 0.618 · 4) ejecución por ORDEN LÍMITE o GIRO · 5) SL 0.618–0.75 y objetivo 1.618.",
+      },
+    ),
+    sq(
+      "S04_DISC_02",
+      "¿La operación evita utilizar Fibonacci de forma aislada, sin considerar el precio y el contexto?",
+    ),
+    sq(
+      "S04_DISC_03",
+      "¿La operación mantiene consistencia con las reglas previamente definidas para entrada, Stop Loss y objetivo?",
+    ),
   ]),
 
   // ---------------------------------------------------------------- S05
@@ -2352,12 +2550,24 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
     sq("S05_CTX_02", "IP2 · ¿La estructura de la tendencia es coherente con su dirección?", {
       hint: "Alcista: HH / HL · Bajista: LH / LL.",
     }),
-    sq("S05_CTX_03", "IP3 · ¿Existe un impulso claramente identificable antes del movimiento correctivo?"),
+    sq(
+      "S05_CTX_03",
+      "IP3 · ¿Existe un impulso claramente identificable antes del movimiento correctivo?",
+    ),
   ]),
   specBlock("IMPULSO_PULLBACK", S05, "estructura", "Estructura", [
-    sq("S05_STR_01", "IP4 · ¿El movimiento contrario a la tendencia cumple las condiciones para ser considerado un pullback real?"),
-    sq("S05_STR_02", "IP5 · ¿El movimiento correctivo rompe el nivel de referencia estructural correspondiente?"),
-    sq("S05_STR_03", "IP6 · ¿El movimiento correctivo conserva la estructura principal de la tendencia?"),
+    sq(
+      "S05_STR_01",
+      "IP4 · ¿El movimiento contrario a la tendencia cumple las condiciones para ser considerado un pullback real?",
+    ),
+    sq(
+      "S05_STR_02",
+      "IP5 · ¿El movimiento correctivo rompe el nivel de referencia estructural correspondiente?",
+    ),
+    sq(
+      "S05_STR_03",
+      "IP6 · ¿El movimiento correctivo conserva la estructura principal de la tendencia?",
+    ),
     {
       id: "S05_STR_04",
       label: "IP7 · ¿El pullback está correctamente clasificado según su comportamiento?",
@@ -2372,32 +2582,71 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
     },
   ]),
   specBlock("IMPULSO_PULLBACK", S05, "zona", "Zona", [
-    sq("S05_ZONE_01", "IP8 · ¿El pullback alcanza una zona o recurso técnico coherente con una continuación?"),
-    sq("S05_ZONE_02", "IP9 · ¿La zona de continuación es coherente con la estructura de la temporalidad superior?"),
-    sq("S05_ZONE_03", "IP10 · ¿El pullback encuentra una zona de liquidez interna compatible con la continuación?"),
+    sq(
+      "S05_ZONE_01",
+      "IP8 · ¿El pullback alcanza una zona o recurso técnico coherente con una continuación?",
+    ),
+    sq(
+      "S05_ZONE_02",
+      "IP9 · ¿La zona de continuación es coherente con la estructura de la temporalidad superior?",
+    ),
+    sq(
+      "S05_ZONE_03",
+      "IP10 · ¿El pullback encuentra una zona de liquidez interna compatible con la continuación?",
+    ),
   ]),
   specBlock("IMPULSO_PULLBACK", S05, "confirmacion", "Confirmación", [
     sq("S05_CONF_01", "IP11 · ¿El precio muestra intención de finalizar el movimiento correctivo?"),
-    sq("S05_CONF_02", "IP12 · ¿La estructura de menor temporalidad confirma la continuación de la tendencia principal?"),
-    sq("S05_CONF_03", "IP13 · ¿La confirmación se produce en la zona/recurso identificado y no simplemente en cualquier punto del pullback?"),
+    sq(
+      "S05_CONF_02",
+      "IP12 · ¿La estructura de menor temporalidad confirma la continuación de la tendencia principal?",
+    ),
+    sq(
+      "S05_CONF_03",
+      "IP13 · ¿La confirmación se produce en la zona/recurso identificado y no simplemente en cualquier punto del pullback?",
+    ),
   ]),
   specBlock("IMPULSO_PULLBACK", S05, "riesgo", "Riesgo", [
-    sv("S05_RISK_01", "IP14 · ¿El Stop Loss está colocado detrás de la invalidación estructural del pullback?"),
-    sav("S05_RISK_02", "IP15 · ¿El riesgo monetario de la operación está dentro del límite definido por ANIKE EJEPIKA?"),
+    sv(
+      "S05_RISK_01",
+      "IP14 · ¿El Stop Loss está colocado detrás de la invalidación estructural del pullback?",
+    ),
+    sav(
+      "S05_RISK_02",
+      "IP15 · ¿El riesgo monetario de la operación está dentro del límite definido por ANIKE EJEPIKA?",
+    ),
   ]),
   specBlock("IMPULSO_PULLBACK", S05, "recorrido", "Recorrido", [
-    sq("S05_PATH_01", "IP16 · ¿Existe recorrido suficiente para que la continuación tenga espacio antes de una estructura contraria relevante?"),
+    sq(
+      "S05_PATH_01",
+      "IP16 · ¿Existe recorrido suficiente para que la continuación tenga espacio antes de una estructura contraria relevante?",
+    ),
     sq("S05_PATH_02", "IP17 · ¿El objetivo es coherente con la estructura y dirección principal?"),
   ]),
   specBlock("IMPULSO_PULLBACK", S05, "ejecucion", "Ejecución", [
     sq("S05_EXEC_01", "IP18 · ¿La entrada se realiza después de la confirmación de continuación?"),
-    sq("S05_EXEC_02", "IP19 · ¿La entrada se ejecuta dentro de una zona razonable del pullback sin perseguir el precio?"),
-    sq("S05_EXEC_03", "IP20 · ¿Las condiciones del pullback siguen siendo válidas en el momento de entrada?"),
+    sq(
+      "S05_EXEC_02",
+      "IP19 · ¿La entrada se ejecuta dentro de una zona razonable del pullback sin perseguir el precio?",
+    ),
+    sq(
+      "S05_EXEC_03",
+      "IP20 · ¿Las condiciones del pullback siguen siendo válidas en el momento de entrada?",
+    ),
   ]),
   specBlock("IMPULSO_PULLBACK", S05, "disciplina", "Disciplina", [
-    sv("S05_DISC_01", "IP21 · ¿La operación respeta las condiciones previamente definidas para el setup?"),
-    sq("S05_DISC_02", "IP22 · ¿La operación evita confundir una desaceleración con un pullback válido?"),
-    sq("S05_DISC_03", "IP23 · ¿La operación mantiene una metodología consistente para identificar y operar los pullbacks?"),
+    sv(
+      "S05_DISC_01",
+      "IP21 · ¿La operación respeta las condiciones previamente definidas para el setup?",
+    ),
+    sq(
+      "S05_DISC_02",
+      "IP22 · ¿La operación evita confundir una desaceleración con un pullback válido?",
+    ),
+    sq(
+      "S05_DISC_03",
+      "IP23 · ¿La operación mantiene una metodología consistente para identificar y operar los pullbacks?",
+    ),
   ]),
 ];
 
