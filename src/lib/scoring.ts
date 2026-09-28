@@ -468,7 +468,7 @@ function provided(v: unknown) {
  */
 export function globalInvalidations(input: {
   risk: RiskData;
-  direction?: string | null;
+  direction?: string | null | undefined;
   maxRiskPct?: number;
 }): GlobalInvalidationId[] {
   const out = new Set<GlobalInvalidationId>();
