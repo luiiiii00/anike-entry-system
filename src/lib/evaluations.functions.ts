@@ -33,7 +33,7 @@ const riskSchema = z
   })
   .partial();
 
-const inputSchema = z.object({
+export const saveEvaluationInputSchema = z.object({
   id: z.string().uuid().optional(),
   tradeDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   tradeTime: z.string().max(8).nullable().optional(),
@@ -49,7 +49,7 @@ const inputSchema = z.object({
   decision: z.enum(["registrado", "no_trade"]).nullable().optional(),
 });
 
-export type SaveEvaluationInput = z.infer<typeof inputSchema>;
+export type SaveEvaluationInput = z.infer<typeof saveEvaluationInputSchema>;
 
 const MESSAGES: Record<string, string> = {
   evaluation_not_found: "Evaluación no encontrada o sin acceso activo.",
@@ -88,7 +88,7 @@ function cleanRisk(risk: SaveEvaluationInput["risk"]): RiskData {
 
 export const saveEvaluationFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => inputSchema.parse(data))
+  .inputValidator((data) => saveEvaluationInputSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const answers: Answers = data.answers;
@@ -129,9 +129,9 @@ export const saveEvaluationFn = createServerFn({ method: "POST" })
       direction: data.direction ?? null,
       market: data.market ?? null,
     });
-    // Precedencia del motor: sólo una evaluación APROBADA puede registrarse.
-    // NO TRADE (HARD/freno emocional) y CONDICIONAL (gates o pendientes) no son registrables.
-    const rejected = decision.blocked || decision.finalState === "NO TRADE";
+    // V2: sólo una evaluación APROBADA puede registrarse. NO TRADE (invalidación
+    // global objetiva) y CONDICIONAL (score, gates o pendientes) no son registrables.
+    const rejected = decision.globalInvalidation || decision.finalState === "NO TRADE";
 
     let effectiveDecision: "registrado" | "no_trade" | null = null;
     if (data.status === "completed") {
@@ -187,7 +187,10 @@ export const saveEvaluationFn = createServerFn({ method: "POST" })
         score: decision.scoreVisible,
         breakdown: decision.breakdown as unknown as Json,
         classification: decision.classification,
-        hard_rules: decision.hardRules,
+        // V2: ningún reactivo produce HARD. La columna conserva las
+        // invalidaciones globales objetivas (informativo, no decide el estado).
+        hard_rules: decision.globalInvalidations,
+        // Señal informativa de disciplina: no decide el estado.
         emotional_stop: decision.emotional,
         final_state: decision.finalState,
         status: data.status,

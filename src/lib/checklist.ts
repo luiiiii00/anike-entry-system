@@ -95,6 +95,8 @@ export type Question = {
    * escala genérica oficial y el registro la marca PENDIENTE_DE_FUENTE.
    */
   pendingScale?: boolean;
+  /** Peso interno explícito dentro del bloque (si la matriz lo define). */
+  w?: number;
   options: Option[];
 };
 

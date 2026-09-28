@@ -16,7 +16,7 @@ import {
   APPROVAL_GATES,
   APPROVAL_MIN_SCORE,
   FINAL_STATE_UI,
-  checkConditional,
+  checkPendingConditions,
   computeRisk,
   sizingStatus,
   type FinalState,
@@ -389,14 +389,10 @@ function finalStateBlock(e: EvalRow): string[] {
     contractSize: numOrNull(e.risk?.["contractSize"]),
     pointValue: numOrNull(e.risk?.["pointValue"]),
   });
-  const warnings = checkConditional({
-    a: answers,
-    risk: metrics,
-    maxRiskPct: Number.POSITIVE_INFINITY,
-    setup: e.setup,
-    preferredSetups: [],
-  });
-  const critical = (e.hard_rules?.length ?? 0) > 0 || e.emotional_stop === true;
+  void metrics;
+  const warnings = checkPendingConditions(answers);
+  // V2: el estado guardado manda; sólo la invalidación global produce NO TRADE.
+  const critical = false;
   const stored = e.final_state;
   const finalState: FinalState = critical
     ? "NO TRADE"

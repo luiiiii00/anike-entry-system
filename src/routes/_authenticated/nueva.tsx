@@ -1077,18 +1077,17 @@ function ResultStep({
         )}
       </div>
 
-      {decision.hardRules.length > 0 && (
+      {decision.globalInvalidations.length > 0 && (
         <div className="panel animate-rise border-stop/50 bg-stop-soft/35 p-5">
           <div className="flex items-center gap-2 text-stop">
             <AlertTriangle className="h-5 w-5" />
-            <p className="font-display text-base font-semibold">HARD NO-TRADE RULE</p>
+            <p className="font-display text-base font-semibold">INVALIDACIÓN GLOBAL — NO TRADE</p>
           </div>
           <p className="mt-2 text-sm">
-            Tu score puede ser alto, pero una regla crítica fue incumplida. La operación queda
-            bloqueada.
+            Tu score puede ser alto, pero los datos de la operación son objetivamente inválidos.
           </p>
           <ul className="mt-3 space-y-1.5 text-sm text-foreground/90">
-            {decision.hardRules.map((r) => (
+            {decision.globalInvalidations.map((r) => (
               <li key={r} className="flex gap-2">
                 <span className="text-stop">•</span> {r}
               </li>
@@ -1099,10 +1098,10 @@ function ResultStep({
 
       {decision.emotional && (
         <div className="panel border-stop/50 bg-stop-soft/35 p-5">
-          <p className="font-display text-base font-semibold text-stop">EMOTIONAL STOP</p>
+          <p className="font-display text-base font-semibold text-stop">DISCIPLINA: REVISAR</p>
           <p className="mt-2 text-sm">
-            La operación presenta una señal de comportamiento impulsivo. Detén la ejecución y vuelve
-            a evaluar tu plan.
+            La operación presenta una señal de comportamiento impulsivo. Revisa tu plan antes de
+            ejecutar.
           </p>
         </div>
       )}

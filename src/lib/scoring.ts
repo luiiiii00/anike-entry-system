@@ -315,12 +315,16 @@ export function computeScore(answers: Answers, activeIds?: Set<string>): ScoreRe
       // Compatibilidad histórica: una opción "No aplica" guardada no penaliza ni suma.
       if (opt?.na) continue;
       const best = Math.max(...q.options.filter((o) => !o.na).map((o) => o.pts));
-      if (Number.isFinite(best)) max += best;
-      if (opt && Number.isFinite(opt.pts)) got += opt.pts;
+      if (!Number.isFinite(best) || best <= 0) continue;
+      // Peso interno explícito (`w`) si la matriz lo define; si no, se preserva
+      // el peso implícito histórico (puntos máximos de la pregunta).
+      const w = typeof q.w === "number" && q.w > 0 ? q.w : best;
+      max += w;
+      if (opt && Number.isFinite(opt.pts)) got += clamp01(opt.pts / best) * w;
     }
     // Sin criterios evaluables el bloque no penaliza (F_block = 1).
     const f = max > 0 ? clamp01(got / max) : 1;
-    const earned = round(f * weight, 4);
+    const earned = f * weight;
     breakdown[section.id] = {
       earned,
       weight,
@@ -333,7 +337,8 @@ export function computeScore(answers: Answers, activeIds?: Set<string>): ScoreRe
   }
 
   const raw = (preTradePoints / PRE_TRADE_WEIGHT) * 100;
-  const score = Number.isFinite(raw) ? round(Math.max(0, Math.min(100, raw)), 2) : 0;
+  // Sin redondeo para decidir (sólo se corrige el ruido de coma flotante).
+  const score = Number.isFinite(raw) ? Math.max(0, Math.min(100, round(raw, 9))) : 0;
 
   return {
     score,
@@ -349,176 +354,76 @@ function clamp01(n: number) {
   return Math.max(0, Math.min(1, n));
 }
 
-export type Classification = "SETUP A+" | "SETUP A" | "SETUP B" | "NO TRADE";
+/** Clasificación V2: coincide con el estado oficial (SETUP A+/A/B ya no decide nada). */
+export type Classification = FinalState;
 export type Light = "ok" | "warn" | "stop";
 /** Estados oficiales del CORE. `DESCARTADA` sólo existe como dato histórico. */
 export type FinalState = "BORRADOR" | "CONDICIONAL" | "APROBADA" | "NO TRADE";
 /** Incluye el estado histórico para lectura de evaluaciones antiguas. */
 export type FinalStateLegacy = FinalState | "DESCARTADA";
 
-export function classify(score: number): {
-  classification: Classification;
-  light: Light;
-  message: string;
-} {
-  if (score >= 85)
-    return {
-      classification: "SETUP A+",
-      light: "ok",
-      message: "Entrada válida si cumple las reglas de riesgo.",
-    };
-  if (score >= 75) return { classification: "SETUP A", light: "ok", message: "Entrada permitida." };
-  if (score >= 65)
-    return { classification: "SETUP B", light: "warn", message: "Esperar confirmación adicional." };
-  return { classification: "NO TRADE", light: "stop", message: "No ejecutar." };
-}
-
-export const HARD_RULES: { id: string; label: string; test: (ctx: HardRuleCtx) => boolean }[] = [
-  {
-    id: "context_conflict",
-    label: "El contexto no es compatible con la operación.",
-    test: ({ a }) => a["ctx_aligned"] === "no",
-  },
-  {
-    id: "structure_invalid",
-    label: "La estructura está invalidada o no definida.",
-    test: ({ a }) =>
-      a["h1_structure"] === "no_definida" ||
-      a["h1_struct"] === "no" ||
-      a["h1_pattern_change_state"] === "invalidado" ||
-      a["h1_pattern_cont_state"] === "invalidado",
-  },
-  {
-    id: "break_without_close",
-    label: "Ruptura sin cierre de vela de 5M fuera de la diagonal.",
-    test: ({ a }) => a["cf5_close"] === "no",
-  },
-  {
-    id: "missing_confirmation",
-    label: "Falta una confirmación esencial en 5M.",
-    test: ({ a }) => a["cf5_diag_break"] === "no" || a["cf_basis"] === "intuicion",
-  },
-  {
-    id: "no_invalidation",
-    label: "El Stop Loss no es correcto: no existe un punto claro de invalidación.",
-    test: ({ a }) =>
-      a["r_invalidation"] === "no" ||
-      a["r_stop_logic"] === "por_poner" ||
-      a["r_sl_fibo_ok"] === "no",
-  },
-  {
-    id: "rr_below_2",
-    label: "La relación riesgo/beneficio es inferior a 1:2.",
-    test: ({ a, risk }) =>
-      a["r_rr"] === "menor_1" ||
-      a["r_rr"] === "1_1" ||
-      a["r_rr"] === "1_15" ||
-      (risk.rr !== null && risk.rr < 2),
-  },
-  {
-    id: "no_room",
-    label: "El recorrido hasta el objetivo es insuficiente.",
-    test: ({ a }) => a["rc_room"] === "no" || a["rc_rr2"] === "no" || a["z_space"] === "no",
-  },
-  {
-    id: "before_confirmation",
-    label: "La entrada fue anticipada: se ejecutó antes de la confirmación.",
-    test: ({ a }) => a["m5_timing"] === "antes" || a["ex_conditions"] === "no",
-  },
-  {
-    id: "risk_over_limit",
-    label: "El riesgo supera el límite establecido.",
-    test: ({ a, risk, maxRiskPct }) =>
-      a["r_limit"] === "no" ||
-      (risk.riskPctUsed !== null &&
-        risk.riskPctUsed !== undefined &&
-        risk.riskPctUsed > maxRiskPct),
-  },
-  {
-    id: "discipline",
-    label: "Incumplimiento grave de disciplina.",
-    test: ({ a }) =>
-      a["ds_why"] === "impulso" ||
-      a["ds_revenge"] === "si" ||
-      a["ds_rules"] === "si" ||
-      a["ds_plan"] === "forzando" ||
-      a["ds_motive"] === "fomo" ||
-      a["ds_motive"] === "revancha",
-  },
-  {
-    id: "off_plan",
-    label: "El setup no pertenece al plan operativo.",
-    test: ({ setup, preferredSetups }) =>
-      preferredSetups.length > 0 && !!setup && !preferredSetups.includes(setup),
-  },
-];
-
-/** Elementos que dejan la operación CONDICIONAL sin descartarla. */
-export const CONDITIONAL_CHECKS: {
+/**
+ * CONTRATO V2 — ningún reactivo produce HARD ni NO TRADE. Un reactivo sólo puede
+ * afectar factor, score, gate o condición pendiente. Estos chequeos marcan
+ * CONDICIONES PENDIENTES (pendingConditions → CONDICIONAL), nunca NO TRADE.
+ */
+export const PENDING_CHECKS: {
   id: string;
   label: string;
-  test: (ctx: HardRuleCtx) => boolean;
+  test: (a: Answers) => boolean;
 }[] = [
   {
     id: "context_partial",
     label: "El contexto acompaña solo parcialmente la operación.",
-    test: ({ a }) => a["ctx_aligned"] === "parcial" || a["h1_struct"] === "parcial",
+    test: (a) => a["ctx_aligned"] === "parcial" || a["h1_struct"] === "parcial",
   },
   {
     id: "pattern_forming",
     label: "El patrón todavía está en formación: no se interpreta como señal.",
-    test: ({ a }) =>
+    test: (a) =>
       a["h1_pattern_change_state"] === "formacion" || a["h1_pattern_cont_state"] === "formacion",
   },
   {
     id: "fibo_doubt",
     label: "La reacción en Fibonacci es dudosa.",
-    test: ({ a }) => a["h1_fibo_react"] === "dudoso" || a["h1_fibo_weak"] === "dudoso",
+    test: (a) => a["h1_fibo_react"] === "dudoso" || a["h1_fibo_weak"] === "dudoso",
   },
   {
     id: "retest_pending",
     label: "El retesteo no respeta con claridad la nueva estructura.",
-    test: ({ a }) => a["cf5_retest_ok"] === "dudoso" || a["cf5_retest"] === "no",
+    test: (a) => a["cf5_retest_ok"] === "dudoso" || a["cf5_retest"] === "no",
   },
   {
     id: "rsi_extended",
     label: "El movimiento ya está sobrecomprado/sobrevendido.",
-    test: ({ a }) => a["cf5_rsi_extended"] === "si" || a["cf5_rsi"] === "dudoso",
+    test: (a) => a["cf5_rsi_extended"] === "si" || a["cf5_rsi"] === "dudoso",
   },
   {
     id: "volume_weak",
     label: "El volumen no acompaña con claridad la ruptura.",
-    test: ({ a }) => a["cf5_volume"] === "no" || a["cf5_volume"] === "dudoso",
+    test: (a) => a["cf5_volume"] === "no" || a["cf5_volume"] === "dudoso",
   },
   {
     id: "sl_review",
     label:
       "El nivel 0,75 es el SL predeterminado, pero la estructura requiere revisión antes de ejecutar.",
-    test: ({ a }) => a["r_sl_fibo_ok"] === "revision",
+    test: (a) => a["r_sl_fibo_ok"] === "revision",
   },
   {
     id: "conditions_partial",
     label: "Las condiciones principales se cumplieron solo parcialmente.",
-    test: ({ a }) => a["ex_conditions"] === "parcial",
+    test: (a) => a["ex_conditions"] === "parcial",
   },
 ];
 
-export type HardRuleCtx = {
-  a: Answers;
-  risk: RiskMetrics;
-  maxRiskPct: number;
-  setup?: string | null | undefined;
-  preferredSetups: string[];
-};
-
-export function checkHardRules(ctx: HardRuleCtx) {
-  return HARD_RULES.filter((r) => r.test(ctx)).map((r) => r.label);
+export function checkPendingConditions(a: Answers): string[] {
+  return PENDING_CHECKS.filter((r) => r.test(a)).map((r) => r.label);
 }
 
-export function checkConditional(ctx: HardRuleCtx) {
-  return CONDITIONAL_CHECKS.filter((r) => r.test(ctx)).map((r) => r.label);
-}
-
+/**
+ * Señal informativa de disciplina (estadísticas / Journal). V2: NO decide el
+ * estado ni produce NO TRADE.
+ */
 export function isEmotional(a: Answers) {
   return (
     a["ds_why"] === "impulso" ||
@@ -531,6 +436,83 @@ export function isEmotional(a: Answers) {
   );
 }
 
+/** R:R mínimo global (contrato V2): 1.99 → NO TRADE, 2.00 → válido. */
+export const MIN_RR = 2;
+const RR_EPS = 1e-9;
+
+export type GlobalInvalidationId =
+  | "long_geometry"
+  | "short_geometry"
+  | "zero_risk_distance"
+  | "rr_below_min"
+  | "non_finite"
+  | "risk_over_limit";
+
+export const GLOBAL_INVALIDATION_LABEL: Record<GlobalInvalidationId, string> = {
+  long_geometry: "LONG geométricamente inválido: debe cumplirse SL < Entrada < TP.",
+  short_geometry: "SHORT geométricamente inválido: debe cumplirse TP < Entrada < SL.",
+  zero_risk_distance: "Entrada igual al Stop Loss: la distancia de riesgo es 0.",
+  rr_below_min: "La relación riesgo/beneficio es inferior a 1:2.",
+  non_finite: "Un cálculo crítico produce un valor no finito (NaN / Infinity).",
+  risk_over_limit: "El riesgo monetario supera el límite establecido.",
+};
+
+/** Dato fuente declarado (no vacío). */
+function provided(v: unknown) {
+  return v !== null && v !== undefined && v !== "";
+}
+
+/**
+ * INVALIDACIONES GLOBALES OBJETIVAS (únicas causas de NO TRADE en V2).
+ * Un dato que todavía no existe NO invalida: sólo se evalúa lo declarado.
+ */
+export function globalInvalidations(input: {
+  risk: RiskData;
+  direction?: string | null | undefined;
+  maxRiskPct?: number;
+}): GlobalInvalidationId[] {
+  const out = new Set<GlobalInvalidationId>();
+  const r = input.risk ?? {};
+  const raw = [r.entry, r.stop, r.target, r.capital, r.riskPct];
+  if (raw.some((v) => provided(v) && !Number.isFinite(Number(v)))) out.add("non_finite");
+
+  const entry = num(r.entry);
+  const stop = num(r.stop);
+  const target = num(r.target);
+  const dir = input.direction === "LONG" || input.direction === "SHORT" ? input.direction : null;
+
+  if (entry !== null && stop !== null && entry === stop) out.add("zero_risk_distance");
+
+  if (dir === "LONG") {
+    if (entry !== null && stop !== null && stop >= entry) out.add("long_geometry");
+    if (entry !== null && target !== null && entry >= target) out.add("long_geometry");
+  }
+  if (dir === "SHORT") {
+    if (entry !== null && stop !== null && entry >= stop) out.add("short_geometry");
+    if (entry !== null && target !== null && target >= entry) out.add("short_geometry");
+  }
+
+  const geometryOk =
+    !out.has("zero_risk_distance") && !out.has("long_geometry") && !out.has("short_geometry");
+  if (geometryOk && entry !== null && stop !== null && target !== null) {
+    const risk =
+      dir === "SHORT" ? stop - entry : dir === "LONG" ? entry - stop : Math.abs(entry - stop);
+    const reward =
+      dir === "SHORT" ? entry - target : dir === "LONG" ? target - entry : Math.abs(target - entry);
+    if (risk > 0) {
+      const rr = reward / risk;
+      if (!Number.isFinite(rr)) out.add("non_finite");
+      else if (rr < MIN_RR - RR_EPS) out.add("rr_below_min");
+    }
+  }
+
+  const pct = num(r.riskPct);
+  const max = Number(input.maxRiskPct);
+  if (pct !== null && Number.isFinite(max) && pct > max + RR_EPS) out.add("risk_over_limit");
+
+  return [...out];
+}
+
 export type GateResult = {
   id: SectionId;
   label: string;
@@ -540,37 +522,60 @@ export type GateResult = {
 };
 
 export type Decision = {
-  /** Score INTERNO con decimales: la clasificación y el estado usan SIEMPRE éste. */
+  /** Score INTERNO con decimales: el estado usa SIEMPRE éste. */
   score: number;
   /** Score VISIBLE (floor). Sólo para mostrar; nunca decide. */
   scoreVisible: number;
   breakdown: Breakdown;
+  /** Clasificación V2 = estado final oficial. */
   classification: Classification;
   light: Light;
   message: string;
-  hardRules: string[];
+  /** Condiciones pendientes (textos). */
   warnings: string[];
+  pendingConditions: boolean;
+  /** Invalidaciones globales objetivas detectadas (textos). */
+  globalInvalidations: string[];
+  globalInvalidationIds: GlobalInvalidationId[];
+  globalInvalidation: boolean;
   finalState: FinalState;
+  /** Señal informativa de disciplina: NO decide el estado. */
   emotional: boolean;
+  /** Alias de compatibilidad: true sólo con invalidación global. */
   blocked: boolean;
-  /** Cuestionario activo completo (todas las preguntas pre-trade respondidas). */
   complete: boolean;
-  /** Preguntas activas pendientes. */
   missing: string[];
-  /** Gates obligatorios por bloque y su resultado. */
   gates: GateResult[];
-  /** Gates que no se cumplen. */
   gatesFailed: string[];
-  /** Métricas de riesgo recalculadas (incluye exactitud del lotaje). */
+  gatesOk: boolean;
   metrics: RiskMetrics;
 };
 
+const STATE_UI_TEXT: Record<FinalState, { light: Light; message: string }> = {
+  BORRADOR: { light: "warn", message: "Completa el cuestionario activo." },
+  CONDICIONAL: { light: "warn", message: "Esperar: faltan condiciones, gates o score." },
+  APROBADA: { light: "ok", message: "Entrada válida según el sistema." },
+  "NO TRADE": { light: "stop", message: "No ejecutar: invalidación global objetiva." },
+};
+
+/** Máquina de estados V2 (contrato técnico maestro). */
+export function resolveFinalState(x: {
+  complete: boolean;
+  globalInvalidation: boolean;
+  scoreInternal: number;
+  gatesOk: boolean;
+  pendingConditions: boolean;
+}): FinalState {
+  if (!x.complete) return "BORRADOR";
+  if (x.globalInvalidation) return "NO TRADE";
+  if (x.scoreInternal < APPROVAL_MIN_SCORE || !x.gatesOk || x.pendingConditions)
+    return "CONDICIONAL";
+  return "APROBADA";
+}
+
 /**
- * Precedencia estricta del motor:
- *   VALIDACIÓN → HARD → COMPLETITUD → GATES/PENDIENTES → SCORE → ESTADO/DECISIÓN.
- * Un HARD produce NO TRADE de forma inmediata y no puede ser sobrescrito por un
- * score alto. Sin HARD, cualquier gate incumplido, pendiente o completitud
- * insuficiente deja la evaluación CONDICIONAL (nunca APROBADA).
+ * Motor V2: DATOS FUENTE → COMPLETITUD → FACTORES → SCORE → GATES → PENDIENTES
+ * → VALIDACIÓN GLOBAL OBJETIVA → ESTADO → CLASIFICACIÓN.
  */
 export function evaluate(input: {
   answers: Answers;
@@ -579,39 +584,22 @@ export function evaluate(input: {
   setup?: string | null;
   preferredSetups?: string[];
   direction?: string | null;
-  /** Mercado y especificación del instrumento: determinan la exactitud del lotaje. */
   market?: string | null;
   contractSize?: number | null;
   pointValue?: number | null;
 }): Decision {
-  // El cuestionario activo lo define el setup oficial seleccionado (matriz explícita).
-  const active = input.setup ? activeQuestionIds(input.setup, input.answers) : undefined;
+  const answers = input.answers ?? {};
+  const active = input.setup ? activeQuestionIds(input.setup, answers) : undefined;
   const { score, scoreVisible, breakdown, complete, missing } = computeScore(
-    input.answers,
+    answers,
     active?.size ? active : undefined,
   );
-  const metrics = computeRisk(input.risk, input.direction, {
+  const metrics = computeRisk(input.risk ?? {}, input.direction, {
     market: input.market ?? null,
     contractSize: input.contractSize ?? null,
     pointValue: input.pointValue ?? null,
   });
-
   const maxRiskPct = Number.isFinite(Number(input.maxRiskPct)) ? Number(input.maxRiskPct) : 1;
-  const ctx: HardRuleCtx = {
-    a: input.answers,
-    risk: metrics,
-    maxRiskPct,
-    setup: input.setup,
-    preferredSetups: input.preferredSetups ?? [],
-  };
-  const hardRules = checkHardRules(ctx);
-  const warnings = checkConditional(ctx);
-  // Validaciones del nuevo cuestionario (nunca HARD): dejan la evaluación CONDICIONAL.
-  const failedVal = failedValidations(input.answers, active?.size ? active : undefined);
-  if (failedVal.length > 0)
-    warnings.push(`Validación del setup no cumplida: ${failedVal.join(", ")}.`);
-  const emotional = isEmotional(input.answers);
-  const blocked = hardRules.length > 0 || emotional;
 
   const gates: GateResult[] = APPROVAL_GATES.map((g) => {
     const value = breakdown[g.id]?.percent ?? 0;
@@ -619,42 +607,46 @@ export function evaluate(input: {
   });
   const gatesFailed = gates.filter((g) => !g.passed).map((g) => `${g.label} < ${g.min}%`);
 
-  const common = {
+  const warnings = checkPendingConditions(answers);
+  const failedVal = failedValidations(answers, active?.size ? active : undefined);
+  if (failedVal.length > 0)
+    warnings.push(`Validación del setup no cumplida: ${failedVal.join(", ")}.`);
+
+  const invalidIds = globalInvalidations({
+    risk: input.risk ?? {},
+    direction: input.direction,
+    maxRiskPct,
+  });
+  const globalInvalidation = invalidIds.length > 0;
+
+  const finalState = resolveFinalState({
+    complete,
+    globalInvalidation,
+    scoreInternal: score,
+    gatesOk: gatesFailed.length === 0,
+    pendingConditions: warnings.length > 0,
+  });
+
+  return {
     score,
     scoreVisible,
     breakdown,
-    hardRules,
+    classification: finalState,
+    ...STATE_UI_TEXT[finalState],
     warnings,
-    emotional,
-    blocked,
+    pendingConditions: warnings.length > 0,
+    globalInvalidations: invalidIds.map((id) => GLOBAL_INVALIDATION_LABEL[id]),
+    globalInvalidationIds: invalidIds,
+    globalInvalidation,
+    finalState,
+    emotional: isEmotional(answers),
+    blocked: globalInvalidation,
     complete,
     missing,
     gates,
     gatesFailed,
+    gatesOk: gatesFailed.length === 0,
     metrics,
-  };
-
-  // 1) HARD (o freno emocional): NO TRADE inmediato, sin importar el score.
-  if (blocked) {
-    return {
-      ...common,
-      classification: "NO TRADE",
-      light: "stop",
-      message: "No ejecutar.",
-      finalState: "NO TRADE",
-    };
-  }
-
-  const base = classify(score);
-
-  // 2) COMPLETITUD → 3) GATES/PENDIENTES → 4) SCORE interno.
-  const approved =
-    complete && score >= APPROVAL_MIN_SCORE && gatesFailed.length === 0 && warnings.length === 0;
-
-  return {
-    ...common,
-    ...base,
-    finalState: approved ? "APROBADA" : "CONDICIONAL",
   };
 }
 
