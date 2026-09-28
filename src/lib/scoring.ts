@@ -484,22 +484,19 @@ export function globalInvalidations(input: {
   if (entry !== null && stop !== null && entry === stop) out.add("zero_risk_distance");
 
   if (dir === "LONG") {
-    if ((entry !== null && stop !== null && stop >= entry) ||
-        (entry !== null && target !== null && entry >= target))
-      if (!out.has("zero_risk_distance") || (target !== null && entry !== null && entry >= target))
-        out.add("long_geometry");
+    if (entry !== null && stop !== null && stop >= entry) out.add("long_geometry");
+    if (entry !== null && target !== null && entry >= target) out.add("long_geometry");
   }
   if (dir === "SHORT") {
-    if ((entry !== null && stop !== null && entry >= stop) ||
-        (entry !== null && target !== null && target >= entry))
-      if (!out.has("zero_risk_distance") || (target !== null && entry !== null && target >= entry))
-        out.add("short_geometry");
+    if (entry !== null && stop !== null && entry >= stop) out.add("short_geometry");
+    if (entry !== null && target !== null && target >= entry) out.add("short_geometry");
   }
 
   const geometryOk =
     !out.has("zero_risk_distance") && !out.has("long_geometry") && !out.has("short_geometry");
   if (geometryOk && entry !== null && stop !== null && target !== null) {
-    const risk = dir === "SHORT" ? stop - entry : dir === "LONG" ? entry - stop : Math.abs(entry - stop);
+    const risk =
+      dir === "SHORT" ? stop - entry : dir === "LONG" ? entry - stop : Math.abs(entry - stop);
     const reward =
       dir === "SHORT" ? entry - target : dir === "LONG" ? target - entry : Math.abs(target - entry);
     if (risk > 0) {
