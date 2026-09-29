@@ -144,7 +144,8 @@ describe("S05 IMPULSO + PULLBACK", () => {
     }
     answers["S05_STR_04"] = "profundo";
     const d = evaluate({ answers, risk: {}, setup: S });
-    expect(d.hardRules).toEqual([]);
+    expect(d.globalInvalidation).toBe(false);
+    expect(d.finalState).not.toBe("NO TRADE");
   });
   test("IP4/IP5, IP8/IP13 e IP18/IP20 son preguntas independientes", () => {
     for (const [a, b] of [
