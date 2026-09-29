@@ -16,7 +16,13 @@ import {
 
 /** Contrato técnico maestro V2 — fixtures y regresiones obligatorias. */
 
-const SETUPS = ["REVERSION", "CONTINUACION", "RUPTURA_RETESTEO", "ZONA_FIBONACCI", "IMPULSO_PULLBACK"] as const;
+const SETUPS = [
+  "REVERSION",
+  "CONTINUACION",
+  "RUPTURA_RETESTEO",
+  "ZONA_FIBONACCI",
+  "IMPULSO_PULLBACK",
+] as const;
 
 const VALID_LONG: RiskData = { capital: 10000, riskPct: 1, entry: 100, stop: 95, target: 115 };
 const RR_199: RiskData = { capital: 10000, riskPct: 1, entry: 100, stop: 90, target: 119.9 };
@@ -54,8 +60,12 @@ function pending(setup: EvaluationSetupId): Record<string, string> | null {
   return null;
 }
 
-const run = (setup: string, answers: Record<string, string>, risk: RiskData = VALID_LONG, direction = "LONG") =>
-  evaluate({ answers, risk, setup, direction, maxRiskPct: 1, market: "CRYPTO" });
+const run = (
+  setup: string,
+  answers: Record<string, string>,
+  risk: RiskData = VALID_LONG,
+  direction = "LONG",
+) => evaluate({ answers, risk, setup, direction, maxRiskPct: 1, market: "CRYPTO" });
 
 describe("1) 25 fixtures: 5 setups × 5 casos", () => {
   for (const S of SETUPS) {
@@ -104,8 +114,18 @@ describe("1) 25 fixtures: 5 setups × 5 casos", () => {
   }
 });
 
-const state = (scoreInternal: number, extra: Partial<Parameters<typeof resolveFinalState>[0]> = {}) =>
-  resolveFinalState({ complete: true, globalInvalidation: false, scoreInternal, gatesOk: true, pendingConditions: false, ...extra });
+const state = (
+  scoreInternal: number,
+  extra: Partial<Parameters<typeof resolveFinalState>[0]> = {},
+) =>
+  resolveFinalState({
+    complete: true,
+    globalInvalidation: false,
+    scoreInternal,
+    gatesOk: true,
+    pendingConditions: false,
+    ...extra,
+  });
 
 describe("2) umbral", () => {
   test("79.99 → 79 → CONDICIONAL", () => {
@@ -121,7 +141,8 @@ describe("2) umbral", () => {
   });
 });
 
-const gi = (risk: RiskData, direction: string, maxRiskPct = 1) => globalInvalidations({ risk, direction, maxRiskPct });
+const gi = (risk: RiskData, direction: string, maxRiskPct = 1) =>
+  globalInvalidations({ risk, direction, maxRiskPct });
 
 describe("3–8) R:R, geometría y seguridad numérica", () => {
   test("R:R 1.99 → NO TRADE; 2.00 → válido", () => {
@@ -129,12 +150,23 @@ describe("3–8) R:R, geometría y seguridad numérica", () => {
     expect(gi({ entry: 100, stop: 90, target: 120 }, "LONG")).toEqual([]);
   });
   test("LONG SL<Entry<TP con R:R correcto", () => {
-    const d = run("REVERSION", best("REVERSION"), { capital: 10000, riskPct: 1, entry: 100, stop: 95, target: 110 });
+    const d = run("REVERSION", best("REVERSION"), {
+      capital: 10000,
+      riskPct: 1,
+      entry: 100,
+      stop: 95,
+      target: 110,
+    });
     expect(d.metrics.rr).toBeCloseTo(2, 6);
     expect(d.globalInvalidation).toBe(false);
   });
   test("SHORT TP<Entry<SL con R:R correcto", () => {
-    const d = run("REVERSION", best("REVERSION"), { capital: 10000, riskPct: 1, entry: 100, stop: 105, target: 85 }, "SHORT");
+    const d = run(
+      "REVERSION",
+      best("REVERSION"),
+      { capital: 10000, riskPct: 1, entry: 100, stop: 105, target: 85 },
+      "SHORT",
+    );
     expect(d.metrics.rr).toBeCloseTo(3, 6);
     expect(d.globalInvalidation).toBe(false);
   });
@@ -143,14 +175,26 @@ describe("3–8) R:R, geometría y seguridad numérica", () => {
     expect(gi({ entry: 100, stop: 105, target: 110 }, "SHORT")).toContain("short_geometry");
   });
   test("Entry = SL → NO TRADE sin dividir", () => {
-    const d = run("REVERSION", best("REVERSION"), { capital: 10000, riskPct: 1, entry: 100, stop: 100, target: 120 });
+    const d = run("REVERSION", best("REVERSION"), {
+      capital: 10000,
+      riskPct: 1,
+      entry: 100,
+      stop: 100,
+      target: 120,
+    });
     expect(d.globalInvalidationIds).toContain("zero_risk_distance");
     expect(d.finalState).toBe("NO TRADE");
     expect(d.metrics.rr === null || Number.isFinite(d.metrics.rr)).toBe(true);
   });
   test("NaN / Infinity → NO TRADE y ningún valor final no finito", () => {
     for (const bad of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
-      const d = run("REVERSION", best("REVERSION"), { capital: 10000, riskPct: 1, entry: bad, stop: 95, target: 120 });
+      const d = run("REVERSION", best("REVERSION"), {
+        capital: 10000,
+        riskPct: 1,
+        entry: bad,
+        stop: 95,
+        target: 120,
+      });
       expect(d.globalInvalidationIds).toContain("non_finite");
       expect(d.finalState).toBe("NO TRADE");
       expect(Number.isFinite(d.score)).toBe(true);
@@ -159,7 +203,9 @@ describe("3–8) R:R, geometría y seguridad numérica", () => {
     }
   });
   test("riesgo por encima del límite → NO TRADE", () => {
-    expect(gi({ entry: 100, stop: 95, target: 120, riskPct: 1.5 }, "LONG", 1)).toContain("risk_over_limit");
+    expect(gi({ entry: 100, stop: 95, target: 120, riskPct: 1.5 }, "LONG", 1)).toContain(
+      "risk_over_limit",
+    );
   });
   test("un dato pendiente no es invalidación", () => {
     expect(gi({ entry: 100 }, "LONG")).toEqual([]);
@@ -203,7 +249,13 @@ describe("11) dominancia de la invalidación global", () => {
     expect(run("CONTINUACION", best("CONTINUACION"), RR_199).finalState).toBe("NO TRADE");
   });
   test("score 100 + geometría inválida → NO TRADE", () => {
-    const d = run("ZONA_FIBONACCI", best("ZONA_FIBONACCI"), { capital: 10000, riskPct: 1, entry: 100, stop: 105, target: 120 });
+    const d = run("ZONA_FIBONACCI", best("ZONA_FIBONACCI"), {
+      capital: 10000,
+      riskPct: 1,
+      entry: 100,
+      stop: 105,
+      target: 120,
+    });
     expect(d.score).toBe(100);
     expect(d.finalState).toBe("NO TRADE");
   });
@@ -233,9 +285,23 @@ describe("12) manipulación del frontend", () => {
     expect(d.classification).toBe("CONDICIONAL");
   });
   test("el servidor valida sólo datos fuente y recalcula los derivados", () => {
-    const src = readFileSync(new URL("../src/lib/evaluations.functions.ts", import.meta.url), "utf8");
-    const schema = src.slice(src.indexOf("saveEvaluationInputSchema = z.object"), src.indexOf("export type SaveEvaluationInput"));
-    for (const f of ["score", "classification", "finalState", "final_state", "breakdown", "gates", "globalInvalidation"])
+    const src = readFileSync(
+      new URL("../src/lib/evaluations.functions.ts", import.meta.url),
+      "utf8",
+    );
+    const schema = src.slice(
+      src.indexOf("saveEvaluationInputSchema = z.object"),
+      src.indexOf("export type SaveEvaluationInput"),
+    );
+    for (const f of [
+      "score",
+      "classification",
+      "finalState",
+      "final_state",
+      "breakdown",
+      "gates",
+      "globalInvalidation",
+    ])
       expect(schema.includes(`${f}:`)).toBe(false);
     expect(src).toContain("evaluate({");
   });
@@ -244,11 +310,16 @@ describe("12) manipulación del frontend", () => {
 describe("13–14) aislamiento y ausencia de HARD reactivo", () => {
   test("cada setup carga sólo su matriz", () => {
     const prefix: Record<string, RegExp> = {
-      REVERSION: /^S01_/, CONTINUACION: /^S02_/, RUPTURA_RETESTEO: /^S03_/, ZONA_FIBONACCI: /^S04_/, IMPULSO_PULLBACK: /^S05_/,
+      REVERSION: /^S01_/,
+      CONTINUACION: /^S02_/,
+      RUPTURA_RETESTEO: /^S03_/,
+      ZONA_FIBONACCI: /^S04_/,
+      IMPULSO_PULLBACK: /^S05_/,
     };
     for (const S of EVALUATION_SETUP_IDS) {
       const ids = [...activeQuestionIds(S, best(S))];
-      for (const [other, re] of Object.entries(prefix)) if (other !== S) expect(ids.some((id) => re.test(id))).toBe(false);
+      for (const [other, re] of Object.entries(prefix))
+        if (other !== S) expect(ids.some((id) => re.test(id))).toBe(false);
     }
   });
   test("el motor no contiene mapeo reactivo → HARD para decidir el estado", () => {
