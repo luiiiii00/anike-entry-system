@@ -313,21 +313,22 @@ describe("evaluate — fuente única de verdad", () => {
       final_state: "APROBADA",
     });
     expect(d.score).toBe(computeScore(passing).score);
-    expect(["SETUP A+", "SETUP A", "SETUP B", "NO TRADE"]).toContain(d.classification);
+    // V2: la clasificación es el estado oficial recalculado, nunca el del cliente.
+    expect(d.classification).toBe(d.finalState);
+    expect(["BORRADOR", "CONDICIONAL", "APROBADA", "NO TRADE"]).toContain(d.classification);
   });
 
-  it("un freno emocional descarta la operación aunque el score sea alto", () => {
+  it("V2: el freno emocional es sólo informativo y nunca produce NO TRADE", () => {
     const d = evaluate({ answers: { ...passing, ds_motive: "revancha" }, risk: {}, maxRiskPct: 1 });
     expect(d.emotional).toBe(true);
-    expect(d.blocked).toBe(true);
-    expect(d.finalState).toBe("NO TRADE");
-    expect(d.classification).toBe("NO TRADE");
+    expect(d.blocked).toBe(false);
+    expect(d.finalState).not.toBe("NO TRADE");
   });
 
-  it("una regla crítica descarta la operación", () => {
+  it("V2: un factor 0 en un reactivo antes crítico nunca produce NO TRADE", () => {
     const d = evaluate({ answers: { ...passing, cf5_close: "no" }, risk: {}, maxRiskPct: 1 });
-    expect(d.hardRules.length).toBeGreaterThan(0);
-    expect(d.finalState).toBe("NO TRADE");
+    expect(d.globalInvalidation).toBe(false);
+    expect(d.finalState).not.toBe("NO TRADE");
   });
 
   it("expone las métricas de riesgo recalculadas con la precisión del lotaje", () => {
@@ -616,7 +617,7 @@ function degradeBlock(sectionId: string, limit: number) {
     for (const opt of opts) {
       const trial = { ...answers, [q.id]: opt.v };
       const d = decide(trial);
-      if (d.hardRules.length > 0 || d.emotional) {
+      if (d.globalInvalidation) {
         if (d.breakdown[section.id]!.percent < limit) blockedBelow = d.finalState;
         continue;
       }
@@ -665,7 +666,7 @@ describe("CORE — score interno vs score visible", () => {
       for (const q of section.groups.flatMap((g) => g.questions)) {
         for (const opt of q.options.filter((o) => !o.na)) {
           const d = decide({ ...perfect, [q.id]: opt.v });
-          if (d.hardRules.length > 0 || d.emotional) continue;
+          if (d.globalInvalidation) continue;
           if (d.score >= 79 && d.score < 80) found = d;
         }
       }
@@ -694,7 +695,7 @@ describe("CORE — score interno vs score visible", () => {
 describe("CORE — gates obligatorios", () => {
   it("score interno ≥ 80 con todos los gates cumplidos => APROBADA (B/K)", () => {
     const d = decide(perfect);
-    expect(d.hardRules).toEqual([]);
+    expect(d.globalInvalidation).toBe(false);
     expect(d.complete).toBe(true);
     expect(d.score).toBeGreaterThanOrEqual(APPROVAL_MIN_SCORE);
     expect(d.gatesFailed).toEqual([]);
@@ -720,8 +721,7 @@ describe("CORE — gates obligatorios", () => {
   ]) {
     it(`${gate.case}. ${gate.id} por debajo de ${gate.min}% => CONDICIONAL, no APROBADA`, () => {
       const { decision, reached, blockedBelow } = degradeBlock(gate.id, gate.min);
-      expect(decision.hardRules).toEqual([]);
-      expect(decision.emotional).toBe(false);
+      expect(decision.globalInvalidation).toBe(false);
       if (reached) {
         expect(decision.breakdown[gate.id as "zona"]!.percent).toBeLessThan(gate.min);
         expect(decision.gatesFailed.length).toBeGreaterThan(0);
@@ -737,11 +737,10 @@ describe("CORE — gates obligatorios", () => {
 });
 
 describe("CORE — HARD, completitud y estados oficiales", () => {
-  it("cualquier HARD produce NO TRADE aunque el score sea máximo (H)", () => {
+  it("V2: factor 0 con score máximo en el resto => CONDICIONAL, nunca NO TRADE (H)", () => {
     const d = decide({ ...perfect, cf5_close: "no" });
-    expect(d.hardRules.length).toBeGreaterThan(0);
-    expect(d.finalState).toBe("NO TRADE");
-    expect(d.classification).toBe("NO TRADE");
+    expect(d.globalInvalidation).toBe(false);
+    expect(d.finalState).not.toBe("NO TRADE");
   });
 
   it("una evaluación incompleta no puede ser APROBADA (I)", () => {
