@@ -281,7 +281,13 @@ export type ScoreResult = {
  *   Puntos_block = F_block × PesoCORE_block
  *   Score interno pre-trade = Σ Puntos_block(pre-trade) / 95 × 100
  */
-export function computeScore(answers: Answers, activeIds?: Set<string>): ScoreResult {
+export type AutoScoreItem = { id: string; section: string; factor: number | null };
+
+export function computeScore(
+  answers: Answers,
+  activeIds?: Set<string>,
+  auto: AutoScoreItem[] = [],
+): ScoreResult {
   const breakdown = {} as Breakdown;
   const inScope = (id: string) => activeIds === undefined || activeIds.has(id);
   const missing: string[] = [];
@@ -316,11 +322,22 @@ export function computeScore(answers: Answers, activeIds?: Set<string>): ScoreRe
       if (opt?.na) continue;
       const best = Math.max(...q.options.filter((o) => !o.na).map((o) => o.pts));
       if (!Number.isFinite(best) || best <= 0) continue;
-      // Peso interno explícito (`w`) si la matriz lo define; si no, se preserva
-      // el peso implícito histórico (puntos máximos de la pregunta).
-      const w = typeof q.w === "number" && q.w > 0 ? q.w : best;
+      // Peso interno oficial (remapeo V2) si existe; si no, `w` explícito de la
+      // matriz; si no, el peso implícito histórico (puntos máximos).
+      const official = activeIds !== undefined ? INTERNAL_WEIGHTS[q.id] : undefined;
+      const w = official ? official.w : typeof q.w === "number" && q.w > 0 ? q.w : best;
+      if (!(w > 0)) continue;
       max += w;
       if (opt && Number.isFinite(opt.pts)) got += clamp01(opt.pts / best) * w;
+    }
+    // Reactivos automáticos (p. ej. R:R en Riesgo de S01/S02): dato no
+    // calculable = factor 0 (no puede aprobar sin R:R), nunca NO TRADE.
+    for (const a of auto) {
+      if (a.section !== section.id) continue;
+      const w = INTERNAL_WEIGHTS[a.id]?.w ?? 0;
+      if (!(w > 0)) continue;
+      max += w;
+      if (a.factor !== null && Number.isFinite(a.factor)) got += clamp01(a.factor) * w;
     }
     // Sin criterios evaluables el bloque no penaliza (F_block = 1).
     const f = max > 0 ? clamp01(got / max) : 1;
@@ -590,15 +607,20 @@ export function evaluate(input: {
 }): Decision {
   const answers = input.answers ?? {};
   const active = input.setup ? activeQuestionIds(input.setup, answers) : undefined;
-  const { score, scoreVisible, breakdown, complete, missing } = computeScore(
-    answers,
-    active?.size ? active : undefined,
-  );
   const metrics = computeRisk(input.risk ?? {}, input.direction, {
     market: input.market ?? null,
     contractSize: input.contractSize ?? null,
     pointValue: input.pointValue ?? null,
   });
+  const autoRrId = AUTO_RR_IDS[input.setup as keyof typeof AUTO_RR_IDS];
+  const auto: AutoScoreItem[] = autoRrId
+    ? [{ id: autoRrId, section: "riesgo", factor: rrFactor(metrics.rr) }]
+    : [];
+  const { score, scoreVisible, breakdown, complete, missing } = computeScore(
+    answers,
+    active?.size ? active : undefined,
+    auto,
+  );
   const maxRiskPct = Number.isFinite(Number(input.maxRiskPct)) ? Number(input.maxRiskPct) : 1;
 
   const gates: GateResult[] = APPROVAL_GATES.map((g) => {
