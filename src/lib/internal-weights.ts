@@ -1,0 +1,309 @@
+/**
+ * PESOS INTERNOS OFICIALES — remapeo OPCIÓN A (contrato V2).
+ *
+ * Autoridad: componentes y porcentajes de la especificación ANIKE EJEPIKA
+ * (contrato V2 + cambio autorizado). Cada reactivo actual recibe el peso del
+ * componente fuente que representa:
+ *  - DIRECTO:   un reactivo = un componente.
+ *  - REPARTIDO: varios reactivos representan el mismo componente; su peso se
+ *               divide en partes iguales entre ellos.
+ *  - SIN_COMPONENTE: el reactivo no representa ningún componente del bloque
+ *               (peso 0, sigue siendo obligatorio). No se inventa peso.
+ * Componentes fuente sin reactivo equivalente en la matriz actual (p. ej. RSI,
+ * MACD o Fibonacci en Confirmación) quedan listados en UNCOVERED_COMPONENTS: su
+ * peso no se reasigna a otros reactivos; el bloque se normaliza sobre los
+ * componentes cubiertos (F_block = Σ f·w / Σ w), de modo que el peso efectivo del
+ * bloque suma siempre 100 %.
+ *
+ * Metadata y validation-only = 0 % (no figuran aquí y no puntúan).
+ * No modifica pesos CORE, gates, umbral 80 ni estados.
+ */
+
+export type WeightMapping = "DIRECTO" | "REPARTIDO" | "SIN_COMPONENTE";
+
+export type InternalWeight = {
+  /** Peso del componente fuente asignado al reactivo (en % del bloque fuente). */
+  w: number;
+  component: string;
+  mapping: WeightMapping;
+};
+
+type Row = [id: string, w: number, component: string, mapping: WeightMapping];
+
+const T = 100 / 3;
+const T3 = 100 - 2 * T; // 33.3334 (redondeo de la fuente)
+
+/** Reactivo automático de R:R dentro de Riesgo (S01/S02: componente RR 40 %). */
+export const AUTO_RR_IDS = { REVERSION: "S01_AUTO_RR", CONTINUACION: "S02_AUTO_RR" } as const;
+
+const ROWS: Record<string, Record<string, Row[]>> = {
+  COMUN: {
+    comercio: [
+      ["co_instrument", 50, "Instrumento", "DIRECTO"],
+      ["co_conditions", 50, "Condiciones de mercado", "DIRECTO"],
+    ],
+  },
+  REVERSION: {
+    contexto: [
+      ["S01_CTX_01", 60, "Contexto 1D", "DIRECTO"],
+      ["S01_CTX_02", 40, "Alineación", "DIRECTO"],
+    ],
+    estructura: [
+      ["S01_STR_01", 10, "Estado de la estructura", "REPARTIDO"],
+      ["S01_STR_03", 10, "Estado de la estructura", "REPARTIDO"],
+      ["S01_STR_02", 35, "Evidencia de cambio", "DIRECTO"],
+      ["S01_PAT_01", 20, "Tipo de evidencia (patrón)", "DIRECTO"],
+      ["S01_PAT_02", 25, "Dirección", "DIRECTO"],
+    ],
+    zona: [
+      ["S01_ZONE_01", 60, "Tipo de zona", "DIRECTO"],
+      ["S01_ZONE_02", 40, "Calidad de zona", "DIRECTO"],
+    ],
+    confirmacion: [
+      ["S01_CONF_01", 10, "Reacción 5M", "REPARTIDO"],
+      ["S01_CONF_02", 10, "Reacción 5M", "REPARTIDO"],
+      ["S01_CONF_03", 25, "Confirmación 5M", "DIRECTO"],
+    ],
+    riesgo: [
+      ["S01_AUTO_RR", 40, "R:R (automático)", "DIRECTO"],
+      ["S01_RISK_01", 30, "Geometría / SL", "DIRECTO"],
+      ["S01_RISK_02", 30, "Riesgo monetario", "DIRECTO"],
+    ],
+    recorrido: [
+      ["S01_PATH_01", 70, "Espacio hasta TP", "DIRECTO"],
+      ["S01_PATH_02", 30, "Obstáculos / referencia del objetivo", "DIRECTO"],
+    ],
+    ejecucion: [
+      ["S01_EXEC_02", 40, "Ubicación de la entrada", "DIRECTO"],
+      ["S01_EXEC_01", 35, "Respeto de la confirmación", "DIRECTO"],
+    ],
+    disciplina: [
+      ["S01_DISC_02", 50, "Protocolo", "DIRECTO"],
+      ["S01_DISC_01", 50, "Reglas del setup", "DIRECTO"],
+    ],
+  },
+  CONTINUACION: {
+    contexto: [
+      ["S02_CTX_01", 50, "Tendencia", "DIRECTO"],
+      ["S02_CTX_02", 50, "Dirección", "DIRECTO"],
+    ],
+    estructura: [
+      ["S02_STR_01", 30, "Estructura 1H", "DIRECTO"],
+      ["S02_PAT_01", 10, "Patrón", "REPARTIDO"],
+      ["S02_PAT_02", 10, "Patrón", "REPARTIDO"],
+      ["S02_PAT_03", 10, "Patrón", "REPARTIDO"],
+      ["S02_STR_02", 20, "Integridad", "DIRECTO"],
+      ["S02_STR_03", 20, "Dirección", "DIRECTO"],
+    ],
+    zona: [
+      ["S02_ZONE_01", 60, "Zona de pullback", "DIRECTO"],
+      ["S02_ZONE_02", 40, "Calidad de zona", "DIRECTO"],
+    ],
+    confirmacion: [
+      ["S02_CONF_02", 25, "Impulso", "DIRECTO"],
+      ["S02_CONF_01", 25, "Pullback", "DIRECTO"],
+      ["S02_CONF_03", 15, "Confirmación 5M", "DIRECTO"],
+    ],
+    riesgo: [
+      ["S02_AUTO_RR", 40, "R:R (automático)", "DIRECTO"],
+      ["S02_RISK_01", 30, "Geometría / SL", "DIRECTO"],
+      ["S02_RISK_02", 30, "Riesgo monetario", "DIRECTO"],
+    ],
+    recorrido: [
+      ["S02_PATH_01", 70, "Espacio hasta TP", "DIRECTO"],
+      ["S02_PATH_02", 30, "Obstáculos / referencia del objetivo", "DIRECTO"],
+    ],
+    // Ejecución y Disciplina: se conserva la matriz vigente (peso uniforme por reactivo).
+    ejecucion: [
+      ["S02_EXEC_01", 50, "Matriz vigente", "DIRECTO"],
+      ["S02_EXEC_02", 50, "Matriz vigente", "DIRECTO"],
+    ],
+    disciplina: [["S02_DISC_01", 100, "Matriz vigente", "DIRECTO"]],
+  },
+  RUPTURA_RETESTEO: {
+    contexto: [
+      ["S03_CTX_01", 25, "CTX01", "DIRECTO"],
+      ["S03_CTX_02", 25, "CTX02", "DIRECTO"],
+      ["S03_CTX_03", 25, "CTX03", "DIRECTO"],
+      ["S03_CTX_04", 25, "CTX04", "DIRECTO"],
+    ],
+    estructura: [
+      ["S03_STR_01", 30, "Ruptura", "DIRECTO"],
+      // Variantes mutuamente excluyentes: sólo una está activa por evaluación.
+      ["S03_STR_02", 25, "Confirmación de la ruptura (MOMENTUM)", "DIRECTO"],
+      ["S03_STR_03", 25, "Confirmación de la ruptura (THREE_BODY)", "DIRECTO"],
+      ["S03_STR_04", 20, "Integridad", "DIRECTO"],
+    ],
+    zona: [
+      ["S03_ZONE_01", 60, "Nivel roto / retesteo", "DIRECTO"],
+      ["S03_ZONE_02", 40, "Calidad", "DIRECTO"],
+    ],
+    confirmacion: [
+      ["S03_CONF_03", 35, "Reacción", "DIRECTO"],
+      ["S03_CONF_04", 30, "Confirmación 5M", "DIRECTO"],
+    ],
+    riesgo: [
+      ["S03_RISK_01", 50, "Stop Loss", "DIRECTO"],
+      ["S03_RISK_02", 50, "Riesgo monetario", "DIRECTO"],
+    ],
+    recorrido: [["S03_PATH_01", 100, "Recorrido", "DIRECTO"]],
+    ejecucion: [
+      ["S03_EXEC_01", T, "Ejecución 1", "DIRECTO"],
+      ["S03_EXEC_02", T, "Ejecución 2", "DIRECTO"],
+      ["S03_EXEC_03", T3, "Ejecución 3", "DIRECTO"],
+    ],
+    disciplina: [
+      ["S03_DISC_01", 50, "Reglas del setup", "DIRECTO"],
+      ["S03_DISC_02", 50, "Protocolo", "DIRECTO"],
+    ],
+  },
+  ZONA_FIBONACCI: {
+    contexto: [
+      ["S04_CTX_01", T, "Contexto 1", "DIRECTO"],
+      ["S04_CTX_02", T, "Contexto 2", "DIRECTO"],
+      ["S04_CTX_03", T3, "Contexto 3", "DIRECTO"],
+    ],
+    estructura: [
+      ["S04_STR_01", 40, "Estructura 1", "DIRECTO"],
+      ["S04_STR_02", 30, "Estructura 2", "DIRECTO"],
+      ["S04_STR_03", 30, "Estructura 3", "DIRECTO"],
+    ],
+    zona: [
+      ["S04_ZONE_01", 25, "Zona 1", "DIRECTO"],
+      ["S04_ZONE_02", 25, "Zona 2", "DIRECTO"],
+      ["S04_ZONE_03", 25, "Zona 3", "DIRECTO"],
+      ["S04_ZONE_04", 25, "Zona 4", "DIRECTO"],
+    ],
+    confirmacion: [
+      ["S04_CONF_01", 25, "Fibonacci", "DIRECTO"],
+      ["S04_CONF_03", 20, "Reacción", "DIRECTO"],
+    ],
+    riesgo: [
+      ["S04_RISK_01", T, "Riesgo 1", "DIRECTO"],
+      ["S04_RISK_02", T, "Riesgo 2", "DIRECTO"],
+      ["S04_RISK_03", T3, "Riesgo 3", "DIRECTO"],
+    ],
+    recorrido: [
+      ["S04_PATH_01", T, "Recorrido 1", "DIRECTO"],
+      ["S04_PATH_02", T, "Recorrido 2", "DIRECTO"],
+      ["S04_PATH_03", T3, "Recorrido 3", "DIRECTO"],
+    ],
+    ejecucion: [
+      ["S04_EXEC_01", T, "Ejecución 1", "DIRECTO"],
+      ["S04_EXEC_02", T, "Ejecución 2", "DIRECTO"],
+      ["S04_EXEC_03", T3, "Ejecución 3", "DIRECTO"],
+    ],
+    disciplina: [
+      ["S04_DISC_02", 50, "Disciplina 1", "DIRECTO"],
+      ["S04_DISC_03", 50, "Disciplina 2", "DIRECTO"],
+    ],
+  },
+  IMPULSO_PULLBACK: {
+    contexto: [
+      ["S05_CTX_01", 50, "Tendencia", "DIRECTO"],
+      ["S05_CTX_02", 50, "Dirección", "DIRECTO"],
+      ["S05_CTX_03", 0, "— (impulso es componente de Estructura)", "SIN_COMPONENTE"],
+    ],
+    estructura: [
+      ["S05_STR_01", 35, "Impulso", "DIRECTO"],
+      ["S05_STR_02", 30, "Integridad", "DIRECTO"],
+      ["S05_STR_03", 20, "Dirección", "DIRECTO"],
+      ["S05_STR_04", 15, "Calidad del movimiento", "DIRECTO"],
+    ],
+    zona: [
+      ["S05_ZONE_01", 60, "Zona de pullback", "DIRECTO"],
+      ["S05_ZONE_02", 20, "Calidad", "REPARTIDO"],
+      ["S05_ZONE_03", 20, "Calidad", "REPARTIDO"],
+    ],
+    confirmacion: [
+      ["S05_CONF_01", 20, "Reacción", "DIRECTO"],
+      ["S05_CONF_03", 20, "Confluencia zona + estructura", "DIRECTO"],
+      ["S05_CONF_02", 10, "Confirmación 5M", "DIRECTO"],
+    ],
+    riesgo: [
+      ["S05_RISK_01", 50, "Stop Loss", "DIRECTO"],
+      ["S05_RISK_02", 50, "Riesgo monetario", "DIRECTO"],
+    ],
+    recorrido: [
+      ["S05_PATH_01", 50, "Recorrido", "DIRECTO"],
+      ["S05_PATH_02", 50, "Objetivo", "DIRECTO"],
+    ],
+    ejecucion: [
+      ["S05_EXEC_01", T, "Ejecución 1", "DIRECTO"],
+      ["S05_EXEC_02", T, "Ejecución 2", "DIRECTO"],
+      ["S05_EXEC_03", T3, "Ejecución 3", "DIRECTO"],
+    ],
+    disciplina: [
+      ["S05_DISC_01", T, "Disciplina 1", "DIRECTO"],
+      ["S05_DISC_02", T, "Disciplina 2", "DIRECTO"],
+      ["S05_DISC_03", T3, "Disciplina 3", "DIRECTO"],
+    ],
+  },
+};
+
+/** Componentes fuente sin reactivo equivalente en la matriz actual (no se reasignan). */
+export const UNCOVERED_COMPONENTS: Record<string, Record<string, [string, number][]>> = {
+  REVERSION: {
+    confirmacion: [
+      ["Fibonacci / confluencia", 25],
+      ["RSI", 15],
+      ["MACD", 15],
+    ],
+    ejecucion: [["Persecución / FOMO", 25]],
+  },
+  CONTINUACION: {
+    confirmacion: [
+      ["Fibonacci", 15],
+      ["RSI", 10],
+      ["MACD", 10],
+    ],
+  },
+  RUPTURA_RETESTEO: {
+    confirmacion: [
+      ["RSI", 15],
+      ["MACD", 15],
+      ["Fibonacci / confluencia", 5],
+    ],
+  },
+  ZONA_FIBONACCI: {
+    confirmacion: [
+      ["Confluencia", 25],
+      ["5M (validación S04_CONF_02, 0 %)", 15],
+      ["RSI", 7.5],
+      ["MACD", 7.5],
+    ],
+  },
+  IMPULSO_PULLBACK: {
+    confirmacion: [
+      ["Pullback", 25],
+      ["Fibonacci", 20],
+      ["RSI / MACD", 5],
+    ],
+  },
+};
+
+export type WeightEntry = InternalWeight & { id: string; setup: string; section: string };
+
+export const INTERNAL_WEIGHT_TABLE: WeightEntry[] = Object.entries(ROWS).flatMap(
+  ([setup, blocks]) =>
+    Object.entries(blocks).flatMap(([section, rows]) =>
+      rows.map(([id, w, component, mapping]) => ({ id, setup, section, w, component, mapping })),
+    ),
+);
+
+export const INTERNAL_WEIGHTS: Record<string, InternalWeight> = Object.fromEntries(
+  INTERNAL_WEIGHT_TABLE.map((e) => [e.id, { w: e.w, component: e.component, mapping: e.mapping }]),
+);
+
+/**
+ * Factor del R:R automático. Conserva la escala existente de `r_rr`
+ * (<1:1 → 0 · 1:1 → 0,3 · 1:1,5 → 0,6 · ≥1:2 → 1). null = dato no calculable.
+ */
+export function rrFactor(rr: number | null | undefined): number | null {
+  if (rr === null || rr === undefined || !Number.isFinite(rr)) return null;
+  const eps = 1e-9;
+  if (rr >= 2 - eps) return 1;
+  if (rr >= 1.5 - eps) return 0.6;
+  if (rr >= 1 - eps) return 0.3;
+  return 0;
+}
