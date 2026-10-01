@@ -25,7 +25,7 @@ const SETUPS = [
 ] as const;
 
 const VALID_LONG: RiskData = { capital: 10000, riskPct: 1, entry: 100, stop: 95, target: 115 };
-const RR_199: RiskData = { capital: 10000, riskPct: 1, entry: 100, stop: 90, target: 119.9 };
+const RR_099: RiskData = { capital: 10000, riskPct: 1, entry: 100, stop: 90, target: 109.9 };
 
 function best(setup: EvaluationSetupId): Record<string, string> {
   const answers: Record<string, string> = {};
@@ -94,8 +94,11 @@ describe("1) 25 fixtures: 5 setups × 5 casos", () => {
       expect(d.finalState).toBe("CONDICIONAL");
     });
     test(`${S} · invalidación global objetiva → NO TRADE`, () => {
-      const d = run(S, best(S), RR_199);
-      expect(d.score).toBe(100);
+      const d = run(S, best(S), RR_099);
+      // S01/S02 puntúan el R:R (40 % de Riesgo): con R:R < 1 ese componente vale 0.
+      if (S === "REVERSION" || S === "CONTINUACION")
+        expect(d.score).toBeCloseTo(100 - (0.4 * 10 * 100) / 95, 6);
+      else expect(d.score).toBe(100);
       expect(d.globalInvalidationIds).toContain("rr_below_min");
       expect(d.finalState).toBe("NO TRADE");
     });
@@ -145,9 +148,13 @@ const gi = (risk: RiskData, direction: string, maxRiskPct = 1) =>
   globalInvalidations({ risk, direction, maxRiskPct });
 
 describe("3–8) R:R, geometría y seguridad numérica", () => {
-  test("R:R 1.99 → NO TRADE; 2.00 → válido", () => {
-    expect(gi({ entry: 100, stop: 90, target: 119.9 }, "LONG")).toContain("rr_below_min");
-    expect(gi({ entry: 100, stop: 90, target: 120 }, "LONG")).toEqual([]);
+  test("R:R 0.99 → NO TRADE; 1.00 y 1.01 → válidos; 1.99 ya no invalida", () => {
+    expect(gi({ entry: 100, stop: 90, target: 109.9 }, "LONG")).toContain("rr_below_min");
+    expect(gi({ entry: 100, stop: 90, target: 110 }, "LONG")).toEqual([]);
+    expect(gi({ entry: 100, stop: 90, target: 110.1 }, "LONG")).toEqual([]);
+    expect(gi({ entry: 100, stop: 90, target: 119.9 }, "LONG")).toEqual([]);
+    expect(gi({ entry: 100, stop: 110, target: 90 }, "SHORT")).toEqual([]);
+    expect(gi({ entry: 100, stop: 110, target: 90.1 }, "SHORT")).toContain("rr_below_min");
   });
   test("LONG SL<Entry<TP con R:R correcto", () => {
     const d = run("REVERSION", best("REVERSION"), {
@@ -244,9 +251,9 @@ describe("10) regresión crítica V2: factor 0 nunca produce NO TRADE", () => {
 });
 
 describe("11) dominancia de la invalidación global", () => {
-  test("score alto + gates OK + R:R 1.99 → NO TRADE", () => {
+  test("score alto + gates OK + R:R 0.99 → NO TRADE", () => {
     expect(state(99.99, { globalInvalidation: true })).toBe("NO TRADE");
-    expect(run("CONTINUACION", best("CONTINUACION"), RR_199).finalState).toBe("NO TRADE");
+    expect(run("CONTINUACION", best("CONTINUACION"), RR_099).finalState).toBe("NO TRADE");
   });
   test("score 100 + geometría inválida → NO TRADE", () => {
     const d = run("ZONA_FIBONACCI", best("ZONA_FIBONACCI"), {

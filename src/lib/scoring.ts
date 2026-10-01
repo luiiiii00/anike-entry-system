@@ -1,3 +1,4 @@
+import { INTERNAL_WEIGHTS, AUTO_RR_IDS, rrFactor } from "./internal-weights";
 import {
   activeQuestionIds,
   failedValidations,
@@ -453,8 +454,8 @@ export function isEmotional(a: Answers) {
   );
 }
 
-/** R:R mínimo global (contrato V2): 1.99 → NO TRADE, 2.00 → válido. */
-export const MIN_RR = 2;
+/** R:R mínimo global (cambio autorizado V2): 0.99 → NO TRADE, 1.00 → válido. */
+export const MIN_RR = 1;
 const RR_EPS = 1e-9;
 
 export type GlobalInvalidationId =
@@ -469,7 +470,7 @@ export const GLOBAL_INVALIDATION_LABEL: Record<GlobalInvalidationId, string> = {
   long_geometry: "LONG geométricamente inválido: debe cumplirse SL < Entrada < TP.",
   short_geometry: "SHORT geométricamente inválido: debe cumplirse TP < Entrada < SL.",
   zero_risk_distance: "Entrada igual al Stop Loss: la distancia de riesgo es 0.",
-  rr_below_min: "La relación riesgo/beneficio es inferior a 1:2.",
+  rr_below_min: "La relación riesgo/beneficio es inferior a 1:1.",
   non_finite: "Un cálculo crítico produce un valor no finito (NaN / Infinity).",
   risk_over_limit: "El riesgo monetario supera el límite establecido.",
 };

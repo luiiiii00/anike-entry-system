@@ -1,3 +1,4 @@
+import { INTERNAL_WEIGHTS } from "./internal-weights";
 /**
  * REGISTRO TÉCNICO MAESTRO — MATRIZ ANIKE EJEPIKA
  * ---------------------------------------------------------------------------
@@ -367,7 +368,7 @@ function behaviorOf(type: RegistryType, id: string, weight: number): string {
     case "AUTO":
       return "Calculado por el motor a partir de los datos de la operación; no es criterio subjetivo.";
     case "AUTO_VALIDATION":
-      return "Valor calculado por el motor (R:R): valida el mínimo 1:2 y puede activar HARD `rr_below_2`.";
+      return "Valor calculado por el motor (R:R): valida el mínimo 1:1 y puede activar HARD `rr_below_2`.";
     case "HARD":
       return `Puede activar una HARD rule (${id}) → NO TRADE inmediato. ${scoreNote}`;
     case "SCORE_VALIDATION":
@@ -401,7 +402,7 @@ function hardBehaviorOf(type: RegistryType, id: string): string {
   if (type === "HARD" || type === "SCORE_VALIDATION")
     return `HARD: puede activar la regla crítica ${id} → NO TRADE inmediato.`;
   if (type === "AUTO_VALIDATION")
-    return "HARD: R:R < 1:2 activa la regla crítica `rr_below_2` → NO TRADE.";
+    return "HARD: R:R < 1:1 activa la regla crítica `rr_below_2` → NO TRADE.";
   return "NO_HARD: nunca bloquea por sí mismo.";
 }
 
@@ -465,7 +466,7 @@ const AUTO_RECORDS: Array<{
     text: "Relación riesgo/beneficio (calculada automáticamente).",
     type: "AUTO_VALIDATION",
     behavior:
-      "El motor calcula R:R desde entrada, stop y objetivo. Si R:R < 1:2 activa la HARD rule `rr_below_2` → NO TRADE. No es una pregunta subjetiva.",
+      "El motor calcula R:R desde entrada, stop y objetivo. Si R:R < 1:1 activa la HARD rule `rr_below_2` → NO TRADE. No es una pregunta subjetiva.",
   },
   {
     question_id: "auto_position_size",
@@ -535,7 +536,12 @@ function recordFromQuestion(
     condition,
     condition_type: conditionTypeOf(condition),
     options: q.options.map((o) => ({ value: o.v, label: o.label, factor: o.pts })),
-    internal_weight: scorable ? 1 : 0,
+    // Peso interno oficial (remapeo OPCIÓN A, % del componente fuente).
+    internal_weight: scorable
+      ? setupId !== "FREE" && INTERNAL_WEIGHTS[q.id]
+        ? Math.round(INTERNAL_WEIGHTS[q.id]!.w * 10000) / 10000
+        : 1
+      : 0,
     core_target: {
       block: q.sectionId,
       weight,
