@@ -95,7 +95,10 @@ describe("1) 25 fixtures: 5 setups × 5 casos", () => {
     });
     test(`${S} · invalidación global objetiva → NO TRADE`, () => {
       const d = run(S, best(S), RR_099);
-      expect(d.score).toBe(100);
+      // S01/S02 puntúan el R:R (40 % de Riesgo): con R:R < 1 ese componente vale 0.
+      if (S === "REVERSION" || S === "CONTINUACION")
+        expect(d.score).toBeCloseTo(100 - (0.4 * 10 * 100) / 95, 6);
+      else expect(d.score).toBe(100);
       expect(d.globalInvalidationIds).toContain("rr_below_min");
       expect(d.finalState).toBe("NO TRADE");
     });
