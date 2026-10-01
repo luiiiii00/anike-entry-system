@@ -917,7 +917,7 @@ export function RiskPanel({
             {underRR && (
               <p className="text-warn">
                 El R:R ({m.rr}) está por debajo de tu mínimo configurado ({minRR}). Por debajo de
-                1:2 la operación queda descartada.
+                1:1 la operación queda descartada.
               </p>
             )}
             {slDiverges && (

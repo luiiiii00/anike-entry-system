@@ -1,4 +1,4 @@
-import { INTERNAL_WEIGHTS, AUTO_RR_IDS, rrFactor } from "@/lib/internal-weights";
+import { INTERNAL_WEIGHTS, AUTO_RR_IDS, rrFactor } from "./internal-weights";
 import {
   activeQuestionIds,
   failedValidations,
