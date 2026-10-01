@@ -445,7 +445,7 @@ function finalStateBlock(e: EvalRow): string[] {
       metrics.sizingMissing.length > 0 ? metrics.sizingMissing.join(", ") : "ninguno",
     ),
     line("Riesgo monetario calculado", metrics.riskMoney),
-    line("R:R recalculado (mínimo del sistema 1:2)", metrics.rr),
+    line("R:R recalculado (mínimo del sistema 1:1)", metrics.rr),
   ];
 }
 
