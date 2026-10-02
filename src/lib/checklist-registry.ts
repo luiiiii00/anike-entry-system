@@ -336,7 +336,7 @@ function specBehaviorOf(kind: QuestionKind, weight: number): string {
     case "SCORE_VALIDATION":
       return `Puntúa y valida: con factor 0 deja la evaluación CONDICIONAL (no HARD). ${note}`;
     case "SCORE_AUTO_VALIDATION":
-      return `Puntúa y valida; además el motor comprueba automáticamente el riesgo % contra el límite del plan (invalidación global `risk_over_limit`). ${note}`;
+      return `Puntúa y valida; además el motor comprueba automáticamente el riesgo % contra el límite del plan (invalidación global risk_over_limit). ${note}`;
     default:
       return note;
   }
