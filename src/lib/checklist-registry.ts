@@ -1,4 +1,3 @@
-import { INTERNAL_WEIGHTS } from "./internal-weights";
 /**
  * REGISTRO TÉCNICO MAESTRO — MATRIZ ANIKE EJEPIKA
  * ---------------------------------------------------------------------------
@@ -19,6 +18,8 @@ import { INTERNAL_WEIGHTS } from "./internal-weights";
  *  - METADATA / AUTO / VALIDATION / HARD no se fuerzan a 5 opciones puntuables.
  *  - Aislamiento absoluto: cada registro pertenece a un único setup_id.
  */
+import { INTERNAL_WEIGHTS } from "./internal-weights";
+import { EXECUTION_INVALIDATIONS } from "./scoring";
 
 import {
   BASE_SECTIONS,
@@ -50,8 +51,7 @@ export type RegistryType =
   | "VALIDATION"
   | "SCORE_VALIDATION"
   | "AUTO"
-  | "AUTO_VALIDATION"
-  | "HARD";
+  | "AUTO_VALIDATION";
 
 export type RegistryStatus = "COMPLETO" | "PENDIENTE_DE_FUENTE";
 
@@ -107,7 +107,7 @@ export type RegistryRecord = {
   condition_type: RegistryConditionType;
   options: RegistryOption[];
 
-  /** Peso interno dentro de su bloque (equiponderado en el motor actual). */
+  /** Peso interno oficial dentro de su bloque (remapeo OPCIÓN A, `internal-weights.ts`); 0 = metadata / validation-only. */
   internal_weight: number;
   core_target: { block: SectionId; weight: number; stage: "PRE_TRADE" | "POST_TRADE" };
   /** Comportamiento de score / validación / HARD (resumen). */
@@ -146,32 +146,17 @@ export const CORE_WEIGHTS: Record<SectionId, number> = {
 export const PRE_TRADE_CORE_WEIGHT = 95;
 export const POST_TRADE_CORE_WEIGHT = 5;
 
-/** Reactivos que alimentan una HARD rule del motor (ver `scoring.ts`). */
-const HARD_TRIGGERS = new Set([
-  "ctx_aligned",
-  "h1_structure",
-  "h1_struct",
-  "h1_pattern_change_state",
-  "h1_pattern_cont_state",
-  "cf5_close",
-  "cf5_diag_break",
-  "cf_basis",
-  "r_invalidation",
-  "r_stop_logic",
-  "r_sl_fibo_ok",
-  "r_rr",
-  "rc_room",
-  "rc_rr2",
-  "z_space",
-  "m5_timing",
-  "ex_conditions",
-  "r_limit",
-  "ds_why",
-  "ds_revenge",
-  "ds_rules",
-  "ds_plan",
-  "ds_motive",
-]);
+/**
+ * V2: no existe HARD por reactivo. Sólo las invalidaciones de EJECUCIÓN
+ * explícitas (venganza, FOMO, persecución del precio) producen NO TRADE; se
+ * leen del motor (`EXECUTION_INVALIDATIONS` en `scoring.ts`).
+ */
+const EXECUTION_INVALIDATION_BY_ID = new Map<string, string[]>();
+for (const r of EXECUTION_INVALIDATIONS) {
+  const list = EXECUTION_INVALIDATION_BY_ID.get(r.questionId) ?? [];
+  list.push(`${r.values.join("/")} → ${r.id}`);
+  EXECUTION_INVALIDATION_BY_ID.set(r.questionId, list);
+}
 
 /** Reactivos que alimentan un aviso CONDICIONAL del motor (ver `scoring.ts`). */
 const CONDITIONAL_TRIGGERS = new Set([
@@ -329,12 +314,9 @@ const KIND_TO_TYPE: Record<QuestionKind, RegistryType> = {
 export const EXACT_SPEC_SCALES: Record<string, number[]> = { S05_STR_04: [1, 0.75, 0.5, 0] };
 
 function typeOf(id: string, meta: boolean, factors: number[], hasCondition = false): RegistryType {
-  if (AUTO_QUESTIONS.has(id)) return "AUTO_VALIDATION";
+  if (AUTO_QUESTIONS.has(id)) return "METADATA";
   if (meta || isDescriptive(factors)) return "METADATA";
-  const hard = HARD_TRIGGERS.has(id);
   const conditional = CONDITIONAL_TRIGGERS.has(id);
-  if (hard && isOfficialScale(factors)) return "SCORE_VALIDATION";
-  if (hard) return "HARD";
   if (hasCondition) return "CONDITIONAL_SCORE";
   if (conditional || DECLARED_VALIDATION_IDS.has(id)) return "VALIDATION";
   return "SCORE";
@@ -354,7 +336,7 @@ function specBehaviorOf(kind: QuestionKind, weight: number): string {
     case "SCORE_VALIDATION":
       return `Puntúa y valida: con factor 0 deja la evaluación CONDICIONAL (no HARD). ${note}`;
     case "SCORE_AUTO_VALIDATION":
-      return `Puntúa y valida; además el motor comprueba automáticamente el riesgo % contra el límite del plan (HARD existente risk_over_limit). ${note}`;
+      return `Puntúa y valida; además el motor comprueba automáticamente el riesgo % contra el límite del plan (invalidación global risk_over_limit). ${note}`;
     default:
       return note;
   }
@@ -368,11 +350,9 @@ function behaviorOf(type: RegistryType, id: string, weight: number): string {
     case "AUTO":
       return "Calculado por el motor a partir de los datos de la operación; no es criterio subjetivo.";
     case "AUTO_VALIDATION":
-      return "Valor calculado por el motor (R:R): valida el mínimo 1:1 y puede activar HARD `rr_below_2`.";
-    case "HARD":
-      return `Puede activar una HARD rule (${id}) → NO TRADE inmediato. ${scoreNote}`;
+      return "Valor calculado por el motor (R:R): validación global objetiva, sin puntos de score.";
     case "SCORE_VALIDATION":
-      return `Puntúa y además alimenta una HARD rule (${id}) → NO TRADE si se cumple la condición de bloqueo. ${scoreNote}`;
+      return `Puntúa y valida (${id}): con factor 0 deja la evaluación CONDICIONAL, nunca NO TRADE. ${scoreNote}`;
     case "VALIDATION":
       return `Puntúa y puede dejar la evaluación CONDICIONAL (no APROBADA). ${scoreNote}`;
     case "CONDITIONAL_SCORE":
@@ -399,11 +379,12 @@ function validationBehaviorOf(type: RegistryType, id: string): string {
 }
 
 function hardBehaviorOf(type: RegistryType, id: string): string {
-  if (type === "HARD" || type === "SCORE_VALIDATION")
-    return `HARD: puede activar la regla crítica ${id} → NO TRADE inmediato.`;
-  if (type === "AUTO_VALIDATION")
-    return "HARD: R:R < 1:1 activa la regla crítica `rr_below_2` → NO TRADE.";
-  return "NO_HARD: nunca bloquea por sí mismo.";
+  const exec = EXECUTION_INVALIDATION_BY_ID.get(id);
+  if (exec)
+    return `NO_HARD · INVALIDACIÓN DE EJECUCIÓN: ${exec.join(", ")} → NO TRADE (excepción explícita; el resto de respuestas nunca bloquea).`;
+  if (id === "auto_rr")
+    return "NO_HARD · INVALIDACIÓN GLOBAL: R:R < 1.00 → `rr_below_min` → NO TRADE; R:R >= 1.00 válido sin puntos.";
+  return "NO_HARD: nunca bloquea por sí mismo; factor 0 nunca implica NO TRADE.";
 }
 
 function conditionTypeOf(condition: string | null): RegistryConditionType {
@@ -462,11 +443,11 @@ const AUTO_RECORDS: Array<{
   {
     question_id: "auto_rr",
     block_id: "riesgo",
-    concept: "R:R calculado por el motor",
+    concept: "R:R calculado por el motor (METADATA)",
     text: "Relación riesgo/beneficio (calculada automáticamente).",
-    type: "AUTO_VALIDATION",
+    type: "METADATA",
     behavior:
-      "El motor calcula R:R desde entrada, stop y objetivo. Si R:R < 1:1 activa la HARD rule `rr_below_2` → NO TRADE. No es una pregunta subjetiva.",
+      "METADATA / validación global objetiva: el motor calcula R:R desde entrada, stop y objetivo y lo muestra. No aporta factor ni puntos (no existe escala R:R). R:R < 1.00 → `rr_below_min` → NO TRADE; R:R >= 1.00 → válido sin puntos. Geometría LONG/SHORT obligatoria; Entry = SL (riskDistance 0) → NO TRADE.",
   },
   {
     question_id: "auto_position_size",
@@ -556,7 +537,7 @@ function recordFromQuestion(
         ? "VALIDA: si no se cumple deja la evaluación CONDICIONAL (nunca NO TRADE)."
         : "NO_VALIDA: no genera aviso condicional."
       : validationBehaviorOf(type, q.id),
-    hard_behavior: q.kind ? "NO_HARD: nunca bloquea por sí mismo." : hardBehaviorOf(type, q.id),
+    hard_behavior: hardBehaviorOf(type, q.id),
     role: q.anyTimeframe ? "ANY" : (q.role ?? null),
     source: SOURCE_OVERRIDES[q.id] ?? SOURCES[setupId] ?? null,
     active: true,
@@ -754,13 +735,10 @@ export function registryIssues(records = buildRegistry()): string[] {
     if (r.block_id !== "resultados" && r.core_target.stage !== "PRE_TRADE") {
       problems.push(`${key}: sólo Resultados puede ser post-trade`);
     }
-    if (/(^|_)rr$/.test(r.question_id) && r.type !== "AUTO_VALIDATION") {
-      problems.push(`${key}: R:R debe registrarse como AUTO_VALIDATION, no como SCORE subjetivo`);
+    if (/(^|_)rr$/.test(r.question_id) && (r.type !== "METADATA" || r.internal_weight !== 0)) {
+      problems.push(`${key}: R:R debe registrarse como METADATA sin peso de score`);
     }
-    if (
-      r.question_id === "s05_deep_pullback" &&
-      (r.type === "HARD" || r.hard_behavior.startsWith("HARD"))
-    ) {
+    if (r.question_id === "s05_deep_pullback" && r.hard_behavior.startsWith("HARD")) {
       problems.push(`${key}: el pullback profundo no puede bloquear automáticamente`);
     }
 
@@ -768,8 +746,7 @@ export function registryIssues(records = buildRegistry()): string[] {
       r.type === "SCORE" ||
       r.type === "SCORE_VALIDATION" ||
       r.type === "CONDITIONAL_SCORE" ||
-      r.type === "VALIDATION" ||
-      r.type === "HARD";
+      r.type === "VALIDATION";
     if (scoring && r.status === "COMPLETO" && r.internal_weight > 0) {
       const factors = r.options.map((o) => o.factor);
       const exact = EXACT_SPEC_SCALES[r.question_id];

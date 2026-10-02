@@ -1,4 +1,4 @@
-import { INTERNAL_WEIGHTS, AUTO_RR_IDS, rrFactor } from "./internal-weights";
+import { INTERNAL_WEIGHTS } from "./internal-weights";
 import {
   activeQuestionIds,
   failedValidations,
@@ -381,7 +381,7 @@ export type FinalState = "BORRADOR" | "CONDICIONAL" | "APROBADA" | "NO TRADE";
 export type FinalStateLegacy = FinalState | "DESCARTADA";
 
 /**
- * CONTRATO V2 — ningún reactivo produce HARD ni NO TRADE. Un reactivo sólo puede
+ * CONTRATO V2 — ningún reactivo ordinario produce HARD ni NO TRADE (salvo las invalidaciones de ejecución explícitas). Un reactivo sólo puede
  * afectar factor, score, gate o condición pendiente. Estos chequeos marcan
  * CONDICIONES PENDIENTES (pendingConditions → CONDICIONAL), nunca NO TRADE.
  */
@@ -464,7 +464,10 @@ export type GlobalInvalidationId =
   | "zero_risk_distance"
   | "rr_below_min"
   | "non_finite"
-  | "risk_over_limit";
+  | "risk_over_limit"
+  | "revenge_entry"
+  | "fomo_entry"
+  | "price_chasing";
 
 export const GLOBAL_INVALIDATION_LABEL: Record<GlobalInvalidationId, string> = {
   long_geometry: "LONG geométricamente inválido: debe cumplirse SL < Entrada < TP.",
@@ -473,7 +476,44 @@ export const GLOBAL_INVALIDATION_LABEL: Record<GlobalInvalidationId, string> = {
   rr_below_min: "La relación riesgo/beneficio es inferior a 1:1.",
   non_finite: "Un cálculo crítico produce un valor no finito (NaN / Infinity).",
   risk_over_limit: "El riesgo monetario supera el límite establecido.",
+  revenge_entry: "Invalidación de ejecución: entrada por venganza / revancha.",
+  fomo_entry: "Invalidación de ejecución: entrada por FOMO.",
+  price_chasing: "Invalidación de ejecución: entrada persiguiendo el precio.",
 };
+
+/**
+ * INVALIDACIONES DE EJECUCIÓN (excepción explícita del usuario, V2). NO es un
+ * sistema HARD por reactivo: sólo estas respuestas, que identifican
+ * explícitamente venganza, FOMO o persecución del precio, producen NO TRADE.
+ * Ninguna otra respuesta ni factor 0 ordinario bloquea por sí solo.
+ */
+export const EXECUTION_INVALIDATIONS: ReadonlyArray<{
+  id: "revenge_entry" | "fomo_entry" | "price_chasing";
+  questionId: string;
+  values: readonly string[];
+}> = [
+  { id: "revenge_entry", questionId: "ds_revenge", values: ["si"] },
+  { id: "revenge_entry", questionId: "ds_motive", values: ["revancha"] },
+  { id: "fomo_entry", questionId: "ds_why", values: ["impulso"] },
+  { id: "fomo_entry", questionId: "ds_motive", values: ["fomo"] },
+  // "¿La entrada evita perseguir el precio?" → "No" = persecución explícita.
+  { id: "price_chasing", questionId: "S02_EXEC_02", values: ["ausente"] },
+  { id: "price_chasing", questionId: "S03_EXEC_02", values: ["ausente"] },
+  { id: "price_chasing", questionId: "S05_EXEC_02", values: ["ausente"] },
+];
+
+export function executionInvalidations(
+  a: Answers,
+  activeIds?: Set<string>,
+): GlobalInvalidationId[] {
+  const out = new Set<GlobalInvalidationId>();
+  for (const r of EXECUTION_INVALIDATIONS) {
+    if (activeIds && !activeIds.has(r.questionId)) continue;
+    const v = a[r.questionId];
+    if (v !== undefined && r.values.includes(v)) out.add(r.id);
+  }
+  return [...out];
+}
 
 /** Dato fuente declarado (no vacío). */
 function provided(v: unknown) {
@@ -613,10 +653,9 @@ export function evaluate(input: {
     contractSize: input.contractSize ?? null,
     pointValue: input.pointValue ?? null,
   });
-  const autoRrId = AUTO_RR_IDS[input.setup as keyof typeof AUTO_RR_IDS];
-  const auto: AutoScoreItem[] = autoRrId
-    ? [{ id: autoRrId, section: "riesgo", factor: rrFactor(metrics.rr) }]
-    : [];
+  // R:R = METADATA / validación global objetiva: se calcula y muestra, pero NO
+  // aporta factor ni puntos al score (no existe escala de puntuación R:R).
+  const auto: AutoScoreItem[] = [];
   const { score, scoreVisible, breakdown, complete, missing } = computeScore(
     answers,
     active?.size ? active : undefined,
@@ -640,6 +679,8 @@ export function evaluate(input: {
     direction: input.direction,
     maxRiskPct,
   });
+  for (const id of executionInvalidations(answers, active?.size ? active : undefined))
+    if (!invalidIds.includes(id)) invalidIds.push(id);
   const globalInvalidation = invalidIds.length > 0;
 
   const finalState = resolveFinalState({

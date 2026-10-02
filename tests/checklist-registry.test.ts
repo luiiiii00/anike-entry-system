@@ -1,3 +1,5 @@
+import { INTERNAL_WEIGHTS } from "@/lib/internal-weights";
+import { EXECUTION_INVALIDATIONS } from "@/lib/scoring";
 import { describe, expect, it } from "bun:test";
 import {
   CORE_WEIGHTS,
@@ -92,11 +94,26 @@ describe("registro técnico maestro ANIKE EJEPIKA", () => {
     }
   });
 
-  it("R:R es AUTO calculado por el motor en todas las matrices", () => {
+  it("R:R es METADATA calculada por el motor, sin peso de score", () => {
     for (const setupId of EVALUATION_SETUP_IDS) {
       const auto = records.find((r) => r.setup_id === setupId && r.question_id === "auto_rr");
-      expect(auto?.type).toBe("AUTO_VALIDATION");
+      expect(auto?.type).toBe("METADATA");
+      expect(auto?.internal_weight).toBe(0);
+      expect(auto?.hard_behavior).toContain("rr_below_min");
       expect(auto?.options).toEqual([]);
+    }
+  });
+
+  it("registro ↔ motor: peso del registro = peso oficial del motor; sólo venganza/FOMO/persecución bloquean", () => {
+    const execIds = new Set(
+      EXECUTION_INVALIDATIONS.map((r: { questionId: string }) => r.questionId),
+    );
+    for (const r of records) {
+      if (r.setup_id !== "FREE" && r.internal_weight > 0 && INTERNAL_WEIGHTS[r.question_id])
+        expect(r.internal_weight).toBeCloseTo(INTERNAL_WEIGHTS[r.question_id]!.w, 3);
+      const blocks = r.hard_behavior.includes("INVALIDACIÓN DE EJECUCIÓN");
+      expect(blocks).toBe(execIds.has(r.question_id));
+      expect(r.hard_behavior.startsWith("HARD")).toBe(false);
     }
   });
 

@@ -33,8 +33,12 @@ type Row = [id: string, w: number, component: string, mapping: WeightMapping];
 const T = 100 / 3;
 const T3 = 100 - 2 * T; // 33.3334 (redondeo de la fuente)
 
-/** Reactivo automático de R:R dentro de Riesgo (S01/S02: componente RR 40 %). */
-export const AUTO_RR_IDS = { REVERSION: "S01_AUTO_RR", CONTINUACION: "S02_AUTO_RR" } as const;
+/*
+ * R:R = METADATA / validación global objetiva (decisión explícita del usuario):
+ * no puntúa. R:R < 1.00 → NO TRADE (rr_below_min); R:R >= 1.00 → válido, sin
+ * puntos. Al retirarlo de S01/S02, Riesgo se normaliza a Geometría 50 % y
+ * Riesgo monetario 50 % (normalización autorizada por esa misma instrucción).
+ */
 
 const ROWS: Record<string, Record<string, Row[]>> = {
   COMUN: {
@@ -65,9 +69,8 @@ const ROWS: Record<string, Record<string, Row[]>> = {
       ["S01_CONF_03", 25, "Confirmación 5M", "DIRECTO"],
     ],
     riesgo: [
-      ["S01_AUTO_RR", 40, "R:R (automático)", "DIRECTO"],
-      ["S01_RISK_01", 30, "Geometría / SL", "DIRECTO"],
-      ["S01_RISK_02", 30, "Riesgo monetario", "DIRECTO"],
+      ["S01_RISK_01", 50, "Geometría / SL", "DIRECTO"],
+      ["S01_RISK_02", 50, "Riesgo monetario", "DIRECTO"],
     ],
     recorrido: [
       ["S01_PATH_01", 70, "Espacio hasta TP", "DIRECTO"],
@@ -105,9 +108,8 @@ const ROWS: Record<string, Record<string, Row[]>> = {
       ["S02_CONF_03", 15, "Confirmación 5M", "DIRECTO"],
     ],
     riesgo: [
-      ["S02_AUTO_RR", 40, "R:R (automático)", "DIRECTO"],
-      ["S02_RISK_01", 30, "Geometría / SL", "DIRECTO"],
-      ["S02_RISK_02", 30, "Riesgo monetario", "DIRECTO"],
+      ["S02_RISK_01", 50, "Geometría / SL", "DIRECTO"],
+      ["S02_RISK_02", 50, "Riesgo monetario", "DIRECTO"],
     ],
     recorrido: [
       ["S02_PATH_01", 70, "Espacio hasta TP", "DIRECTO"],
@@ -294,16 +296,3 @@ export const INTERNAL_WEIGHT_TABLE: WeightEntry[] = Object.entries(ROWS).flatMap
 export const INTERNAL_WEIGHTS: Record<string, InternalWeight> = Object.fromEntries(
   INTERNAL_WEIGHT_TABLE.map((e) => [e.id, { w: e.w, component: e.component, mapping: e.mapping }]),
 );
-
-/**
- * Factor del R:R automático. Conserva la escala existente de `r_rr`
- * (<1:1 → 0 · 1:1 → 0,3 · 1:1,5 → 0,6 · ≥1:2 → 1). null = dato no calculable.
- */
-export function rrFactor(rr: number | null | undefined): number | null {
-  if (rr === null || rr === undefined || !Number.isFinite(rr)) return null;
-  const eps = 1e-9;
-  if (rr >= 2 - eps) return 1;
-  if (rr >= 1.5 - eps) return 0.6;
-  if (rr >= 1 - eps) return 0.3;
-  return 0;
-}
