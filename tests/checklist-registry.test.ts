@@ -1,3 +1,5 @@
+import { INTERNAL_WEIGHTS } from "@/lib/internal-weights";
+import { EXECUTION_INVALIDATIONS } from "@/lib/scoring";
 import { describe, expect, it } from "bun:test";
 import {
   CORE_WEIGHTS,
@@ -103,14 +105,12 @@ describe("registro técnico maestro ANIKE EJEPIKA", () => {
   });
 
   it("registro ↔ motor: peso del registro = peso oficial del motor; sólo venganza/FOMO/persecución bloquean", () => {
-    const { INTERNAL_WEIGHTS } = require("@/lib/internal-weights");
-    const { EXECUTION_INVALIDATIONS } = require("@/lib/scoring");
     const execIds = new Set(
       EXECUTION_INVALIDATIONS.map((r: { questionId: string }) => r.questionId),
     );
     for (const r of records) {
       if (r.setup_id !== "FREE" && r.internal_weight > 0 && INTERNAL_WEIGHTS[r.question_id])
-        expect(r.internal_weight).toBeCloseTo(INTERNAL_WEIGHTS[r.question_id].w, 3);
+        expect(r.internal_weight).toBeCloseTo(INTERNAL_WEIGHTS[r.question_id]!.w, 3);
       const blocks = r.hard_behavior.includes("INVALIDACIÓN DE EJECUCIÓN");
       expect(blocks).toBe(execIds.has(r.question_id));
       expect(r.hard_behavior.startsWith("HARD")).toBe(false);
