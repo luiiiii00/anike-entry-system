@@ -537,7 +537,7 @@ function recordFromQuestion(
         ? "VALIDA: si no se cumple deja la evaluación CONDICIONAL (nunca NO TRADE)."
         : "NO_VALIDA: no genera aviso condicional."
       : validationBehaviorOf(type, q.id),
-    hard_behavior: q.kind ? "NO_HARD: nunca bloquea por sí mismo." : hardBehaviorOf(type, q.id),
+    hard_behavior: hardBehaviorOf(type, q.id),
     role: q.anyTimeframe ? "ANY" : (q.role ?? null),
     source: SOURCE_OVERRIDES[q.id] ?? SOURCES[setupId] ?? null,
     active: true,
