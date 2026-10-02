@@ -314,7 +314,7 @@ const KIND_TO_TYPE: Record<QuestionKind, RegistryType> = {
 export const EXACT_SPEC_SCALES: Record<string, number[]> = { S05_STR_04: [1, 0.75, 0.5, 0] };
 
 function typeOf(id: string, meta: boolean, factors: number[], hasCondition = false): RegistryType {
-  if (AUTO_QUESTIONS.has(id)) return "AUTO_VALIDATION";
+  if (AUTO_QUESTIONS.has(id)) return "METADATA";
   if (meta || isDescriptive(factors)) return "METADATA";
   const conditional = CONDITIONAL_TRIGGERS.has(id);
   if (hasCondition) return "CONDITIONAL_SCORE";

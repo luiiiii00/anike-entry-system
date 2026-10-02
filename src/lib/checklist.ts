@@ -846,6 +846,8 @@ const SECTIONS_SOURCE: Section[] = [
           {
             id: "r_rr",
             label: "¿Cuál es la relación riesgo/beneficio?",
+            // R:R = METADATA (validación global objetiva): no puntúa.
+            meta: true,
             hint: "R/R mínimo del sistema = 1:1 (recomendado 1:2). Se calcula automáticamente si existen entrada, SL y TP.",
             options: [
               { v: "menor_1", label: "< 1:1", pts: 0 },
