@@ -5,6 +5,7 @@ import { evaluate, type Answers, type RiskData } from "@/lib/scoring";
 import { loadAndApplyPublishedOverlay } from "@/lib/checklist-overlay";
 import type { Evaluation } from "@/lib/db";
 import type { Json } from "@/integrations/supabase/types";
+import { EVALUATION_SETUP_IDS, type EvaluationSetupId } from "@/lib/checklist";
 
 /**
  * Fuente única de verdad del motor: el cliente envía ÚNICAMENTE datos fuente
@@ -41,7 +42,15 @@ export const saveEvaluationInputSchema = z.object({
   market: z.string().max(40).nullable().optional(),
   session: z.string().max(40).nullable().optional(),
   direction: z.enum(["LONG", "SHORT"]).nullable().optional(),
-  setup: z.string().max(80).nullable().optional(),
+  setup: z
+    .string()
+    .max(80)
+    .refine(
+      (value) => EVALUATION_SETUP_IDS.includes(value as EvaluationSetupId),
+      "Identificador de setup no válido.",
+    )
+    .nullable()
+    .optional(),
   idea: z.string().max(4000).nullable().optional(),
   answers: z.record(z.string().max(60), z.string().max(200)),
   risk: riskSchema,
