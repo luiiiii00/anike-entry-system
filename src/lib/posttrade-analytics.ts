@@ -2,7 +2,7 @@
  * ANIKE EJEPIKA — POST-TRADE ANALYTICS
  *
  * Analítica de operaciones YA CERRADAS. Sólo mide y describe lo registrado.
- * NO toca el motor de entrada (pesos, gates, HARD rules, score, aprobación):
+ * NO toca el motor de entrada (pesos, gates, invalidaciones globales, score, aprobación):
  * ninguna función de este archivo se usa para aprobar o clasificar una entrada.
  *
  * Reglas de seguridad numérica: todo valor no finito (NaN / Infinity), nulo o
@@ -858,7 +858,7 @@ export function analyzePostTradeAll(planned: PlannedRef, real: RealRef): PostTra
 /**
  * Datos estructurados y sólo de lectura para que ANIKE IA pueda responder
  * qué funcionó, qué falló, qué se aprendió y qué hacer distinto.
- * No contiene score, gates, HARD rules ni clasificación de entrada: el motor
+ * No contiene score, gates, invalidaciones globales ni clasificación de entrada: el motor
  * de aprobación queda fuera de este payload por diseño.
  */
 export function buildAiPostTradeContext(a: PostTradeAnalytics) {

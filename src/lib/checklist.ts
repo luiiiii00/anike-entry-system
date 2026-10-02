@@ -80,7 +80,7 @@ export type Question = {
   /**
    * CONDICIÓN de activación (CONDITIONAL_SCORE). La pregunta sólo pertenece al
    * cuestionario activo cuando la pregunta declarada tiene el valor indicado.
-   * No cambia pesos CORE, fórmula, gates, HARD rules ni estados.
+   * No cambia pesos CORE, fórmula, gates, invalidaciones globales ni estados.
    */
   condition?: { questionId: string; value: string };
   /**
@@ -156,7 +156,7 @@ const ynd = (yes = 1, no = 0, doubt = 0.4): Option[] => [
 
 /**
  * Estado de un patrón (5 factores oficiales de ANIKE EJEPIKA).
- * Los valores `formacion` e `invalidado` se conservan: los usan las HARD rules
+ * Los valores `formacion` e `invalidado` se conservan por compatibilidad histórica
  * y los avisos CONDICIONAL del motor.
  */
 const PATTERN_STATE: Option[] = [
@@ -178,7 +178,7 @@ const f5 = (l1: string, l2: string, l3: string, l4: string, l5: string): Option[
 
 /**
  * Escala oficial 1,00 / 0,75 / 0,50 / 0,25 / 0,00 conservando los VALORES
- * históricos que usan las HARD rules y los avisos CONDICIONAL del motor.
+ * históricos que usan las invalidaciones globales y los avisos CONDICIONAL del motor.
  */
 const s5 = (opts: [string, string][]): Option[] =>
   opts.map(([v, label], i) => ({ v, label, pts: [1, 0.75, 0.5, 0.25, 0][i]! }));
@@ -1074,7 +1074,7 @@ export const HISTORICAL_NA_VALUE = "na";
 /**
  * ROL DE TEMPORALIDAD (multi-temporalidad ANIKE EJEPIKA por ESTILO).
  * El rol es un ATRIBUTO/CONTEXTO de la pregunta: no duplica preguntas, no
- * cambia pesos, factores, fórmula, gates, HARD rules ni estados. Se determina
+ * cambia pesos, factores, fórmula, gates, invalidaciones globales ni estados. Se determina
  * por el bloque CORE (flujo oficial) y puede afinarse por pregunta concreta
  * mediante `QUESTION_ROLE`. La temporalidad concreta sale del estilo (`co_style`).
  */
@@ -1171,7 +1171,7 @@ function withoutNaOptions(sections: Section[]): Section[] {
  * CRITERIOS ESPECÍFICOS DE CADA SETUP OFICIAL (S01–S05)
  * ---------------------------------------------------------------------------
  * Cada bloque declara EXPLÍCITAMENTE a qué setup y a qué bloque CORE pertenece.
- * Los pesos CORE, la fórmula, los gates, las HARD rules, el umbral 80 y los
+ * Los pesos CORE, la fórmula, los gates, las invalidaciones globales, el umbral 80 y los
  * estados NO cambian: el setup sólo determina qué criterios se evalúan.
  * =========================================================================== */
 type SetupSpecificBlock = {
@@ -2916,7 +2916,7 @@ export const OFFICIAL_SETUPS: OfficialSetup[] = [
 
 /**
  * Nota informativa de temporalidades por setup (sólo texto de ayuda del wizard).
- * No altera pesos, fórmula, gates, HARD rules ni estados.
+ * No altera pesos, fórmula, gates, invalidaciones globales ni estados.
  */
 export const SETUP_TIMEFRAME_NOTE: Record<string, string> = {
   FREE: "Grande: contexto · Intermedia: estructura y zona · Pequeña: ejecución",
@@ -3032,7 +3032,7 @@ export const SESSIONS = ["Asia", "Londres", "Nueva York", "Overlap", "Fuera de s
  *   REVERSION … S05   → exclusivamente los criterios de su matriz maestra
  * NO existe fallback: una pregunta que no figure en la matriz de un setup no se
  * muestra ni se calcula en ese setup. La matriz NO modifica pesos, fórmula del
- * score, gates, HARD rules, umbral 80 ni estados.
+ * score, gates, invalidaciones globales, umbral 80 ni estados.
  * =========================================================================== */
 
 /** Setup de evaluación: SETUP LIBRE (matriz original) o uno de los 5 oficiales. */
@@ -3363,7 +3363,7 @@ export function missingActiveAnswers(
  * ---------------------------------------------------------------------------
  * Permite corregir el texto de una pregunta, sus opciones y sus factores,
  * añadir criterios nuevos y retirar criterios de un setup SIN tocar código.
- * NO cambia pesos CORE, gates, HARD rules, umbral 80, estados ni la fórmula:
+ * NO cambia pesos CORE, gates, invalidaciones globales, umbral 80, estados ni la fórmula:
  * sólo determina QUÉ preguntas presenta cada setup y con qué factores.
  * =========================================================================== */
 
