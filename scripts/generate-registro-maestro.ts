@@ -23,7 +23,19 @@ lines.push("# REGISTRO TÉCNICO MAESTRO — MATRIZ ANIKE EJEPIKA", "");
 lines.push(
   "Generado desde `src/lib/checklist-registry.ts` (fuente: matriz activa en `src/lib/checklist.ts`).",
 );
-lines.push("Este registro NO modifica pesos CORE, fórmula, gates, HARD, umbral 80 ni estados.", "");
+lines.push("Este registro refleja exactamente la lógica del motor (`scoring.ts`, `internal-weights.ts`).", "");
+lines.push("## Reglas del motor V2", "");
+lines.push(
+  "- Estados: BORRADOR / CONDICIONAL / APROBADA / NO TRADE.",
+  "- No existe HARD por reactivo: ninguna respuesta ordinaria ni factor 0 produce NO TRADE por sí sola.",
+  "- R:R = METADATA / validación global objetiva: se calcula y se muestra, no aporta factor ni puntos; no existe escala de puntuación R:R.",
+  "- R:R < 1.00 → `rr_below_min` → NO TRADE. R:R >= 1.00 → válido, sin puntos de score.",
+  "- Geometría LONG (SL < Entrada < TP) / SHORT (TP < Entrada < SL) obligatoria; Entry = SL (riskDistance = 0) → NO TRADE; NaN/Infinity → NO TRADE.",
+  "- Invalidaciones de EJECUCIÓN (excepción explícita del usuario): entrada por venganza (`revenge_entry`), FOMO (`fomo_entry`) y persecución del precio (`price_chasing`) → NO TRADE.",
+  "- internal_weight = peso oficial del remapeo OPCIÓN A; metadata y validation-only = 0 %.",
+  "- Riesgo S01/S02: al retirar R:R del score, Geometría 50 % + Riesgo monetario 50 % (normalización autorizada explícitamente).",
+  "",
+);
 lines.push(`- Total de reactivos registrados: **${summary.total}**`);
 lines.push(`- COMPLETOS: **${summary.complete}**`);
 lines.push(`- PENDIENTE_DE_FUENTE: **${summary.pending}**`);
