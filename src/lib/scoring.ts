@@ -1,10 +1,12 @@
 import { INTERNAL_WEIGHTS, AUTO_RR_IDS, rrFactor } from "./internal-weights";
 import {
   activeQuestionIds,
+  EVALUATION_SETUP_IDS,
   failedValidations,
   FIBO_SL_RATIO,
   SECTIONS,
   type SectionId,
+  type EvaluationSetupId,
 } from "./checklist";
 
 export type Answers = Record<string, string>;
@@ -607,7 +609,14 @@ export function evaluate(input: {
   pointValue?: number | null;
 }): Decision {
   const answers = input.answers ?? {};
-  const active = input.setup ? activeQuestionIds(input.setup, answers) : undefined;
+  const hasSetup = input.setup !== null && input.setup !== undefined;
+  if (hasSetup && !EVALUATION_SETUP_IDS.includes(input.setup as EvaluationSetupId)) {
+    throw new Error("Identificador de setup no válido.");
+  }
+  const active = hasSetup ? activeQuestionIds(input.setup, answers) : undefined;
+  if (hasSetup && (!active || active.size === 0)) {
+    throw new Error("El setup no tiene preguntas activas.");
+  }
   const metrics = computeRisk(input.risk ?? {}, input.direction, {
     market: input.market ?? null,
     contractSize: input.contractSize ?? null,
@@ -619,7 +628,7 @@ export function evaluate(input: {
     : [];
   const { score, scoreVisible, breakdown, complete, missing } = computeScore(
     answers,
-    active?.size ? active : undefined,
+    active,
     auto,
   );
   const maxRiskPct = Number.isFinite(Number(input.maxRiskPct)) ? Number(input.maxRiskPct) : 1;
@@ -631,7 +640,7 @@ export function evaluate(input: {
   const gatesFailed = gates.filter((g) => !g.passed).map((g) => `${g.label} < ${g.min}%`);
 
   const warnings = checkPendingConditions(answers);
-  const failedVal = failedValidations(answers, active?.size ? active : undefined);
+  const failedVal = failedValidations(answers, active);
   if (failedVal.length > 0)
     warnings.push(`Validación del setup no cumplida: ${failedVal.join(", ")}.`);
 
