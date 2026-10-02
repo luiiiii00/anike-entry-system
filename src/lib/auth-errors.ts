@@ -13,11 +13,20 @@ export function friendlyAuthError(error: unknown): string {
     return "Ya existe una cuenta con este email. Inicia sesión.";
   if (raw.includes("known to be weak") || raw.includes("pwned"))
     return "Esa contraseña aparece en filtraciones públicas y no es segura. Elige otra combinación única (evita palabras como 'trader' o secuencias de números).";
-  if (raw.includes("password should be") || raw.includes("weak password") || raw.includes("weak_password"))
+  if (
+    raw.includes("password should be") ||
+    raw.includes("weak password") ||
+    raw.includes("weak_password")
+  )
     return "La contraseña es demasiado débil. Usa al menos 8 caracteres con letras y números.";
   if (raw.includes("rate limit") || raw.includes("too many"))
     return "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.";
-  if (raw.includes("jwt") || raw.includes("session") || raw.includes("token") || raw.includes("401"))
+  if (
+    raw.includes("jwt") ||
+    raw.includes("session") ||
+    raw.includes("token") ||
+    raw.includes("401")
+  )
     return "Tu sesión ha expirado. Inicia sesión nuevamente.";
   if (
     raw.includes("row-level security") ||

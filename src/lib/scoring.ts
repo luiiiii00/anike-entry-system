@@ -381,7 +381,7 @@ export type FinalState = "BORRADOR" | "CONDICIONAL" | "APROBADA" | "NO TRADE";
 export type FinalStateLegacy = FinalState | "DESCARTADA";
 
 /**
- * CONTRATO V2 — ningún reactivo produce HARD ni NO TRADE. Un reactivo sólo puede
+ * CONTRATO V2 — ningún reactivo ordinario produce HARD ni NO TRADE (salvo las invalidaciones de ejecución explícitas). Un reactivo sólo puede
  * afectar factor, score, gate o condición pendiente. Estos chequeos marcan
  * CONDICIONES PENDIENTES (pendingConditions → CONDICIONAL), nunca NO TRADE.
  */

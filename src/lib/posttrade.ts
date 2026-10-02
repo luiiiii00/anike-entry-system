@@ -54,7 +54,6 @@ export type PostTradeInput = {
   maxAdversePrice?: number | null | undefined;
 };
 
-
 export type PostTradeResult = {
   marketType: MarketType;
   direction: Direction;
@@ -157,8 +156,7 @@ export function validatePostTrade(input: PostTradeInput): string[] {
 
   if (entry === null || entry <= 0) errors.push("El precio de entrada debe ser mayor que 0.");
   if (exit === null || exit <= 0) errors.push("El precio de salida debe ser mayor que 0.");
-  if (qty === null || qty <= 0)
-    errors.push("La cantidad (o el lotaje) debe ser mayor que 0.");
+  if (qty === null || qty <= 0) errors.push("La cantidad (o el lotaje) debe ser mayor que 0.");
   if (lev !== null && lev <= 0) errors.push("El apalancamiento debe ser mayor que 0.");
   if (margin !== null && margin <= 0) errors.push("El margen debe ser mayor que 0.");
 
@@ -291,7 +289,6 @@ export function fmtMoney(value: number | null | undefined, currency: Currency, _
   const unit = currency === "PYG" ? "Gs" : currency;
   return `${sign}${body} ${unit}`;
 }
-
 
 export function fmtNumber(value: number | null | undefined, decimals = 2) {
   if (value === null || value === undefined || !Number.isFinite(value)) return "—";

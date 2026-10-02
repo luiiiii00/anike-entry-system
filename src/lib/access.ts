@@ -35,7 +35,9 @@ export function daysLeft(profile: Pick<Profile, "access_expiration" | "plan">): 
 }
 
 /** Estado efectivo: si la licencia venció, la cuenta está expirada aunque diga APPROVED. */
-export function effectiveStatus(profile: Pick<Profile, "status" | "plan" | "access_expiration">): AccountStatus {
+export function effectiveStatus(
+  profile: Pick<Profile, "status" | "plan" | "access_expiration">,
+): AccountStatus {
   if (
     profile.status === "APPROVED" &&
     profile.plan !== "LIFETIME" &&
@@ -47,7 +49,9 @@ export function effectiveStatus(profile: Pick<Profile, "status" | "plan" | "acce
   return profile.status;
 }
 
-export function hasActiveAccess(profile: Pick<Profile, "status" | "plan" | "access_expiration"> | null): boolean {
+export function hasActiveAccess(
+  profile: Pick<Profile, "status" | "plan" | "access_expiration"> | null,
+): boolean {
   return !!profile && effectiveStatus(profile) === "APPROVED";
 }
 
@@ -81,9 +85,7 @@ export function timeZoneLabel(): string {
 }
 
 /** Fecha y hora exacta de vencimiento, con segundos y zona horaria. */
-export function formatExpiration(
-  profile: Pick<Profile, "access_expiration" | "plan">,
-): string {
+export function formatExpiration(profile: Pick<Profile, "access_expiration" | "plan">): string {
   if (profile.plan === "LIFETIME") return "De por vida";
   if (!profile.access_expiration) return "—";
   const d = new Date(profile.access_expiration);
@@ -120,9 +122,12 @@ export function timeRemaining(
   return parts.join(" ");
 }
 
-
 export async function fetchMyProfile(userId: string): Promise<Profile | null> {
-  const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .maybeSingle();
   if (error) throw error;
   return data;
 }
