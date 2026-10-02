@@ -328,7 +328,7 @@ describe("evaluate — fuente única de verdad", () => {
     expect(soft.blocked).toBe(false);
     const d = evaluate({ answers: { ...passing, ds_motive: "revancha" }, risk: {}, maxRiskPct: 1 });
     expect(d.globalInvalidationIds).toContain("revenge_entry");
-    expect(d.finalState).toBe("NO TRADE");
+    expect(d.blocked).toBe(true);
   });
 
   it("V2: un factor 0 en un reactivo antes crítico nunca produce NO TRADE", () => {
