@@ -11,6 +11,7 @@ import {
   evaluate,
   globalInvalidations,
   resolveFinalState,
+  EXECUTION_INVALIDATIONS,
   type RiskData,
 } from "../src/lib/scoring";
 
@@ -41,7 +42,7 @@ function worst(setup: EvaluationSetupId): Record<string, string> {
   const active = activeQuestionIds(setup, answers);
   for (const q of getActiveQuestionsBySetup(setup)) {
     if (!active.has(q.id) || q.meta || q.validationOnly) continue;
-    const low = [...q.options].sort((a, b) => a.pts - b.pts)[0];
+    const low = [...q.options].sort((a, b) => a.pts - b.pts).find((o) => !isExecInvalid(q.id, o.v));
     if (low) answers[q.id] = low.v;
   }
   return answers;
@@ -59,6 +60,10 @@ function pending(setup: EvaluationSetupId): Record<string, string> | null {
   }
   return null;
 }
+
+/** ¿La respuesta es una invalidación de ejecución explícita (venganza/FOMO/persecución)? */
+const isExecInvalid = (qid: string, v: string) =>
+  EXECUTION_INVALIDATIONS.some((r) => r.questionId === qid && r.values.includes(v));
 
 const run = (
   setup: string,
@@ -95,10 +100,8 @@ describe("1) 25 fixtures: 5 setups × 5 casos", () => {
     });
     test(`${S} · invalidación global objetiva → NO TRADE`, () => {
       const d = run(S, best(S), RR_099);
-      // S01/S02 puntúan el R:R (40 % de Riesgo): con R:R < 1 ese componente vale 0.
-      if (S === "REVERSION" || S === "CONTINUACION")
-        expect(d.score).toBeCloseTo(100 - (0.4 * 10 * 100) / 95, 6);
-      else expect(d.score).toBe(100);
+      // R:R = METADATA: no resta puntos; sólo invalida globalmente.
+      expect(d.score).toBe(100);
       expect(d.globalInvalidationIds).toContain("rr_below_min");
       expect(d.finalState).toBe("NO TRADE");
     });
@@ -240,7 +243,7 @@ describe("10) regresión crítica V2: factor 0 nunca produce NO TRADE", () => {
     test(`${S}: cada reactivo en factor 0 → nunca NO TRADE`, () => {
       const base = best(S);
       for (const q of getActiveQuestionsBySetup(S)) {
-        for (const o of q.options.filter((x) => x.pts === 0)) {
+        for (const o of q.options.filter((x) => x.pts === 0 && !isExecInvalid(q.id, x.v))) {
           const d = run(S, { ...base, [q.id]: o.v });
           expect(d.globalInvalidation).toBe(false);
           expect(d.finalState).not.toBe("NO TRADE");
@@ -335,5 +338,70 @@ describe("13–14) aislamiento y ausencia de HARD reactivo", () => {
     expect(src).not.toMatch(/hardRules\s*:/);
     const d = run("REVERSION", best("REVERSION"));
     expect("hardRules" in d).toBe(false);
+  });
+});
+
+describe("15) R:R = METADATA (sin puntos) y validación global", () => {
+  const rr = (target: number): RiskData => ({
+    capital: 10000,
+    riskPct: 1,
+    entry: 100,
+    stop: 90,
+    target,
+  });
+  test("0.99 → NO TRADE; 1.00 / 1.50 / 2.00 válidos", () => {
+    expect(run("REVERSION", best("REVERSION"), rr(109.9)).finalState).toBe("NO TRADE");
+    for (const t of [110, 115, 120]) {
+      const d = run("REVERSION", best("REVERSION"), rr(t));
+      expect(d.globalInvalidation).toBe(false);
+      expect(d.finalState).toBe("APROBADA");
+    }
+  });
+  test("R:R entre 1.00 y 10.00 no cambia el score en ningún setup", () => {
+    for (const S of EVALUATION_SETUP_IDS) {
+      const scores = new Set<number>();
+      for (const k of [1, 1.5, 2, 3, 5, 10]) scores.add(run(S, best(S), rr(100 + 10 * k)).score);
+      expect(scores.size).toBe(1);
+    }
+  });
+  test("no existe rrFactor ni AUTO_RR en el score", () => {
+    const src = readFileSync(new URL("../src/lib/scoring.ts", import.meta.url), "utf8");
+    const iw = readFileSync(new URL("../src/lib/internal-weights.ts", import.meta.url), "utf8");
+    expect(src).not.toMatch(/rrFactor/);
+    expect(iw).not.toMatch(/rrFactor|_AUTO_RR/);
+  });
+  test("no existe HARD_TRIGGERS genérico ni rr_below_2", () => {
+    for (const f of ["scoring.ts", "checklist-registry.ts", "internal-weights.ts"]) {
+      const src = readFileSync(new URL(`../src/lib/${f}`, import.meta.url), "utf8");
+      expect(src).not.toMatch(/HARD_TRIGGERS|rr_below_2|equiponderad/);
+    }
+  });
+});
+
+describe("16) invalidaciones de ejecución: venganza / FOMO / persecución", () => {
+  test("Setup Libre: venganza → NO TRADE", () => {
+    const d = run("FREE", { ...best("FREE"), ds_revenge: "si" });
+    expect(d.globalInvalidationIds).toContain("revenge_entry");
+    expect(d.finalState).toBe("NO TRADE");
+  });
+  test("Setup Libre: FOMO → NO TRADE", () => {
+    const d = run("FREE", { ...best("FREE"), ds_why: "impulso" });
+    expect(d.globalInvalidationIds).toContain("fomo_entry");
+    expect(d.finalState).toBe("NO TRADE");
+  });
+  test("S02/S03/S05: persecución del precio → NO TRADE", () => {
+    for (const [S, q] of [
+      ["CONTINUACION", "S02_EXEC_02"],
+      ["RUPTURA_RETESTEO", "S03_EXEC_02"],
+      ["IMPULSO_PULLBACK", "S05_EXEC_02"],
+    ] as const) {
+      const d = run(S, { ...best(S), [q]: "ausente" });
+      expect(d.globalInvalidationIds).toContain("price_chasing");
+      expect(d.finalState).toBe("NO TRADE");
+    }
+  });
+  test("niveles intermedios de esas preguntas no bloquean", () => {
+    const d = run("FREE", { ...best("FREE"), ds_revenge: "componente" });
+    expect(d.globalInvalidation).toBe(false);
   });
 });

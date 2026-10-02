@@ -1,11 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { getActiveQuestionsBySetup, SECTIONS, activeQuestionIds } from "../src/lib/checklist";
-import {
-  AUTO_RR_IDS,
-  INTERNAL_WEIGHTS,
-  INTERNAL_WEIGHT_TABLE,
-  rrFactor,
-} from "../src/lib/internal-weights";
+import { INTERNAL_WEIGHTS, INTERNAL_WEIGHT_TABLE } from "../src/lib/internal-weights";
 import { evaluate, type RiskData } from "../src/lib/scoring";
 
 /** Remapeo OPCIÓN A de pesos internos oficiales. */
@@ -48,15 +43,12 @@ describe("pesos internos oficiales", () => {
       const bySection: Record<string, number> = {};
       for (const e of INTERNAL_WEIGHT_TABLE) {
         if (e.setup !== S && e.setup !== "COMUN") continue;
-        if (!ids.has(e.id) && !e.id.endsWith("_AUTO_RR")) continue;
+        if (!ids.has(e.id)) continue;
         bySection[e.section] = (bySection[e.section] ?? 0) + e.w;
       }
       for (const [sec, total] of Object.entries(bySection)) {
         const rows = INTERNAL_WEIGHT_TABLE.filter(
-          (e) =>
-            e.section === sec &&
-            (e.setup === S || e.setup === "COMUN") &&
-            (ids.has(e.id) || e.id.endsWith("_AUTO_RR")),
+          (e) => e.section === sec && (e.setup === S || e.setup === "COMUN") && ids.has(e.id),
         );
         const pct = rows.reduce((acc, e) => acc + (e.w / total) * 100, 0);
         expect(pct, `${S} ${sec}`).toBeCloseTo(100, 6);
@@ -74,21 +66,13 @@ describe("pesos internos oficiales", () => {
     for (const e of INTERNAL_WEIGHT_TABLE)
       if (e.setup !== "COMUN") expect(e.id.startsWith(prefix[e.setup]!)).toBe(true);
   });
-  test("S01/S02: R:R automático = 40 % de Riesgo", () => {
+  test("S01/S02: R:R fuera del score → Riesgo = Geometría 50 % + Riesgo monetario 50 %", () => {
     for (const S of ["REVERSION", "CONTINUACION"] as const) {
       const rows = INTERNAL_WEIGHT_TABLE.filter((e) => e.setup === S && e.section === "riesgo");
-      const total = rows.reduce((a, e) => a + e.w, 0);
-      expect(INTERNAL_WEIGHTS[AUTO_RR_IDS[S]]!.w / total).toBeCloseTo(0.4, 9);
+      expect(rows.map((e) => e.w)).toEqual([50, 50]);
     }
   });
-  test("escala R:R existente: <1 → 0 · 1 → 0,3 · 1,5 → 0,6 · ≥2 → 1", () => {
-    expect(rrFactor(0.99)).toBe(0);
-    expect(rrFactor(1)).toBe(0.3);
-    expect(rrFactor(1.5)).toBe(0.6);
-    expect(rrFactor(2)).toBe(1);
-    expect(rrFactor(Number.NaN)).toBeNull();
-  });
-  test("S01 con R:R 1.00: válido (no NO TRADE), Riesgo 72 % → CONDICIONAL por gate", () => {
+  test("S01 con R:R 1.00: válido, Riesgo 100 % (R:R sin puntos) → APROBADA", () => {
     const risk: RiskData = { capital: 10000, riskPct: 1, entry: 100, stop: 90, target: 110 };
     const d = evaluate({
       answers: best("REVERSION"),
@@ -98,8 +82,13 @@ describe("pesos internos oficiales", () => {
       maxRiskPct: 1,
     });
     expect(d.globalInvalidation).toBe(false);
-    expect(d.breakdown.riesgo.percent).toBeCloseTo(72, 6);
-    expect(d.finalState).toBe("CONDICIONAL");
+    expect(d.breakdown.riesgo.percent).toBeCloseTo(100, 6);
+    expect(d.finalState).toBe("APROBADA");
+  });
+  test("metadata / validation-only suman 0 % en la tabla", () => {
+    for (const S of SETUPS)
+      for (const q of getActiveQuestionsBySetup(S))
+        if (q.meta || q.validationOnly) expect(INTERNAL_WEIGHTS[q.id]?.w ?? 0).toBe(0);
   });
   test("S03 con R:R 1.00 y respuestas óptimas → APROBADA (R:R no puntúa en S03)", () => {
     const risk: RiskData = { capital: 10000, riskPct: 1, entry: 100, stop: 90, target: 110 };

@@ -318,11 +318,17 @@ describe("evaluate — fuente única de verdad", () => {
     expect(["BORRADOR", "CONDICIONAL", "APROBADA", "NO TRADE"]).toContain(d.classification);
   });
 
-  it("V2: el freno emocional es sólo informativo y nunca produce NO TRADE", () => {
+  it("V2: señal emocional ordinaria es informativa; venganza explícita = invalidación de ejecución", () => {
+    const soft = evaluate({
+      answers: { ...passing, ds_plan: "forzando" },
+      risk: {},
+      maxRiskPct: 1,
+    });
+    expect(soft.emotional).toBe(true);
+    expect(soft.blocked).toBe(false);
     const d = evaluate({ answers: { ...passing, ds_motive: "revancha" }, risk: {}, maxRiskPct: 1 });
-    expect(d.emotional).toBe(true);
-    expect(d.blocked).toBe(false);
-    expect(d.finalState).not.toBe("NO TRADE");
+    expect(d.globalInvalidationIds).toContain("revenge_entry");
+    expect(d.finalState).toBe("NO TRADE");
   });
 
   it("V2: un factor 0 en un reactivo antes crítico nunca produce NO TRADE", () => {

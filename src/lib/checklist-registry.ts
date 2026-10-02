@@ -738,10 +738,7 @@ export function registryIssues(records = buildRegistry()): string[] {
     if (/(^|_)rr$/.test(r.question_id) && (r.type !== "METADATA" || r.internal_weight !== 0)) {
       problems.push(`${key}: R:R debe registrarse como METADATA sin peso de score`);
     }
-    if (
-      r.question_id === "s05_deep_pullback" &&
-      r.hard_behavior.startsWith("HARD")
-    ) {
+    if (r.question_id === "s05_deep_pullback" && r.hard_behavior.startsWith("HARD")) {
       problems.push(`${key}: el pullback profundo no puede bloquear automáticamente`);
     }
 
