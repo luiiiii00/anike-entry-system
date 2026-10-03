@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { evaluate, type Answers, type RiskData } from "@/lib/scoring";
+import { EVALUATION_SETUP_IDS } from "@/lib/checklist";
 import { loadAndApplyPublishedOverlay } from "@/lib/checklist-overlay";
 import type { Evaluation } from "@/lib/db";
 import type { Json } from "@/integrations/supabase/types";
@@ -17,8 +18,6 @@ import type { Json } from "@/integrations/supabase/types";
  *     activo; el contador transaccional asigna el número de operación.
  *  2) Como servidor: campos derivados recalculados.
  */
-
-import { EVALUATION_SETUP_IDS } from "@/lib/checklist";
 
 // Ausente / null / "" permitidos; un valor explícito debe ser numérico y finito
 // (NaN, Infinity y -Infinity se rechazan, no se descartan en silencio).
