@@ -665,11 +665,7 @@ export function evaluate(input: {
   // R:R = METADATA / validación global objetiva: se calcula y muestra, pero NO
   // aporta factor ni puntos al score (no existe escala de puntuación R:R).
   const auto: AutoScoreItem[] = [];
-  const { score, scoreVisible, breakdown, complete, missing } = computeScore(
-    answers,
-    active,
-    auto,
-  );
+  const { score, scoreVisible, breakdown, complete, missing } = computeScore(answers, active, auto);
   const maxRiskPct = Number.isFinite(Number(input.maxRiskPct)) ? Number(input.maxRiskPct) : 1;
 
   const gates: GateResult[] = APPROVAL_GATES.map((g) => {
