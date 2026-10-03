@@ -169,7 +169,11 @@ function NuevaEvaluacion() {
       answers,
       risk,
       maxRiskPct: Number(settings?.max_risk_pct ?? 1),
-      setup: trade.setup,
+      // Borradores históricos con setup no oficial: vista previa global hasta que
+      // se elija un setup oficial (el servidor rechaza guardar un setup inválido).
+      setup: (EVALUATION_SETUP_IDS as readonly string[]).includes(trade.setup ?? "")
+        ? trade.setup
+        : null,
       preferredSetups: settings?.preferred_setups ?? [],
       direction: trade.direction,
       market: trade.market ?? null,
