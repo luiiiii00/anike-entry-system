@@ -84,7 +84,7 @@ const MESSAGES: Record<string, string> = {
 
 function evaluateOrReject(input: Parameters<typeof evaluate>[0]) {
   try {
-    return evaluate(input);
+    return evaluate({ ...input });
   } catch {
     throw new Error("Setup inválido: elige uno de los setups oficiales.");
   }
