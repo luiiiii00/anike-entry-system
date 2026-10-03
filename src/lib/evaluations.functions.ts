@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { evaluate, type Answers, type RiskData } from "@/lib/scoring";
+import { EVALUATION_SETUP_IDS } from "@/lib/checklist";
 import { loadAndApplyPublishedOverlay } from "@/lib/checklist-overlay";
 import type { Evaluation } from "@/lib/db";
 import type { Json } from "@/integrations/supabase/types";
@@ -18,7 +19,18 @@ import type { Json } from "@/integrations/supabase/types";
  *  2) Como servidor: campos derivados recalculados.
  */
 
-const numish = z.union([z.number(), z.string(), z.null()]).optional();
+// Ausente / null / "" permitidos; un valor explícito debe ser numérico y finito
+// (NaN, Infinity y -Infinity se rechazan, no se descartan en silencio).
+const numish = z
+  .union([
+    z.number().finite(),
+    z
+      .string()
+      .max(40)
+      .refine((v) => v.trim() === "" || Number.isFinite(Number(v)), "valor no finito"),
+    z.null(),
+  ])
+  .optional();
 
 const riskSchema = z
   .object({
@@ -41,7 +53,11 @@ export const saveEvaluationInputSchema = z.object({
   market: z.string().max(40).nullable().optional(),
   session: z.string().max(40).nullable().optional(),
   direction: z.enum(["LONG", "SHORT"]).nullable().optional(),
-  setup: z.string().max(80).nullable().optional(),
+  // A1: sólo setups oficiales (S01–S05 + FREE); null/undefined = global histórico.
+  setup: z
+    .enum(EVALUATION_SETUP_IDS as unknown as [string, ...string[]])
+    .nullable()
+    .optional(),
   idea: z.string().max(4000).nullable().optional(),
   answers: z.record(z.string().max(60), z.string().max(200)),
   risk: riskSchema,
@@ -65,6 +81,14 @@ const MESSAGES: Record<string, string> = {
   decision_locked: "La decisión de una evaluación finalizada no puede cambiarse.",
   asset_required: "Falta el activo de la operación.",
 };
+
+function evaluateOrReject(input: Parameters<typeof evaluate>[0]) {
+  try {
+    return evaluate({ ...input });
+  } catch {
+    throw new Error("Setup inválido: elige uno de los setups oficiales.");
+  }
+}
 
 function friendly(code: string): Error {
   return new Error(MESSAGES[code] ?? code);
@@ -120,7 +144,7 @@ export const saveEvaluationFn = createServerFn({ method: "POST" })
     }
 
     // ---- Recalculo server-side (la única fuente de verdad) --------------------
-    const decision = evaluate({
+    const decision = evaluateOrReject({
       answers,
       risk,
       maxRiskPct: Number(settings?.max_risk_pct ?? 1),
