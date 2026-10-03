@@ -647,7 +647,15 @@ export function evaluate(input: {
   pointValue?: number | null;
 }): Decision {
   const answers = input.answers ?? {};
-  const active = input.setup ? activeQuestionIds(input.setup, answers) : undefined;
+  // A1: el fallback global SÓLO existe con setup null/undefined. Un setup
+  // explícito debe ser oficial y tener catálogo activo; nunca se degrada a global.
+  let active: Set<string> | undefined;
+  if (input.setup !== null && input.setup !== undefined) {
+    if (!(EVALUATION_SETUP_IDS as readonly string[]).includes(input.setup))
+      throw new Error(`invalid_setup: ${String(input.setup).slice(0, 40)}`);
+    active = activeQuestionIds(input.setup, answers);
+    if (active.size === 0) throw new Error(`empty_setup_catalog: ${input.setup}`);
+  }
   const metrics = computeRisk(input.risk ?? {}, input.direction, {
     market: input.market ?? null,
     contractSize: input.contractSize ?? null,
@@ -658,7 +666,7 @@ export function evaluate(input: {
   const auto: AutoScoreItem[] = [];
   const { score, scoreVisible, breakdown, complete, missing } = computeScore(
     answers,
-    active?.size ? active : undefined,
+    active,
     auto,
   );
   const maxRiskPct = Number.isFinite(Number(input.maxRiskPct)) ? Number(input.maxRiskPct) : 1;
@@ -670,7 +678,7 @@ export function evaluate(input: {
   const gatesFailed = gates.filter((g) => !g.passed).map((g) => `${g.label} < ${g.min}%`);
 
   const warnings = checkPendingConditions(answers);
-  const failedVal = failedValidations(answers, active?.size ? active : undefined);
+  const failedVal = failedValidations(answers, active);
   if (failedVal.length > 0)
     warnings.push(`Validación del setup no cumplida: ${failedVal.join(", ")}.`);
 
@@ -679,7 +687,7 @@ export function evaluate(input: {
     direction: input.direction,
     maxRiskPct,
   });
-  for (const id of executionInvalidations(answers, active?.size ? active : undefined))
+  for (const id of executionInvalidations(answers, active))
     if (!invalidIds.includes(id)) invalidIds.push(id);
   const globalInvalidation = invalidIds.length > 0;
 
