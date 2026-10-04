@@ -332,7 +332,7 @@ export function computeScore(
       max += w;
       if (opt && Number.isFinite(opt.pts)) got += clamp01(opt.pts / best) * w;
     }
-    // Reactivos automáticos (p. ej. R:R en Riesgo de S01/S02): dato no
+    // Reactivos automáticos (hoy ninguno: R:R es metadata): dato no
     // calculable = factor 0 (no puede aprobar sin R:R), nunca NO TRADE.
     for (const a of auto) {
       if (a.section !== section.id) continue;
