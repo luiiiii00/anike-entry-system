@@ -9,11 +9,9 @@
  *               divide en partes iguales entre ellos.
  *  - SIN_COMPONENTE: el reactivo no representa ningún componente del bloque
  *               (peso 0, sigue siendo obligatorio). No se inventa peso.
- * Componentes fuente sin reactivo equivalente en la matriz actual (p. ej. RSI,
- * MACD o Fibonacci en Confirmación) quedan listados en UNCOVERED_COMPONENTS: su
- * peso no se reasigna a otros reactivos; el bloque se normaliza sobre los
- * componentes cubiertos (F_block = Σ f·w / Σ w), de modo que el peso efectivo del
- * bloque suma siempre 100 %.
+ * Cada componente oficial tiene al menos un reactivo propio: cada bloque suma
+ * exactamente 100 % con pesos reales (sin normalización de componentes
+ * faltantes).
  *
  * Metadata y validation-only = 0 % (no figuran aquí y no puntúan).
  * No modifica pesos CORE, gates, umbral 80 ni estados.
@@ -67,6 +65,9 @@ const ROWS: Record<string, Record<string, Row[]>> = {
       ["S01_CONF_01", 10, "Reacción 5M", "REPARTIDO"],
       ["S01_CONF_02", 10, "Reacción 5M", "REPARTIDO"],
       ["S01_CONF_03", 25, "Confirmación 5M", "DIRECTO"],
+      ["S01_CONF_04", 25, "Fibonacci / confluencia", "DIRECTO"],
+      ["S01_CONF_05", 15, "RSI", "DIRECTO"],
+      ["S01_CONF_06", 15, "MACD", "DIRECTO"],
     ],
     riesgo: [
       ["S01_RISK_01", 50, "Geometría / SL", "DIRECTO"],
@@ -79,6 +80,7 @@ const ROWS: Record<string, Record<string, Row[]>> = {
     ejecucion: [
       ["S01_EXEC_02", 40, "Ubicación de la entrada", "DIRECTO"],
       ["S01_EXEC_01", 35, "Respeto de la confirmación", "DIRECTO"],
+      ["S01_EXEC_03", 25, "Persecución / FOMO", "DIRECTO"],
     ],
     disciplina: [
       ["S01_DISC_02", 50, "Protocolo", "DIRECTO"],
@@ -106,6 +108,9 @@ const ROWS: Record<string, Record<string, Row[]>> = {
       ["S02_CONF_02", 25, "Impulso", "DIRECTO"],
       ["S02_CONF_01", 25, "Pullback", "DIRECTO"],
       ["S02_CONF_03", 15, "Confirmación 5M", "DIRECTO"],
+      ["S02_CONF_04", 15, "Fibonacci", "DIRECTO"],
+      ["S02_CONF_05", 10, "RSI", "DIRECTO"],
+      ["S02_CONF_06", 10, "MACD", "DIRECTO"],
     ],
     riesgo: [
       ["S02_RISK_01", 50, "Geometría / SL", "DIRECTO"],
@@ -115,7 +120,7 @@ const ROWS: Record<string, Record<string, Row[]>> = {
       ["S02_PATH_01", 70, "Espacio hasta TP", "DIRECTO"],
       ["S02_PATH_02", 30, "Obstáculos / referencia del objetivo", "DIRECTO"],
     ],
-    // Ejecución y Disciplina: se conserva la matriz vigente (peso uniforme por reactivo).
+    // Ejecución y Disciplina: matriz vigente documentada (50/50 y 100).
     ejecucion: [
       ["S02_EXEC_01", 50, "Matriz vigente", "DIRECTO"],
       ["S02_EXEC_02", 50, "Matriz vigente", "DIRECTO"],
@@ -135,6 +140,7 @@ const ROWS: Record<string, Record<string, Row[]>> = {
       ["S03_STR_02", 25, "Confirmación de la ruptura (MOMENTUM)", "DIRECTO"],
       ["S03_STR_03", 25, "Confirmación de la ruptura (THREE_BODY)", "DIRECTO"],
       ["S03_STR_04", 20, "Integridad", "DIRECTO"],
+      ["S03_STR_05", 25, "Nivel estructural", "DIRECTO"],
     ],
     zona: [
       ["S03_ZONE_01", 60, "Nivel roto / retesteo", "DIRECTO"],
@@ -143,6 +149,9 @@ const ROWS: Record<string, Record<string, Row[]>> = {
     confirmacion: [
       ["S03_CONF_03", 35, "Reacción", "DIRECTO"],
       ["S03_CONF_04", 30, "Confirmación 5M", "DIRECTO"],
+      ["S03_CONF_05", 15, "RSI", "DIRECTO"],
+      ["S03_CONF_06", 15, "MACD", "DIRECTO"],
+      ["S03_CONF_07", 5, "Fibonacci / confluencia", "DIRECTO"],
     ],
     riesgo: [
       ["S03_RISK_01", 50, "Stop Loss", "DIRECTO"],
@@ -179,6 +188,10 @@ const ROWS: Record<string, Record<string, Row[]>> = {
     confirmacion: [
       ["S04_CONF_01", 25, "Fibonacci", "DIRECTO"],
       ["S04_CONF_03", 20, "Reacción", "DIRECTO"],
+      ["S04_CONF_04", 25, "Confluencia", "DIRECTO"],
+      ["S04_CONF_05", 15, "Confirmación 5M (S04_CONF_02 sigue validation-only 0 %)", "DIRECTO"],
+      ["S04_CONF_06", 7.5, "RSI", "DIRECTO"],
+      ["S04_CONF_07", 7.5, "MACD", "DIRECTO"],
     ],
     riesgo: [
       ["S04_RISK_01", T, "Riesgo 1", "DIRECTO"],
@@ -221,6 +234,9 @@ const ROWS: Record<string, Record<string, Row[]>> = {
       ["S05_CONF_01", 20, "Reacción", "DIRECTO"],
       ["S05_CONF_03", 20, "Confluencia zona + estructura", "DIRECTO"],
       ["S05_CONF_02", 10, "Confirmación 5M", "DIRECTO"],
+      ["S05_CONF_04", 25, "Pullback", "DIRECTO"],
+      ["S05_CONF_05", 20, "Fibonacci", "DIRECTO"],
+      ["S05_CONF_06", 5, "RSI / MACD", "DIRECTO"],
     ],
     riesgo: [
       ["S05_RISK_01", 50, "Stop Loss", "DIRECTO"],
@@ -239,47 +255,6 @@ const ROWS: Record<string, Record<string, Row[]>> = {
       ["S05_DISC_01", T, "Disciplina 1", "DIRECTO"],
       ["S05_DISC_02", T, "Disciplina 2", "DIRECTO"],
       ["S05_DISC_03", T3, "Disciplina 3", "DIRECTO"],
-    ],
-  },
-};
-
-/** Componentes fuente sin reactivo equivalente en la matriz actual (no se reasignan). */
-export const UNCOVERED_COMPONENTS: Record<string, Record<string, [string, number][]>> = {
-  REVERSION: {
-    confirmacion: [
-      ["Fibonacci / confluencia", 25],
-      ["RSI", 15],
-      ["MACD", 15],
-    ],
-    ejecucion: [["Persecución / FOMO", 25]],
-  },
-  CONTINUACION: {
-    confirmacion: [
-      ["Fibonacci", 15],
-      ["RSI", 10],
-      ["MACD", 10],
-    ],
-  },
-  RUPTURA_RETESTEO: {
-    confirmacion: [
-      ["RSI", 15],
-      ["MACD", 15],
-      ["Fibonacci / confluencia", 5],
-    ],
-  },
-  ZONA_FIBONACCI: {
-    confirmacion: [
-      ["Confluencia", 25],
-      ["5M (validación S04_CONF_02, 0 %)", 15],
-      ["RSI", 7.5],
-      ["MACD", 7.5],
-    ],
-  },
-  IMPULSO_PULLBACK: {
-    confirmacion: [
-      ["Pullback", 25],
-      ["Fibonacci", 20],
-      ["RSI / MACD", 5],
     ],
   },
 };

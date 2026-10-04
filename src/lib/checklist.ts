@@ -2173,6 +2173,15 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
       "S01_CONF_03",
       "¿La temporalidad de ejecución confirma el final del movimiento contrario antes de la entrada?",
     ),
+    sq(
+      "S01_CONF_04",
+      "¿El nivel de Fibonacci o la confluencia técnica respaldan la zona de reversión?",
+    ),
+    sq(
+      "S01_CONF_05",
+      "¿El RSI respalda el cambio de dirección (divergencia, sobrecompra o sobreventa)?",
+    ),
+    sq("S01_CONF_06", "¿El MACD respalda el cambio de dirección (cruce o divergencia)?"),
   ]),
   specBlock("REVERSION", S01, "riesgo", "Riesgo", [
     sv(
@@ -2200,6 +2209,7 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
       "S01_EXEC_02",
       "¿La entrada utiliza la temporalidad de ejecución para mejorar la precisión sin contradecir la estructura superior?",
     ),
+    sq("S01_EXEC_03", "¿La entrada evita perseguir el precio o entrar por FOMO?"),
   ]),
   specBlock("REVERSION", S01, "disciplina", "Disciplina", [
     sv(
@@ -2278,6 +2288,9 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
       "S02_CONF_03",
       "¿La temporalidad de ejecución confirma la continuación antes de la entrada?",
     ),
+    sq("S02_CONF_04", "¿El retroceso del pullback respeta un nivel de Fibonacci relevante?"),
+    sq("S02_CONF_05", "¿El RSI respalda la continuación de la tendencia?"),
+    sq("S02_CONF_06", "¿El MACD respalda la continuación de la tendencia?"),
   ]),
   specBlock("CONTINUACION", S02, "riesgo", "Riesgo", [
     sv(
@@ -2353,6 +2366,10 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
       },
     ),
     sq("S03_STR_04", "¿La ruptura mantiene continuidad después de superar el nivel?"),
+    sq(
+      "S03_STR_05",
+      "¿El nivel estructural que se rompe está claramente definido antes de la ruptura?",
+    ),
   ]),
   specBlock("RUPTURA_RETESTEO", S03, "zona", "Zona", [
     sq("S03_ZONE_01", "¿El soporte o resistencia roto constituye un nivel técnicamente relevante?"),
@@ -2383,6 +2400,9 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
       "¿La confirmación demuestra continuidad del movimiento y no únicamente una superación del nivel?",
     ),
     sq("S03_CONF_04", "¿La temporalidad de ejecución confirma el movimiento antes de la entrada?"),
+    sq("S03_CONF_05", "¿El RSI respalda la dirección de la ruptura?"),
+    sq("S03_CONF_06", "¿El MACD respalda la dirección de la ruptura?"),
+    sq("S03_CONF_07", "¿Existe confluencia o un nivel de Fibonacci que respalde el retesteo?"),
   ]),
   specBlock("RUPTURA_RETESTEO", S03, "riesgo", "Riesgo", [
     sv(
@@ -2488,6 +2508,13 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
       },
     ),
     sq("S04_CONF_03", "¿La entrada respeta la dirección de la estructura identificada en la zona?"),
+    sq("S04_CONF_04", "¿Existe confluencia técnica adicional en la zona de Fibonacci?"),
+    sq(
+      "S04_CONF_05",
+      "¿La temporalidad de ejecución (5M) confirma la reacción antes de la entrada?",
+    ),
+    sq("S04_CONF_06", "¿El RSI respalda la reacción en la zona?"),
+    sq("S04_CONF_07", "¿El MACD respalda la reacción en la zona?"),
   ]),
   specBlock("ZONA_FIBONACCI", S04, "riesgo", "Riesgo", [
     sv(
@@ -2609,6 +2636,9 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
       "S05_CONF_03",
       "IP13 · ¿La confirmación se produce en la zona/recurso identificado y no simplemente en cualquier punto del pullback?",
     ),
+    sq("S05_CONF_04", "¿El pullback es correctivo y ordenado respecto al impulso?"),
+    sq("S05_CONF_05", "¿El pullback alcanza un nivel de Fibonacci relevante del impulso?"),
+    sq("S05_CONF_06", "¿El RSI o el MACD respaldan la continuación del impulso?"),
   ]),
   specBlock("IMPULSO_PULLBACK", S05, "riesgo", "Riesgo", [
     sv(

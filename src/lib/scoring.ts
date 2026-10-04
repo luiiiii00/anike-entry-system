@@ -332,7 +332,7 @@ export function computeScore(
       max += w;
       if (opt && Number.isFinite(opt.pts)) got += clamp01(opt.pts / best) * w;
     }
-    // Reactivos automáticos (p. ej. R:R en Riesgo de S01/S02): dato no
+    // Reactivos automáticos (hoy ninguno: R:R es metadata): dato no
     // calculable = factor 0 (no puede aprobar sin R:R), nunca NO TRADE.
     for (const a of auto) {
       if (a.section !== section.id) continue;
@@ -497,10 +497,6 @@ export const EXECUTION_INVALIDATIONS: ReadonlyArray<{
   { id: "revenge_entry", questionId: "ds_motive", values: ["revancha"] },
   { id: "fomo_entry", questionId: "ds_why", values: ["impulso"] },
   { id: "fomo_entry", questionId: "ds_motive", values: ["fomo"] },
-  // "¿La entrada evita perseguir el precio?" → "No" = persecución explícita.
-  { id: "price_chasing", questionId: "S02_EXEC_02", values: ["ausente"] },
-  { id: "price_chasing", questionId: "S03_EXEC_02", values: ["ausente"] },
-  { id: "price_chasing", questionId: "S05_EXEC_02", values: ["ausente"] },
 ];
 
 export function executionInvalidations(

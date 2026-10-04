@@ -31,7 +31,7 @@ lines.push(
   "- R:R = METADATA / validación global objetiva: se calcula y se muestra, no aporta factor ni puntos; no existe escala de puntuación R:R.",
   "- R:R < 1.00 → `rr_below_min` → NO TRADE. R:R >= 1.00 → válido, sin puntos de score.",
   "- Geometría LONG (SL < Entrada < TP) / SHORT (TP < Entrada < SL) obligatoria; Entry = SL (riskDistance = 0) → NO TRADE; NaN/Infinity → NO TRADE.",
-  "- Invalidaciones de EJECUCIÓN (excepción explícita del usuario): entrada por venganza (`revenge_entry`), FOMO (`fomo_entry`) y persecución del precio (`price_chasing`) → NO TRADE.",
+  "- Invalidaciones de EJECUCIÓN (excepción explícita del usuario): entrada por venganza (`revenge_entry`) y FOMO (`fomo_entry`) → NO TRADE. Las preguntas de persecución del precio (S01_EXEC_03, S02/S03/S05_EXEC_02) son reactivos puntuables normales: factor 0 nunca produce NO TRADE.",
   "- internal_weight = peso oficial del remapeo OPCIÓN A; metadata y validation-only = 0 %.",
   "- Riesgo S01/S02: al retirar R:R del score, Geometría 50 % + Riesgo monetario 50 % (normalización autorizada explícitamente).",
   "",
