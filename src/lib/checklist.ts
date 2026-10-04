@@ -2173,8 +2173,14 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
       "S01_CONF_03",
       "¿La temporalidad de ejecución confirma el final del movimiento contrario antes de la entrada?",
     ),
-    sq("S01_CONF_04", "¿El nivel de Fibonacci o la confluencia técnica respaldan la zona de reversión?"),
-    sq("S01_CONF_05", "¿El RSI respalda el cambio de dirección (divergencia, sobrecompra o sobreventa)?"),
+    sq(
+      "S01_CONF_04",
+      "¿El nivel de Fibonacci o la confluencia técnica respaldan la zona de reversión?",
+    ),
+    sq(
+      "S01_CONF_05",
+      "¿El RSI respalda el cambio de dirección (divergencia, sobrecompra o sobreventa)?",
+    ),
     sq("S01_CONF_06", "¿El MACD respalda el cambio de dirección (cruce o divergencia)?"),
   ]),
   specBlock("REVERSION", S01, "riesgo", "Riesgo", [
@@ -2360,7 +2366,10 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
       },
     ),
     sq("S03_STR_04", "¿La ruptura mantiene continuidad después de superar el nivel?"),
-    sq("S03_STR_05", "¿El nivel estructural que se rompe está claramente definido antes de la ruptura?"),
+    sq(
+      "S03_STR_05",
+      "¿El nivel estructural que se rompe está claramente definido antes de la ruptura?",
+    ),
   ]),
   specBlock("RUPTURA_RETESTEO", S03, "zona", "Zona", [
     sq("S03_ZONE_01", "¿El soporte o resistencia roto constituye un nivel técnicamente relevante?"),
@@ -2500,7 +2509,10 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
     ),
     sq("S04_CONF_03", "¿La entrada respeta la dirección de la estructura identificada en la zona?"),
     sq("S04_CONF_04", "¿Existe confluencia técnica adicional en la zona de Fibonacci?"),
-    sq("S04_CONF_05", "¿La temporalidad de ejecución (5M) confirma la reacción antes de la entrada?"),
+    sq(
+      "S04_CONF_05",
+      "¿La temporalidad de ejecución (5M) confirma la reacción antes de la entrada?",
+    ),
     sq("S04_CONF_06", "¿El RSI respalda la reacción en la zona?"),
     sq("S04_CONF_07", "¿El MACD respalda la reacción en la zona?"),
   ]),
