@@ -389,15 +389,19 @@ describe("16) invalidaciones de ejecución: venganza / FOMO / persecución", () 
     expect(d.globalInvalidationIds).toContain("fomo_entry");
     expect(d.finalState).toBe("NO TRADE");
   });
-  test("S02/S03/S05: persecución del precio → NO TRADE", () => {
+  test("S01_EXEC_03 / S02/S03/S05_EXEC_02 factor 0: puntuación baja, nunca NO TRADE", () => {
     for (const [S, q] of [
+      ["REVERSION", "S01_EXEC_03"],
       ["CONTINUACION", "S02_EXEC_02"],
       ["RUPTURA_RETESTEO", "S03_EXEC_02"],
       ["IMPULSO_PULLBACK", "S05_EXEC_02"],
     ] as const) {
+      const base = run(S, best(S));
       const d = run(S, { ...best(S), [q]: "ausente" });
-      expect(d.globalInvalidationIds).toContain("price_chasing");
-      expect(d.finalState).toBe("NO TRADE");
+      expect(d.globalInvalidation).toBe(false);
+      expect(d.globalInvalidationIds).not.toContain("price_chasing");
+      expect(d.finalState).not.toBe("NO TRADE");
+      expect(d.score).toBeLessThan(base.score);
     }
   });
   test("niveles intermedios de esas preguntas no bloquean", () => {

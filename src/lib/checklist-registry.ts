@@ -517,11 +517,12 @@ function recordFromQuestion(
     condition,
     condition_type: conditionTypeOf(condition),
     options: q.options.map((o) => ({ value: o.v, label: o.label, factor: o.pts })),
-    // Peso interno oficial (remapeo OPCIÓN A, % del componente fuente).
+    // Peso interno oficial (matriz completa, % real del bloque). Setup Libre
+    // conserva su matriz histórica propia.
     internal_weight: scorable
-      ? setupId !== "FREE" && INTERNAL_WEIGHTS[q.id]
-        ? Math.round(INTERNAL_WEIGHTS[q.id]!.w * 10000) / 10000
-        : 1
+      ? setupId === "FREE"
+        ? 1
+        : Math.round((INTERNAL_WEIGHTS[q.id]?.w ?? 0) * 10000) / 10000
       : 0,
     core_target: {
       block: q.sectionId,
