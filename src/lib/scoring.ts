@@ -497,10 +497,6 @@ export const EXECUTION_INVALIDATIONS: ReadonlyArray<{
   { id: "revenge_entry", questionId: "ds_motive", values: ["revancha"] },
   { id: "fomo_entry", questionId: "ds_why", values: ["impulso"] },
   { id: "fomo_entry", questionId: "ds_motive", values: ["fomo"] },
-  // "¿La entrada evita perseguir el precio?" → "No" = persecución explícita.
-  { id: "price_chasing", questionId: "S02_EXEC_02", values: ["ausente"] },
-  { id: "price_chasing", questionId: "S03_EXEC_02", values: ["ausente"] },
-  { id: "price_chasing", questionId: "S05_EXEC_02", values: ["ausente"] },
 ];
 
 export function executionInvalidations(
