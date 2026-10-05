@@ -19,6 +19,28 @@
  *  - Aislamiento absoluto: cada registro pertenece a un único setup_id.
  */
 import { INTERNAL_WEIGHTS } from "./internal-weights";
+
+/** Reactivos agregados por OPCIÓN B: componente y peso de la instrucción BOSS; texto y escala sin fuente. */
+export const OPTION_B_NEW_IDS = new Set([
+  "S01_CONF_04",
+  "S01_CONF_05",
+  "S01_CONF_06",
+  "S01_EXEC_03",
+  "S02_CONF_04",
+  "S02_CONF_05",
+  "S02_CONF_06",
+  "S03_STR_05",
+  "S03_CONF_05",
+  "S03_CONF_06",
+  "S03_CONF_07",
+  "S04_CONF_04",
+  "S04_CONF_05",
+  "S04_CONF_06",
+  "S04_CONF_07",
+  "S05_CONF_04",
+  "S05_CONF_05",
+  "S05_CONF_06",
+]);
 import { EXECUTION_INVALIDATIONS } from "./scoring";
 
 import {
@@ -107,7 +129,7 @@ export type RegistryRecord = {
   condition_type: RegistryConditionType;
   options: RegistryOption[];
 
-  /** Peso interno oficial dentro de su bloque (remapeo OPCIÓN A, `internal-weights.ts`); 0 = metadata / validation-only. */
+  /** Peso interno oficial dentro de su bloque (OPCIÓN B, `internal-weights.ts`); 0 = metadata / validation-only. */
   internal_weight: number;
   core_target: { block: SectionId; weight: number; stage: "PRE_TRADE" | "POST_TRADE" };
   /** Comportamiento de score / validación / HARD (resumen). */
@@ -493,7 +515,10 @@ function recordFromQuestion(
       exact.length === factors.length &&
       exact.every((f, i) => f === factors[i]));
   const specPending = q.pendingScale === true;
-  const pending = specPending || (scorable && type !== "AUTO_VALIDATION" && !officialScale);
+  const weightPending =
+    setupId !== "FREE" && INTERNAL_WEIGHTS[q.id]?.mapping === "PENDIENTE_DE_FUENTE";
+  const pending =
+    specPending || weightPending || (scorable && type !== "AUTO_VALIDATION" && !officialScale);
   return {
     setup_id: setupId,
     setup_code: SETUP_CODE[setupId],
@@ -540,7 +565,9 @@ function recordFromQuestion(
       : validationBehaviorOf(type, q.id),
     hard_behavior: hardBehaviorOf(type, q.id),
     role: q.anyTimeframe ? "ANY" : (q.role ?? null),
-    source: SOURCE_OVERRIDES[q.id] ?? SOURCES[setupId] ?? null,
+    source: OPTION_B_NEW_IDS.has(q.id)
+      ? "BOSS — OPCIÓN B (componente y peso oficiales); texto y escala sin fuente"
+      : (SOURCE_OVERRIDES[q.id] ?? SOURCES[setupId] ?? null),
     active: true,
     status: pending ? "PENDIENTE_DE_FUENTE" : "COMPLETO",
     source_status: pending
@@ -548,11 +575,13 @@ function recordFromQuestion(
       : NORMALIZED_IDS.has(q.id)
         ? "NORMALIZED"
         : "VERIFIED",
-    pending_reason: specPending
-      ? "La especificación maestra define el texto pero no las 5 opciones: se usa la escala genérica Claramente / Mayormente / Parcialmente / Débilmente / No hasta recibir la fuente."
-      : pending
-        ? `Escala histórica de ${factors.length} nivel(es) (${factors.join(" / ")}): falta fuente para expresarla con los 5 factores oficiales sin inventar contenido.`
-        : null,
+    pending_reason: weightPending
+      ? "Peso interno sin fuente: la especificación maestra no define los pesos de este bloque (valor operativo provisional, no conforme)."
+      : specPending
+        ? "La especificación maestra define el texto pero no las 5 opciones: se usa la escala genérica Claramente / Mayormente / Parcialmente / Débilmente / No hasta recibir la fuente."
+        : pending
+          ? `Escala histórica de ${factors.length} nivel(es) (${factors.join(" / ")}): falta fuente para expresarla con los 5 factores oficiales sin inventar contenido.`
+          : null,
   };
 }
 
