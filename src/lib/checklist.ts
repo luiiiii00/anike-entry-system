@@ -2511,7 +2511,7 @@ const SETUP_SPECIFIC: SetupSpecificBlock[] = [
     sq("S04_CONF_04", "¿Existe confluencia técnica adicional en la zona de Fibonacci?"),
     sq(
       "S04_CONF_05",
-      "¿La temporalidad de ejecución (5M) confirma la reacción antes de la entrada?",
+      "¿La temporalidad de ejecución confirma la reacción antes de la entrada?",
     ),
     sq("S04_CONF_06", "¿El RSI respalda la reacción en la zona?"),
     sq("S04_CONF_07", "¿El MACD respalda la reacción en la zona?"),
