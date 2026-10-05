@@ -10,7 +10,7 @@
  *  - PENDIENTE_DE_FUENTE: la especificación maestra no define el peso interno
  *               del componente; el valor es operativo y provisional, se marca
  *               como pendiente en el registro maestro y NO se declara conforme.
- * No existen componentes sin cubrir ni renormalización: cada bloque suma 100 %
+ * No existen componentes sin cubrir ni redistribución de pesos: cada bloque suma 100 %
  * con los pesos de la tabla. Metadata y validation-only = 0 % (no figuran aquí).
  * No modifica pesos CORE, gates, umbral 80 ni estados.
  */
