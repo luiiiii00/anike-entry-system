@@ -1,23 +1,21 @@
 /**
- * PESOS INTERNOS OFICIALES — remapeo OPCIÓN A (contrato V2).
+ * PESOS INTERNOS OFICIALES — OPCIÓN B (contrato V2).
  *
- * Autoridad: componentes y porcentajes de la especificación ANIKE EJEPIKA
- * (contrato V2 + cambio autorizado). Cada reactivo actual recibe el peso del
- * componente fuente que representa:
+ * Cada componente de la matriz oficial S01–S05 tiene su(s) reactivo(s) propio(s):
  *  - DIRECTO:   un reactivo = un componente.
- *  - REPARTIDO: varios reactivos representan el mismo componente; su peso se
- *               divide en partes iguales entre ellos.
- *  - SIN_COMPONENTE: el reactivo no representa ningún componente del bloque
- *               (peso 0, sigue siendo obligatorio). No se inventa peso.
- * Cada componente oficial tiene al menos un reactivo propio: cada bloque suma
- * exactamente 100 % con pesos reales (sin normalización de componentes
- * faltantes).
- *
- * Metadata y validation-only = 0 % (no figuran aquí y no puntúan).
+ *  - REPARTIDO: varios reactivos representan el mismo componente; su peso
+ *               oficial se divide entre ellos (relación documentada en la fila).
+ *  - SIN_COMPONENTE: reactivo explícitamente documentado como sin componente
+ *               (peso 0, sigue siendo obligatorio).
+ *  - PENDIENTE_DE_FUENTE: la especificación maestra no define el peso interno
+ *               del componente; el valor es operativo y provisional, se marca
+ *               como pendiente en el registro maestro y NO se declara conforme.
+ * No existen componentes sin cubrir ni renormalización: cada bloque suma 100 %
+ * con los pesos de la tabla. Metadata y validation-only = 0 % (no figuran aquí).
  * No modifica pesos CORE, gates, umbral 80 ni estados.
  */
 
-export type WeightMapping = "DIRECTO" | "REPARTIDO" | "SIN_COMPONENTE";
+export type WeightMapping = "DIRECTO" | "REPARTIDO" | "SIN_COMPONENTE" | "PENDIENTE_DE_FUENTE";
 
 export type InternalWeight = {
   /** Peso del componente fuente asignado al reactivo (en % del bloque fuente). */
@@ -32,10 +30,9 @@ const T = 100 / 3;
 const T3 = 100 - 2 * T; // 33.3334 (redondeo de la fuente)
 
 /*
- * R:R = METADATA / validación global objetiva (decisión explícita del usuario):
- * no puntúa. R:R < 1.00 → NO TRADE (rr_below_min); R:R >= 1.00 → válido, sin
- * puntos. Al retirarlo de S01/S02, Riesgo se normaliza a Geometría 50 % y
- * Riesgo monetario 50 % (normalización autorizada por esa misma instrucción).
+ * R:R = METADATA (decisión de negocio): 0 % de score. R:R < 1.00 → NO TRADE
+ * (rr_below_min); R:R >= 1.00 → válido, sin puntos. Riesgo S01/S02 en la matriz
+ * oficial: Geometría 50 % + Riesgo monetario 50 %.
  */
 
 const ROWS: Record<string, Record<string, Row[]>> = {
@@ -120,12 +117,13 @@ const ROWS: Record<string, Record<string, Row[]>> = {
       ["S02_PATH_01", 70, "Espacio hasta TP", "DIRECTO"],
       ["S02_PATH_02", 30, "Obstáculos / referencia del objetivo", "DIRECTO"],
     ],
-    // Ejecución y Disciplina: matriz vigente documentada (50/50 y 100).
+    // La especificación maestra no define pesos internos para S02 Ejecución ni
+    // S02 Disciplina: valores operativos provisionales, PENDIENTE_DE_FUENTE.
     ejecucion: [
-      ["S02_EXEC_01", 50, "Matriz vigente", "DIRECTO"],
-      ["S02_EXEC_02", 50, "Matriz vigente", "DIRECTO"],
+      ["S02_EXEC_01", 50, "Peso sin fuente (provisional)", "PENDIENTE_DE_FUENTE"],
+      ["S02_EXEC_02", 50, "Peso sin fuente (provisional)", "PENDIENTE_DE_FUENTE"],
     ],
-    disciplina: [["S02_DISC_01", 100, "Matriz vigente", "DIRECTO"]],
+    disciplina: [["S02_DISC_01", 100, "Peso sin fuente (provisional)", "PENDIENTE_DE_FUENTE"]],
   },
   RUPTURA_RETESTEO: {
     contexto: [
@@ -271,3 +269,8 @@ export const INTERNAL_WEIGHT_TABLE: WeightEntry[] = Object.entries(ROWS).flatMap
 export const INTERNAL_WEIGHTS: Record<string, InternalWeight> = Object.fromEntries(
   INTERNAL_WEIGHT_TABLE.map((e) => [e.id, { w: e.w, component: e.component, mapping: e.mapping }]),
 );
+
+/** Reactivos cuyo peso interno no tiene fuente oficial (no conformes). */
+export const WEIGHT_SOURCE_PENDING_IDS: string[] = INTERNAL_WEIGHT_TABLE.filter(
+  (e) => e.mapping === "PENDIENTE_DE_FUENTE",
+).map((e) => e.id);

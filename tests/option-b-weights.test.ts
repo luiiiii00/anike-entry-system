@@ -67,3 +67,35 @@ describe("OPCIÓN B: matriz oficial completa", () => {
     }
   });
 });
+
+import { WEIGHT_SOURCE_PENDING_IDS } from "../src/lib/internal-weights";
+import { buildRegistry, OPTION_B_NEW_IDS } from "../src/lib/checklist-registry";
+import { readFileSync } from "node:fs";
+
+describe("OPCIÓN B: fuente de pesos", () => {
+  test("sólo S02 Ejecución/Disciplina quedan con peso PENDIENTE_DE_FUENTE", () => {
+    expect([...WEIGHT_SOURCE_PENDING_IDS].sort()).toEqual([
+      "S02_DISC_01",
+      "S02_EXEC_01",
+      "S02_EXEC_02",
+    ]);
+  });
+  test("el registro marca esos pesos y los 18 reactivos nuevos como PENDIENTE_DE_FUENTE", () => {
+    const recs = buildRegistry();
+    for (const id of [...WEIGHT_SOURCE_PENDING_IDS, ...OPTION_B_NEW_IDS]) {
+      const r = recs.find((x) => x.question_id === id);
+      expect(r?.status, id).toBe("PENDIENTE_DE_FUENTE");
+    }
+    expect(OPTION_B_NEW_IDS.size).toBe(18);
+  });
+  test("sin 'Matriz vigente', OPCIÓN A ni normalización en pesos", () => {
+    const src = readFileSync("src/lib/internal-weights.ts", "utf8");
+    expect(src).not.toMatch(/Matriz vigente|OPCIÓN A|normaliz|UNCOVERED|equipon/i);
+  });
+  test("SIN_COMPONENTE sólo en S05_CTX_03 (documentado)", () => {
+    const sin = INTERNAL_WEIGHT_TABLE.filter((e) => e.mapping === "SIN_COMPONENTE").map(
+      (e) => e.id,
+    );
+    expect(sin).toEqual(["S05_CTX_03"]);
+  });
+});
