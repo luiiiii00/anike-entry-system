@@ -171,6 +171,9 @@ export const saveEvaluationFn = createServerFn({ method: "POST" })
         finalState: decision.finalState,
       });
       if (!check.ok) throw friendly(check.code);
+      // Defensa en profundidad: sólo APROBADA se registra.
+      if (data.decision === "registrado" && decision.finalState !== "APROBADA")
+        throw friendly("conditional_cannot_register");
       effectiveDecision = data.decision ?? null;
     }
 
