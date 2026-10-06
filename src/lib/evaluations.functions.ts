@@ -5,6 +5,7 @@ import { evaluate, type Answers, type RiskData } from "@/lib/scoring";
 import { EVALUATION_SETUP_IDS } from "@/lib/checklist";
 import { loadAndApplyPublishedOverlay } from "@/lib/checklist-overlay";
 import type { Evaluation } from "@/lib/db";
+import { checkCompletion } from "@/lib/evaluation-completion";
 import type { Json } from "@/integrations/supabase/types";
 
 /**
@@ -75,6 +76,8 @@ const MESSAGES: Record<string, string> = {
   trade_rejected_cannot_register: "La operación es NO TRADE por el sistema: no puede registrarse.",
   conditional_cannot_register:
     "La operación es CONDICIONAL: no cumple los gates obligatorios del sistema y no puede registrarse como operación ANIKE EJEPIKA. Puedes finalizarla como NO TRADE.",
+  incomplete_cannot_complete:
+    "La evaluación está incompleta: permanece como BORRADOR. Responde todas las preguntas del setup antes de finalizarla.",
   incomplete_cannot_register:
     "El cuestionario activo del setup está incompleto: todas sus preguntas son obligatorias.",
   decision_required: "Debes elegir REGISTRAR o NO TRADE para finalizar.",
@@ -159,14 +162,19 @@ export const saveEvaluationFn = createServerFn({ method: "POST" })
 
     let effectiveDecision: "registrado" | "no_trade" | null = null;
     if (data.status === "completed") {
-      if (!data.decision) throw friendly("decision_required");
-      if (!data.asset?.trim()) throw friendly("asset_required");
-      if (data.decision === "registrado") {
-        if (rejected) throw friendly("trade_rejected_cannot_register");
-        if (!decision.complete) throw friendly("incomplete_cannot_register");
-        if (decision.finalState !== "APROBADA") throw friendly("conditional_cannot_register");
-      }
-      effectiveDecision = data.decision;
+      const check = checkCompletion({
+        status: data.status,
+        decision: data.decision,
+        asset: data.asset,
+        complete: decision.complete,
+        rejected,
+        finalState: decision.finalState,
+      });
+      if (!check.ok) throw friendly(check.code);
+      // Defensa en profundidad: sólo APROBADA se registra.
+      if (data.decision === "registrado" && decision.finalState !== "APROBADA")
+        throw friendly("conditional_cannot_register");
+      effectiveDecision = data.decision ?? null;
     }
 
     // ---- 1) Datos fuente como el usuario (RLS + trigger) ----------------------

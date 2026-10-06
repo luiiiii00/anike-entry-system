@@ -37,7 +37,7 @@ describe("pesos internos oficiales", () => {
       for (const q of getActiveQuestionsBySetup(S))
         if (q.meta || q.validationOnly) expect(INTERNAL_WEIGHTS[q.id]).toBeUndefined();
   });
-  test("cada bloque suma 100 % de peso efectivo normalizado", () => {
+  test("cada bloque suma 100 % RAW (sin normalización)", () => {
     for (const S of SETUPS) {
       const ids = activeQuestionIds(S, best(S));
       const bySection: Record<string, number> = {};
@@ -46,13 +46,8 @@ describe("pesos internos oficiales", () => {
         if (!ids.has(e.id)) continue;
         bySection[e.section] = (bySection[e.section] ?? 0) + e.w;
       }
-      for (const [sec, total] of Object.entries(bySection)) {
-        const rows = INTERNAL_WEIGHT_TABLE.filter(
-          (e) => e.section === sec && (e.setup === S || e.setup === "COMUN") && ids.has(e.id),
-        );
-        const pct = rows.reduce((acc, e) => acc + (e.w / total) * 100, 0);
-        expect(pct, `${S} ${sec}`).toBeCloseTo(100, 6);
-      }
+      for (const [sec, total] of Object.entries(bySection))
+        expect(Math.abs(total - 100), `${S} ${sec}`).toBeLessThan(1e-6);
     }
   });
   test("aislamiento: los pesos de un setup sólo referencian sus reactivos", () => {

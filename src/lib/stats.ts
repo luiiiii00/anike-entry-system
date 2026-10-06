@@ -65,7 +65,9 @@ export type Stats = {
 /* ------------------------ Fuente única de verdad ------------------------ */
 
 /** Evaluación finalizada (no borrador). */
-export const isCompleted = (e: Evaluation) => e.status === "completed";
+// Una evaluación BORRADOR (incompleta) nunca cuenta como finalizada.
+export const isCompleted = (e: Evaluation) =>
+  e.status === "completed" && e.final_state !== "BORRADOR";
 
 /** Operación realmente llevada al mercado. */
 export const isRegistered = (e: Evaluation) => isCompleted(e) && e.decision === "registrado";
