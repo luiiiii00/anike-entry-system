@@ -17,8 +17,8 @@ export type CompletionCheck =
 
 export function checkCompletion(input: {
   status: "draft" | "completed";
-  decision?: "registrado" | "no_trade" | null;
-  asset?: string | null;
+  decision?: "registrado" | "no_trade" | null | undefined;
+  asset?: string | null | undefined;
   complete: boolean;
   rejected: boolean;
   finalState: string;
