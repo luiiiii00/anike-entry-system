@@ -73,12 +73,14 @@ import { buildRegistry, OPTION_B_NEW_IDS } from "../src/lib/checklist-registry";
 import { readFileSync } from "node:fs";
 
 describe("OPCIÓN B: fuente de pesos", () => {
-  test("sólo S02 Ejecución/Disciplina quedan con peso PENDIENTE_DE_FUENTE", () => {
-    expect([...WEIGHT_SOURCE_PENDING_IDS].sort()).toEqual([
-      "S02_DISC_01",
-      "S02_EXEC_01",
-      "S02_EXEC_02",
-    ]);
+  test("ningún peso queda PENDIENTE_DE_FUENTE; S02 Ejecución 50/50 y Disciplina 100 oficiales", () => {
+    expect(WEIGHT_SOURCE_PENDING_IDS).toEqual([]);
+    const w = (id: string) => INTERNAL_WEIGHT_TABLE.find((e) => e.id === id);
+    expect(w("S02_EXEC_01")?.w).toBe(50);
+    expect(w("S02_EXEC_02")?.w).toBe(50);
+    expect(w("S02_DISC_01")?.w).toBe(100);
+    for (const id of ["S02_EXEC_01", "S02_EXEC_02", "S02_DISC_01"])
+      expect(w(id)?.mapping).toBe("DIRECTO");
   });
   test("el registro marca esos pesos y los 18 reactivos nuevos como PENDIENTE_DE_FUENTE", () => {
     const recs = buildRegistry();

@@ -11,7 +11,7 @@ Este registro refleja exactamente la lógica del motor (`scoring.ts`, `internal-
 - R:R < 1.00 → `rr_below_min` → NO TRADE. R:R >= 1.00 → válido, sin puntos de score.
 - Geometría LONG (SL < Entrada < TP) / SHORT (TP < Entrada < SL) obligatoria; Entry = SL (riskDistance = 0) → NO TRADE; NaN/Infinity → NO TRADE.
 - Invalidaciones de EJECUCIÓN (excepción explícita del usuario): entrada por venganza (`revenge_entry`) y FOMO (`fomo_entry`) → NO TRADE. Las preguntas de persecución del precio (S01_EXEC_03, S02/S03/S05_EXEC_02) son reactivos puntuables normales: factor 0 nunca produce NO TRADE.
-- internal_weight = peso oficial de la matriz (OPCIÓN B: cada componente tiene reactivo propio, sin renormalización); metadata y validation-only = 0 %. S02 Ejecución y S02 Disciplina: peso sin fuente (provisional, PENDIENTE_DE_FUENTE).
+- internal_weight = peso oficial de la matriz (OPCIÓN B: cada componente tiene reactivo propio, sin renormalización); metadata y validation-only = 0 %. S02 Ejecución 50/50 y S02 Disciplina 100 %: decisión oficial del propietario.
 - Riesgo S01/S02: al retirar R:R del score, Geometría 50 % + Riesgo monetario 50 %.
 
 - Total de reactivos registrados: **227**
@@ -68,9 +68,9 @@ Este registro refleja exactamente la lógica del motor (`scoring.ts`, `internal-
 - `CONTINUACION` · `S02_RISK_02` — La especificación maestra define el texto pero no las 5 opciones: se usa la escala genérica Claramente / Mayormente / Parcialmente / Débilmente / No hasta recibir la fuente.
 - `CONTINUACION` · `S02_PATH_01` — La especificación maestra define el texto pero no las 5 opciones: se usa la escala genérica Claramente / Mayormente / Parcialmente / Débilmente / No hasta recibir la fuente.
 - `CONTINUACION` · `S02_PATH_02` — La especificación maestra define el texto pero no las 5 opciones: se usa la escala genérica Claramente / Mayormente / Parcialmente / Débilmente / No hasta recibir la fuente.
-- `CONTINUACION` · `S02_EXEC_01` — Peso interno sin fuente: la especificación maestra no define los pesos de este bloque (valor operativo provisional, no conforme).
-- `CONTINUACION` · `S02_EXEC_02` — Peso interno sin fuente: la especificación maestra no define los pesos de este bloque (valor operativo provisional, no conforme).
-- `CONTINUACION` · `S02_DISC_01` — Peso interno sin fuente: la especificación maestra no define los pesos de este bloque (valor operativo provisional, no conforme).
+- `CONTINUACION` · `S02_EXEC_01` — La especificación maestra define el texto pero no las 5 opciones: se usa la escala genérica Claramente / Mayormente / Parcialmente / Débilmente / No hasta recibir la fuente.
+- `CONTINUACION` · `S02_EXEC_02` — La especificación maestra define el texto pero no las 5 opciones: se usa la escala genérica Claramente / Mayormente / Parcialmente / Débilmente / No hasta recibir la fuente.
+- `CONTINUACION` · `S02_DISC_01` — La especificación maestra define el texto pero no las 5 opciones: se usa la escala genérica Claramente / Mayormente / Parcialmente / Débilmente / No hasta recibir la fuente.
 - `RUPTURA_RETESTEO` · `S03_CTX_01` — La especificación maestra define el texto pero no las 5 opciones: se usa la escala genérica Claramente / Mayormente / Parcialmente / Débilmente / No hasta recibir la fuente.
 - `RUPTURA_RETESTEO` · `S03_CTX_02` — La especificación maestra define el texto pero no las 5 opciones: se usa la escala genérica Claramente / Mayormente / Parcialmente / Débilmente / No hasta recibir la fuente.
 - `RUPTURA_RETESTEO` · `S03_CTX_03` — La especificación maestra define el texto pero no las 5 opciones: se usa la escala genérica Claramente / Mayormente / Parcialmente / Débilmente / No hasta recibir la fuente.

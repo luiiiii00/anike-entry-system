@@ -32,7 +32,7 @@ lines.push(
   "- R:R < 1.00 → `rr_below_min` → NO TRADE. R:R >= 1.00 → válido, sin puntos de score.",
   "- Geometría LONG (SL < Entrada < TP) / SHORT (TP < Entrada < SL) obligatoria; Entry = SL (riskDistance = 0) → NO TRADE; NaN/Infinity → NO TRADE.",
   "- Invalidaciones de EJECUCIÓN (excepción explícita del usuario): entrada por venganza (`revenge_entry`) y FOMO (`fomo_entry`) → NO TRADE. Las preguntas de persecución del precio (S01_EXEC_03, S02/S03/S05_EXEC_02) son reactivos puntuables normales: factor 0 nunca produce NO TRADE.",
-  "- internal_weight = peso oficial de la matriz (OPCIÓN B: cada componente tiene reactivo propio, sin renormalización); metadata y validation-only = 0 %. S02 Ejecución y S02 Disciplina: peso sin fuente (provisional, PENDIENTE_DE_FUENTE).",
+  "- internal_weight = peso oficial de la matriz (OPCIÓN B: cada componente tiene reactivo propio, sin renormalización); metadata y validation-only = 0 %. S02 Ejecución 50/50 y S02 Disciplina 100 %: decisión oficial del propietario.",
   "- Riesgo S01/S02: al retirar R:R del score, Geometría 50 % + Riesgo monetario 50 %.",
   "",
 );

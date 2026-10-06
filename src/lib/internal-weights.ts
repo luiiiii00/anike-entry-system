@@ -117,13 +117,13 @@ const ROWS: Record<string, Record<string, Row[]>> = {
       ["S02_PATH_01", 70, "Espacio hasta TP", "DIRECTO"],
       ["S02_PATH_02", 30, "Obstáculos / referencia del objetivo", "DIRECTO"],
     ],
-    // La especificación maestra no define pesos internos para S02 Ejecución ni
-    // S02 Disciplina: valores operativos provisionales, PENDIENTE_DE_FUENTE.
+    // Ejecución y Disciplina: pesos oficiales autorizados explícitamente por el
+    // propietario (BOSS — autorización explícita). S02_EXEC_02 puntúa normal.
     ejecucion: [
-      ["S02_EXEC_01", 50, "Peso sin fuente (provisional)", "PENDIENTE_DE_FUENTE"],
-      ["S02_EXEC_02", 50, "Peso sin fuente (provisional)", "PENDIENTE_DE_FUENTE"],
+      ["S02_EXEC_01", 50, "Decisión oficial del propietario", "DIRECTO"],
+      ["S02_EXEC_02", 50, "Decisión oficial del propietario", "DIRECTO"],
     ],
-    disciplina: [["S02_DISC_01", 100, "Peso sin fuente (provisional)", "PENDIENTE_DE_FUENTE"]],
+    disciplina: [["S02_DISC_01", 100, "Decisión oficial del propietario", "DIRECTO"]],
   },
   RUPTURA_RETESTEO: {
     contexto: [
