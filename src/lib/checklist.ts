@@ -3588,11 +3588,64 @@ export function applyChecklistOverlay(overlay?: ChecklistOverlay | null): Checkl
 }
 
 /**
+ * Bloqueo de metodología: una capa sólo puede hacer cambios EDITORIALES
+ * (enunciados, ayudas, etiquetas de opciones). Nunca puede cambiar factores,
+ * valores de opciones, retirar preguntas oficiales ni añadir preguntas que
+ * puntúen sin peso interno oficial.
+ */
+export function overlayMethodologyIssues(overlayInput: ChecklistOverlay): string[] {
+  const overlay = normalizeOverlay(overlayInput);
+  const base = new Map(
+    collectCoreQuestions(BASE_SECTIONS).map(({ question }) => [question.id, question]),
+  );
+  const problems: string[] = [];
+  for (const [id, edit] of Object.entries(overlay.edits)) {
+    const q = base.get(id);
+    if (!q || !edit.options) continue;
+    if (!sameScoringOptions(q.options, edit.options))
+      problems.push(`La pregunta ${id} cambia opciones o factores: la metodología oficial está cerrada.`);
+  }
+  for (const id of overlay.disabled)
+    if (base.has(id))
+      problems.push(`La pregunta oficial ${id} no puede retirarse: la metodología oficial está cerrada.`);
+  for (const q of overlay.added)
+    if (q.options.some((o) => o.pts > 0))
+      problems.push(`La pregunta nueva ${q.id} puntúa sin peso interno oficial: no se permite.`);
+  return problems;
+}
+
+function sameScoringOptions(a: Option[], b: OverlayOption[]): boolean {
+  return a.length === b.length && a.every((o, i) => o.v === b[i]!.v && o.pts === b[i]!.pts);
+}
+
+/** Elimina de una capa todo cambio no editorial (defensa al aplicar la capa publicada). */
+export function lockOverlayMethodology(overlayInput?: ChecklistOverlay | null): ChecklistOverlay {
+  const overlay = normalizeOverlay(overlayInput ?? EMPTY_OVERLAY);
+  const base = new Map(
+    collectCoreQuestions(BASE_SECTIONS).map(({ question }) => [question.id, question]),
+  );
+  const edits: Record<string, OverlayEdit> = {};
+  for (const [id, edit] of Object.entries(overlay.edits)) {
+    const q = base.get(id);
+    if (!q) continue;
+    const next: OverlayEdit = { ...edit };
+    if (next.options && !sameScoringOptions(q.options, next.options)) delete next.options;
+    edits[id] = next;
+  }
+  return {
+    version: 1,
+    edits,
+    disabled: overlay.disabled.filter((id) => !base.has(id)),
+    added: overlay.added.filter((q) => !q.options.some((o) => o.pts > 0)),
+  };
+}
+
+/**
  * Revisión de una capa antes de publicarla. Bloquea publicaciones que dejarían
  * el motor sin criterios evaluables en un bloque con gate obligatorio.
  */
 export function checklistOverlayIssues(overlay: ChecklistOverlay): string[] {
-  const problems: string[] = [];
+  const problems: string[] = [...overlayMethodologyIssues(overlay)];
   const normalized = normalizeOverlay(overlay);
   const baseIds = new Set(collectCoreQuestions(BASE_SECTIONS).map(({ question }) => question.id));
 

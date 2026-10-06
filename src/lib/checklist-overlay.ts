@@ -3,6 +3,7 @@ import type { Database, Json } from "@/integrations/supabase/types";
 import {
   applyChecklistOverlay,
   EMPTY_OVERLAY,
+  lockOverlayMethodology,
   normalizeOverlay,
   type ChecklistOverlay,
 } from "@/lib/checklist";
@@ -46,7 +47,9 @@ export async function fetchPublishedOverlay(
   client: Client = supabase as unknown as Client,
 ): Promise<ChecklistOverlay | null> {
   const row = await fetchOverlayRow("PUBLISHED", client);
-  return row?.overlay ?? null;
+  // Defensa: la capa publicada sólo aplica cambios editoriales; nunca altera la
+  // metodología matemática oficial aunque se haya guardado directamente en la BD.
+  return row ? lockOverlayMethodology(row.overlay) : null;
 }
 
 /** Carga la capa publicada y la activa en el proceso actual (cliente o servidor). */

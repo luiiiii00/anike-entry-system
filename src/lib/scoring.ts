@@ -435,8 +435,13 @@ export const PENDING_CHECKS: {
   },
 ];
 
-export function checkPendingConditions(a: Answers): string[] {
-  return PENDING_CHECKS.filter((r) => r.test(a)).map((r) => r.label);
+export function checkPendingConditions(a: Answers, activeIds?: Set<string>): string[] {
+  // Aislamiento por setup: sólo las respuestas de IDs activos pueden generar
+  // condiciones pendientes (respuestas extra de otro setup se ignoran).
+  const scoped: Answers = activeIds
+    ? Object.fromEntries(Object.entries(a).filter(([id]) => activeIds.has(id)))
+    : a;
+  return PENDING_CHECKS.filter((r) => r.test(scoped)).map((r) => r.label);
 }
 
 /**
@@ -670,7 +675,7 @@ export function evaluate(input: {
   });
   const gatesFailed = gates.filter((g) => !g.passed).map((g) => `${g.label} < ${g.min}%`);
 
-  const warnings = checkPendingConditions(answers);
+  const warnings = checkPendingConditions(answers, active);
   const failedVal = failedValidations(answers, active);
   if (failedVal.length > 0)
     warnings.push(`Validación del setup no cumplida: ${failedVal.join(", ")}.`);
