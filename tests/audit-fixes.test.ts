@@ -188,3 +188,22 @@ describe("FIX 4 — pesos RAW", () => {
           expect(INTERNAL_WEIGHT_TABLE.find((e) => e.id === q.id)?.w ?? 0).toBe(0);
   });
 });
+
+import { EVALUATION_SETUP_IDS } from "../src/lib/checklist";
+describe("FIX 2 — cobertura del bloqueo en todas las preguntas oficiales", () => {
+  test("cada pregunta de las 6 matrices (incluidas S01–S05 exclusivas) está protegida", () => {
+    let n = 0;
+    for (const S of EVALUATION_SETUP_IDS)
+      for (const q of getActiveQuestionsBySetup(S)) {
+        n++;
+        expect(overlayMethodologyIssues(ov({ disabled: [q.id] })).length, q.id).toBe(1);
+        const opts = q.options.map((o) => ({ v: o.v, label: o.label, pts: o.pts === 0 ? 0.5 : 0 }));
+        if (opts.length)
+          expect(
+            overlayMethodologyIssues(ov({ edits: { [q.id]: { options: opts } } })).length,
+            q.id,
+          ).toBe(1);
+      }
+    expect(n).toBeGreaterThan(200);
+  });
+});
