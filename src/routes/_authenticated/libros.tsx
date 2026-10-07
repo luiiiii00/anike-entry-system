@@ -13,6 +13,7 @@ import {
   formatSize,
   libraryFileUrl,
   uploadLibraryDoc,
+  validateLibraryUpload,
   type BlockId,
   type LibraryDoc,
 } from "@/lib/library";
@@ -204,6 +205,10 @@ function AdminUpload({ userId }: { userId: string }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [inputKey, setInputKey] = useState(0);
+  const [status, setStatus] = useState<
+    { kind: "idle" } | { kind: "success"; text: string } | { kind: "error"; text: string }
+  >({ kind: "idle" });
 
   const upload = useMutation({
     mutationFn: () =>
@@ -214,21 +219,30 @@ function AdminUpload({ userId }: { userId: string }) {
         description: description.trim(),
         file: file!,
       }),
+    onMutate: () => setStatus({ kind: "idle" }),
     onSuccess: () => {
+      const section = LIBRARY_BLOCKS.find((b) => b.id === block)?.title ?? block;
       toast.success("PDF agregado a la biblioteca.");
+      setStatus({ kind: "success", text: `«${title.trim()}» agregado a ${section}.` });
       setTitle("");
       setDescription("");
       setFile(null);
+      setInputKey((k) => k + 1);
       queryClient.invalidateQueries({ queryKey: ["library-docs"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      toast.error(e.message);
+      setStatus({ kind: "error", text: e.message });
+    },
   });
 
-  const ready = !!file && title.trim().length > 1;
+  const problem = validateLibraryUpload({ block, title, description, file });
+  const fileProblem = file ? validateLibraryUpload({ block, title: "ok", description: "", file }) : null;
+  const ready = !problem;
 
   return (
     <div className="panel mb-4 p-4">
-      <p className="label-mono">Agregar PDF (solo admin)</p>
+      <p className="label-mono">Subir PDF a Biblioteca (solo admin)</p>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <label className="block">
           <span className="label-mono">Bloque</span>
@@ -265,19 +279,39 @@ function AdminUpload({ userId }: { userId: string }) {
         <label className="block sm:col-span-2">
           <span className="label-mono">Archivo PDF</span>
           <input
+            key={inputKey}
             type="file"
-            accept="application/pdf"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            accept="application/pdf,.pdf"
+            disabled={upload.isPending}
+            onChange={(e) => {
+              setStatus({ kind: "idle" });
+              setFile(e.target.files?.[0] ?? null);
+            }}
             className="mt-1.5 w-full rounded-xl border border-input bg-background p-2.5 text-sm"
           />
+          <span className="mt-1 block text-xs text-muted-foreground">
+            {file
+              ? fileProblem
+                ? fileProblem
+                : `Seleccionado: ${file.name} · ${formatSize(file.size)}`
+              : "Selecciona un archivo PDF (máx. 30 MB)."}
+          </span>
         </label>
       </div>
+      {status.kind !== "idle" ? (
+        <p
+          role="status"
+          className={cn("mt-3 text-sm", status.kind === "error" ? "text-stop" : "text-primary")}
+        >
+          {status.text}
+        </p>
+      ) : null}
       <button
         onClick={() => upload.mutate()}
         disabled={!ready || upload.isPending}
         className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50"
       >
-        <Upload className="h-4 w-4" /> {upload.isPending ? "Subiendo…" : "Agregar a biblioteca"}
+        <Upload className="h-4 w-4" /> {upload.isPending ? "Subiendo PDF…" : "Subir PDF a Biblioteca"}
       </button>
     </div>
   );
