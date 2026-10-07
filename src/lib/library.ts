@@ -162,6 +162,50 @@ export async function libraryFileUrl(path: string): Promise<string> {
   return data.signedUrl;
 }
 
+export const LIBRARY_BLOCK_IDS: BlockId[] = LIBRARY_BLOCKS.map((b) => b.id);
+export const LIBRARY_MAX_BYTES = 30 * 1024 * 1024;
+export const LIBRARY_TITLE_MIN = 2;
+export const LIBRARY_TITLE_MAX = 200;
+export const LIBRARY_DESCRIPTION_MAX = 500;
+
+/**
+ * Validación previa a la subida. La autoridad final está en el servidor:
+ * RLS de `library_documents` + política de Storage (solo admin, solo .pdf,
+ * carpeta = sección existente) + restricciones CHECK de la tabla.
+ */
+export function validateLibraryUpload(input: {
+  block: string;
+  title: string;
+  description: string;
+  file: { name: string; type: string; size: number } | null;
+}): string | null {
+  if (!LIBRARY_BLOCK_IDS.includes(input.block as BlockId)) return "Selecciona una sección válida.";
+  const title = input.title.trim();
+  if (title.length < LIBRARY_TITLE_MIN) return "El título debe tener al menos 2 caracteres.";
+  if (title.length > LIBRARY_TITLE_MAX) return "El título no puede superar 200 caracteres.";
+  if (input.description.trim().length > LIBRARY_DESCRIPTION_MAX)
+    return "La descripción no puede superar 500 caracteres.";
+  const f = input.file;
+  if (!f) return "Selecciona un archivo PDF.";
+  if (f.type !== "application/pdf" || !/\.pdf$/i.test(f.name))
+    return "Solo se permiten archivos PDF.";
+  if (f.size <= 0) return "El archivo está vacío.";
+  if (f.size > LIBRARY_MAX_BYTES) return "El archivo supera los 30 MB.";
+  return null;
+}
+
+/** Ruta en Storage: `<sección>/<timestamp>-<nombre-saneado>.pdf`. */
+export function libraryStoragePath(block: BlockId, fileName: string, now = Date.now()) {
+  const base = fileName.replace(/\.pdf$/i, "").replace(/[^\w.\-]+/g, "_").slice(0, 120) || "documento";
+  return `${block}/${now}-${base}.pdf`;
+}
+
+/** Comprueba la firma real del archivo (%PDF-), no solo la extensión. */
+export async function hasPdfSignature(file: Blob): Promise<boolean> {
+  const head = new Uint8Array(await file.slice(0, 5).arrayBuffer());
+  return String.fromCharCode(...head) === "%PDF-";
+}
+
 export async function uploadLibraryDoc(input: {
   userId: string;
   block: BlockId;
@@ -169,22 +213,36 @@ export async function uploadLibraryDoc(input: {
   description: string;
   file: File;
 }) {
-  if (input.file.type !== "application/pdf") throw new Error("Solo se permiten archivos PDF.");
-  if (input.file.size > 30 * 1024 * 1024) throw new Error("El archivo supera los 30 MB.");
-  const path = `${input.block}/${Date.now()}-${input.file.name.replace(/[^\w.\-]+/g, "_")}`;
+  const invalid = validateLibraryUpload(input);
+  if (invalid) throw new Error(invalid);
+  if (!(await hasPdfSignature(input.file)))
+    throw new Error("El archivo no es un PDF válido.");
+  const path = libraryStoragePath(input.block, input.file.name);
   const up = await supabase.storage
     .from(LIBRARY_BUCKET)
     .upload(path, input.file, { contentType: "application/pdf", upsert: false });
-  if (up.error) throw up.error;
+  if (up.error) throw new Error(friendlyLibraryError(up.error.message));
   const { error } = await supabase.from("library_documents").insert({
     block: input.block,
-    title: input.title,
-    description: input.description,
+    title: input.title.trim(),
+    description: input.description.trim(),
     storage_path: path,
     size: input.file.size,
     created_by: input.userId,
   });
-  if (error) throw error;
+  if (error) {
+    // No dejar archivos huérfanos si el registro es rechazado.
+    await supabase.storage.from(LIBRARY_BUCKET).remove([path]);
+    throw new Error(friendlyLibraryError(error.message));
+  }
+}
+
+export function friendlyLibraryError(message: string): string {
+  if (/row-level security|unauthorized|permission|403/i.test(message))
+    return "Solo un administrador puede subir documentos a la Biblioteca.";
+  if (/exceeded|too large|413/i.test(message)) return "El archivo supera el tamaño permitido.";
+  if (/check constraint/i.test(message)) return "Los datos del documento no son válidos.";
+  return "No se pudo subir el PDF. Inténtalo de nuevo.";
 }
 
 export async function deleteLibraryDoc(doc: LibraryDoc) {
