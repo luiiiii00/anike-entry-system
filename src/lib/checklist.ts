@@ -2970,7 +2970,7 @@ export type EvaluationSetup = Omit<OfficialSetup, "id"> & { id: "FREE" | Officia
 export const FREE_SETUP: EvaluationSetup = {
   id: "FREE",
   code: "LIBRE",
-  name: "SETUP LIBRE",
+  name: "Anike Ejepika ",
   label: "SETUP LIBRE",
   description: "Matriz original completa de ANIKE EJEPIKA, sin criterios exclusivos de setup.",
   focus: [],
