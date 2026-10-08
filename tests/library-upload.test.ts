@@ -143,3 +143,29 @@ describe.if(!!URL && !!KEY)("llamada directa al backend sin permisos de admin", 
     expect(rows.length).toBe(0);
   });
 });
+
+describe("ubicación del flujo administrativo", () => {
+  const admin = readFileSync("src/routes/admin.tsx", "utf8");
+  const libros = readFileSync("src/routes/_authenticated/libros.tsx", "utf8");
+  const comp = readFileSync("src/components/AdminLibrary.tsx", "utf8");
+
+  it("Admin > Biblioteca existe en el panel de administración (ruta con gate de rol admin)", () => {
+    expect(admin).toMatch(/<AdminLibrary \/>/);
+    expect(admin).toMatch(/\.eq\("role", "admin"\)/);
+    expect(comp).toContain("Admin &gt; Biblioteca");
+    expect(comp).toContain("Subir PDF a Biblioteca");
+    expect(comp).toMatch(/uploadLibraryDoc/);
+  });
+
+  it("la Biblioteca normal no expone el control de subida", () => {
+    expect(libros).not.toMatch(/uploadLibraryDoc|AdminUpload|AdminLibrary|type="file"/);
+  });
+
+  it("un solo formulario de subida en todo el proyecto", () => {
+    const files = readdirSync("src", { recursive: true }) as string[];
+    const users = files
+      .filter((f) => /\.tsx?$/.test(f) && !f.endsWith("library.ts"))
+      .filter((f) => readFileSync(join("src", f), "utf8").includes("uploadLibraryDoc("));
+    expect(users).toEqual([join("components", "AdminLibrary.tsx")]);
+  });
+});
