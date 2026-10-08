@@ -20,6 +20,7 @@ import { Wordmark } from "@/components/brand";
 import { ContentProtection } from "@/components/ContentProtection";
 import { AdminPayments } from "@/components/AdminPayments";
 import { AdminAiSettings } from "@/components/AdminAiSettings";
+import { AdminLibrary } from "@/components/AdminLibrary";
 
 import { friendlyAuthError } from "@/lib/auth-errors";
 import {
@@ -421,6 +422,8 @@ function AdminPanel() {
           <AdminAiSettings />
 
           <AdminPayments />
+
+          <AdminLibrary />
 
         </main>
       </div>
